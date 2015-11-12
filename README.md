@@ -24,7 +24,12 @@ introduction            Introduction to Homomorphic Computation
                         (source, html)
 homomorphing            MLE using Homomorphic Computation (source,
                         html)
+```
 
+Then view, for example, as follows:
+
+```{r}
+vignette("introduction", package="homomorpheR")
 ```
 
 The first introduces simple homomorphic computations and the other
