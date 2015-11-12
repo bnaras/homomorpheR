@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{shapes,snakes, arrows}
+\usepackage{mathpazo}
+\input stdmargins
+%\usepackage[T1]{fontenc}
+
+%\usepackage{bm}
+
+\newcommand*{\myprime}{^{\prime}\mkern-1.2mu}
+\newcommand*{\mydprime}{^{\prime\prime}\mkern-1.2mu}
+\newcommand*{\mytrprime}{^{\prime\prime\prime}\mkern-1.2mu}
+
+\usepackage[scaled]{helvet}
+\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\pagestyle{empty}
+
+\begin{document}
+
+\tikzstyle{site} = [draw, fill=blue!20, rectangle,
+    minimum height=3em, minimum width=6em]
+\tikzstyle{masterblock} = [draw, fill=red!10, rectangle,
+    minimum height=4em, minimum width=10em]
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
+
+% The block diagram code is probably more verbose than necessary
+\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+    % We start by placing the blocks
+    \node [site, name=input] (site1) {\textbf{Site 1}};
+    \node [site, right of=site1, node distance=7cm] (site2) {\textbf{Site 2}};
+    \node [site, right of=site2, node distance=7cm] (site3) {\textbf{Site 3}};
+    % We draw an edge between the controller and system block to
+    % calculate the coordinate u. We need it to place the measurement block.
+    \draw [->] (site1) -- node[name=sum1] {$E(r) + E(l_1)$} (site2);
+    \draw [->] (site2) -- node[name=sum2] {$E(r) + E(l_1) + E(l_2)$} (site3);
+    \node [masterblock, below of=site2 ] (master) {\begin{minipage}{10em}
+        \begin{center}
+          \textbf{Master}\\
+          Generate random $r$
+        \end{center}
+    \end{minipage}};
+
+    % Once the nodes are placed, connecting them is easy.
+    \draw [->] (site3) |- node[name=sum3] [near end] {$E(r) + E(l_1) +
+      E(l_2) + E(l_3)$} (master);
+    % \draw [->] (site3) |- node[name=sum3] [near end]
+    % {$E(r+\sum_{i=1}^3l_i) = E(r) + \sum_{i=1}^3E(l_i)$} (master);
+
+    \draw [->] (master) -| node [near start] {$E(r)$} (site1);
+
+    % \draw [->] (master) -| node [near start] {$E(r)$ random} node[pos=0.99] {}
+    %     node [near end] {$E(r)$} (site1);
+%    \draw [->] (master) -| node[name=sum0] {$E(r)$} (site1);
+
+\end{tikzpicture}
+
+\end{document}
