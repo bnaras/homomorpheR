@@ -38,5 +38,5 @@ parameter.
 
 Eventually, as this library becomes industrial strength, it will be
 incorporated into the computations defined in
-[distcomp](http://cran.r-project.org/packages/web/distcomp).
+[distcomp](http://cran.r-project.org/package=distcomp).
 
