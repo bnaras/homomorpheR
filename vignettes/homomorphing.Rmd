@@ -58,35 +58,39 @@ logLik(fit0)
 
 ## Distributed Computation
 
-Assume now, that the data `y` is distributed between three sites, none
+Assume now that the data `y` is distributed between three sites, none
 of whom want to share actual data among each other or even with a
-master computation process. They wish to keep their data secret, but
+master computation process. They wish to keep their data secret but
 are willing, together, to provide the sum of their local negative
 log-likelihoods. They need to do this in a way so that the master
-process will not be able to separate the likelihood value parts
-associated with each site. Let's assume the data set is partitioned as
-follows.
+process will not be able to associate the contribution to the
+likelihood from each site. To simulate this, let's partition the data
+`y` as follows.
 
 ```{r}
 y1 <- y[1:20]
 y2 <- y[21:27]
 y3 <- y[28:40]
 ```
-The overall likelihood function for the entire data is therefore the
-sum of the likelihoods at each site. How can this likelihood be
+
+The overall likelihood function $l(\lambda)$ for the entire data is
+therefore the sum of the likelihoods at each site: $l(\lambda) =
+l_1(\lambda)+l_2(\lambda)+l_3(\lambda).$ How can this likelihood be
 computed while maintaining privacy?
 
-Assuming that every site, including the master, has access to a
+Assuming that every site including the master has access to a
 homomorphic computation library such as `homomorpheR`, the likelihood
-can be computed as follows. We use $E(x)$ and $D(x)$ to denote the
-encrypted and decrypted values of $x$ respectively.
+can be computed in a privacy-preserving manner using the following
+scheme. We use $E(x)$ and $D(x)$ to denote the encrypted and decrypted
+values of $x$ respectively.
 
 0. Master generates a public/private key pair. Master distributes the
-   public key to all sites. (The private key is not kept by the
-   master.)
-1. Master generates a random offset $r$.
+   public key to all sites. (The private key is not distributed and
+   kept only by the master.)
+1. Master generates a random offset $r$ to obfuscate the intial
+   likelihood.
 2. Master sends $E(r)$ and a guess $\lambda_0$ to site 1. Note that
-   $\lambda$ is not encrypted!
+   $\lambda$ is not encrypted.
 3. Site 1 computes $l_1 = l(\lambda_0, y_1)$, the local likelihood for
    local data $y_1$ using parameter $\lambda_0$. It then sends on
    $\lambda_0$ and $E(r) + E(l_1)$ to site 2.
@@ -96,9 +100,10 @@ encrypted and decrypted values of $x$ respectively.
 5. Site 3 computes $l_3 = l(\lambda_0, y_3)$, the local likelihood for
    local data $y_3$ using parameter $\lambda_0$. It then sends on
    $E(r) + E(l_1) + E(l_2) + E(l_3)$ back to master.
-6. Master retrieves $E(r) + E(l_1) + E(l_2) + E(l_3)$ which is exactly
-   $E(r+l_1+l_2+l_3)$ due to the homomorphism and computes $D(E(l)) -
-   r$ to obtain the value of the overall likelihood at $\lambda_0$.
+6. Master retrieves $E(r) + E(l_1) + E(l_2) + E(l_3)$ which, due to
+   the homomorphism, is exactly $E(r+l_1+l_2+l_3) = E(r+l).$ So the
+   master computes $D(E(r+l)) - r$ to obtain the value of the overall
+   likelihood at $\lambda_0$.
 7. Master updates $\lambda_0$ with a new guess $\lambda_1$ and repeats
    steps 1-5. This process is iterated to convergence. For added
    security, even steps 0-5 can be repeated, at additional

@@ -95,20 +95,20 @@ fit0 &lt;- mle(nLL, start = list(lambda = 5), nobs = NROW(y))</code></pre>
 </div>
 <div id="distributed-computation" class="section level2">
 <h2>Distributed Computation</h2>
-<p>Assume now, that the data <code>y</code> is distributed between three sites, none of whom want to share actual data among each other or even with a master computation process. They wish to keep their data secret, but are willing, together, to provide the sum of their local negative log-likelihoods. They need to do this in a way so that the master process will not be able to separate the likelihood value parts associated with each site. Let’s assume the data set is partitioned as follows.</p>
+<p>Assume now that the data <code>y</code> is distributed between three sites, none of whom want to share actual data among each other or even with a master computation process. They wish to keep their data secret but are willing, together, to provide the sum of their local negative log-likelihoods. They need to do this in a way so that the master process will not be able to associate the contribution to the likelihood from each site. To simulate this, let’s partition the data <code>y</code> as follows.</p>
 <pre class="r"><code>y1 &lt;- y[1:20]
 y2 &lt;- y[21:27]
 y3 &lt;- y[28:40]</code></pre>
-<p>The overall likelihood function for the entire data is therefore the sum of the likelihoods at each site. How can this likelihood be computed while maintaining privacy?</p>
-<p>Assuming that every site, including the master, has access to a homomorphic computation library such as <code>homomorpheR</code>, the likelihood can be computed as follows. We use <span class="math">\(E(x)\)</span> and <span class="math">\(D(x)\)</span> to denote the encrypted and decrypted values of <span class="math">\(x\)</span> respectively.</p>
+<p>The overall likelihood function <span class="math">\(l(\lambda)\)</span> for the entire data is therefore the sum of the likelihoods at each site: <span class="math">\(l(\lambda) = l_1(\lambda)+l_2(\lambda)+l_3(\lambda).\)</span> How can this likelihood be computed while maintaining privacy?</p>
+<p>Assuming that every site including the master has access to a homomorphic computation library such as <code>homomorpheR</code>, the likelihood can be computed in a privacy-preserving manner using the following scheme. We use <span class="math">\(E(x)\)</span> and <span class="math">\(D(x)\)</span> to denote the encrypted and decrypted values of <span class="math">\(x\)</span> respectively.</p>
 <ol start="0" style="list-style-type: decimal">
-<li>Master generates a public/private key pair. Master distributes the public key to all sites. (The private key is not kept by the master.)</li>
-<li>Master generates a random offset <span class="math">\(r\)</span>.</li>
-<li>Master sends <span class="math">\(E(r)\)</span> and a guess <span class="math">\(\lambda_0\)</span> to site 1. Note that <span class="math">\(\lambda\)</span> is not encrypted!</li>
+<li>Master generates a public/private key pair. Master distributes the public key to all sites. (The private key is not distributed and kept only by the master.)</li>
+<li>Master generates a random offset <span class="math">\(r\)</span> to obfuscate the intial likelihood.</li>
+<li>Master sends <span class="math">\(E(r)\)</span> and a guess <span class="math">\(\lambda_0\)</span> to site 1. Note that <span class="math">\(\lambda\)</span> is not encrypted.</li>
 <li>Site 1 computes <span class="math">\(l_1 = l(\lambda_0, y_1)\)</span>, the local likelihood for local data <span class="math">\(y_1\)</span> using parameter <span class="math">\(\lambda_0\)</span>. It then sends on <span class="math">\(\lambda_0\)</span> and <span class="math">\(E(r) + E(l_1)\)</span> to site 2.</li>
 <li>Site 2 computes <span class="math">\(l_2 = l(\lambda_0, y_2)\)</span>, the local likelihood for local data <span class="math">\(y_2\)</span> using parameter <span class="math">\(\lambda_0\)</span>. It then sends on <span class="math">\(\lambda_0\)</span> and <span class="math">\(E(r) + E(l_1) + E(l_2)\)</span> to site 3.</li>
 <li>Site 3 computes <span class="math">\(l_3 = l(\lambda_0, y_3)\)</span>, the local likelihood for local data <span class="math">\(y_3\)</span> using parameter <span class="math">\(\lambda_0\)</span>. It then sends on <span class="math">\(E(r) + E(l_1) + E(l_2) + E(l_3)\)</span> back to master.</li>
-<li>Master retrieves <span class="math">\(E(r) + E(l_1) + E(l_2) + E(l_3)\)</span> which is exactly <span class="math">\(E(r+l_1+l_2+l_3)\)</span> due to the homomorphism and computes <span class="math">\(D(E(l)) -    r\)</span> to obtain the value of the overall likelihood at <span class="math">\(\lambda_0\)</span>.</li>
+<li>Master retrieves <span class="math">\(E(r) + E(l_1) + E(l_2) + E(l_3)\)</span> which, due to the homomorphism, is exactly <span class="math">\(E(r+l_1+l_2+l_3) = E(r+l).\)</span> So the master computes <span class="math">\(D(E(r+l)) - r\)</span> to obtain the value of the overall likelihood at <span class="math">\(\lambda_0\)</span>.</li>
 <li>Master updates <span class="math">\(\lambda_0\)</span> with a new guess <span class="math">\(\lambda_1\)</span> and repeats steps 1-5. This process is iterated to convergence. For added security, even steps 0-5 can be repeated, at additional computational cost.</li>
 </ol>
 <p>This is pictorially shown below.</p>
