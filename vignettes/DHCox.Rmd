@@ -9,7 +9,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{MLE using Homomorphic Computation}
+  %\VignetteIndexEntry{Distributed Stratified Cox Regression using Homomorphic Computation}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -108,7 +108,7 @@ str(coxData[[3]])
 # Aggregated fit
 
 If the data were all aggregated in one place, it would very simple to
-fit the model. Below, we bind all the data by three row
+fit the model. Below, we row-bind the data from the three sites.
 
 ```{r}
 library(survival)
@@ -395,10 +395,11 @@ summary(aggModel)
 ```
 
 And the log likelihood of the distributed homomorphic fit also
-matches.
+matches as the following computation shows.
 
 ```{r}
-logLik(fit)
+## -2 Log L
+-2 * logLik(fit)
 ```
 
 The results should be the same as above.
