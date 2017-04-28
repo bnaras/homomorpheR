@@ -31,6 +31,14 @@ knitr::opts_chunk$set(
 It is only a short way from the toy MLE example to a more useful
 example using Cox regression.
 
+But first, we need the `survival` package.
+
+```{r}
+if (!require("survival")) {
+    stop("this vignette requires the survival package")
+}
+```
+
 We generate some simulated data for the purpose of this example. We
 will have three sites each with patient data (sizes 1000, 500 and
 1500) respectively, containing
@@ -111,9 +119,9 @@ If the data were all aggregated in one place, it would very simple to
 fit the model. Below, we row-bind the data from the three sites.
 
 ```{r}
-library(survival)
-aggModel <- coxph(formula = Surv(time, event) ~ sex + age + bm + strata(stratum),
-                  data = do.call(rbind, coxData))
+aggModel <- coxph(formula = Surv(time, event) ~ sex +
+                                age + bm + strata(stratum),
+                            data = do.call(rbind, coxData))
 aggModel
 ```
 
@@ -205,13 +213,12 @@ We define a class to encapsulate our sites that will compute the
 partial log likelihood on site data given a parameter $\beta$.
 
 In the code below, we exploit, for expository purposes, a feature of
-`survival::coxph`: a control parameter can be passed to evaluate the
+`coxph`: a control parameter can be passed to evaluate the
 partial likelihood at a given $\beta$ value.
 
 ```{r}
 library(gmp)
 library(homomorpheR)
-library(survival)
 Site <- R6::R6Class("Site",
                     private = list(
                         ## name of the site
@@ -302,9 +309,9 @@ Site <- R6::R6Class("Site",
                                 ## We're worker, so compute local negative log likelihood
                                 tryCatch({
                                     m <- coxph(formula = Surv(time, event) ~ sex + age + bm,
-                                               data = private$data,
-                                               init = beta,
-                                               control = private$cph.control)
+                                                         data = private$data,
+                                                         init = beta,
+                                                         control = private$cph.control)
                                     -(m$loglik[1])
                                 },
                                 error = function(e) NA)

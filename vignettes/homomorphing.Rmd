@@ -309,7 +309,7 @@ The results should be the same as above.
 One can imagine these sort of computations being constructed within
 the framework described the R package
 [distcomp](https://cran.r-project.org/package=distcomp) where the sites are
-[opencpu](http://opencpu.org) servers and there is a master process executing the
+[opencpu](https://opencpu.org) servers and there is a master process executing the
 computation. Much work remains to be done to make this work in a
 seamless manner; however, as this proof-of-concept example shows, the
 technical hurdles are quite surmountable.

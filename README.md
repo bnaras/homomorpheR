@@ -43,5 +43,5 @@ Three examples are provided:
 
 Eventually, as this library becomes industrial strength, it will be
 incorporated into the computations defined in
-[distcomp](http://cran.r-project.org/package=distcomp).
+[distcomp](https://cran.r-project.org/package=distcomp).
 
