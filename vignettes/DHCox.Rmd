@@ -1,5 +1,5 @@
 ---
-title: "Maximum Likelihood Computation using Homomorphic Computation"
+title: "Distributed Stratified Cox Regression using Homomorphic Computation"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -9,7 +9,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{MLE using Homomorphic Computation}
+  %\VignetteIndexEntry{Distributed Stratified Cox Regression using Homomorphic Computation}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -28,50 +28,126 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-We present a toy example of a homomorphic computation involving
-maximum likelihood estimation.
+It is only a short way from the toy MLE example to a more useful
+example using Cox regression.
 
-Consider the following data motivated by an example from the `mle`
-function in the `stats4` R package: we wish to estimate $\lambda$, the
-Poisson parameter $\lambda$ for randomly generated count data `y` below:
+But first, we need the `survival` package.
 
 ```{r}
-library(stats4)
-set.seed(17822)
-y <- rpois(n = 40, lambda=10)
-# Easy one-dimensional MLE:
-nLL <- function(lambda) -sum(stats::dpois(y, lambda, log = TRUE))
-fit0 <- mle(nLL, start = list(lambda = 5), nobs = NROW(y))
+if (!require("survival")) {
+    stop("this vignette requires the survival package")
+}
 ```
 
-The function `nLL` is the negative log-likelihood of the data and the
-function `mle` computes the maximum likelihood estimate that can be
-printed out.
+We generate some simulated data for the purpose of this example. We
+will have three sites each with patient data (sizes 1000, 500 and
+1500) respectively, containing
+
+- `sex` (0, 1) for male/female
+- `age` between 40 and 70
+- a biomarker `bm`
+- a `time` to some event of interest
+- an indicator `event` which is 1 if an event was observed and 0
+otherwise.
+
+It is common to fit stratified models using sites as strata since the
+patient characteristics usually differ from site to site. So the
+baseline hazards (`lambdaT`) are different for each site but they
+share common coefficients (`beta.1`, `beta.2` and `beta.3` for `age`,
+`sex` and `bm` respy.) for the model. See [@survival-book] by Therneau
+and Grambsch for details. So our model for each site $i$ is
+
+$$
+S(t, age, sex, bm) =
+[S_0^i(t)]^{\exp(\beta_1 age + \beta_2 sex + \beta_3 bm)}
+$$
+
 
 ```{r}
-summary(fit0)
+sampleSize <- c(n1 = 1000, n2 = 500, n3 = 1500)
+
+set.seed(12345)
+
+beta.1 <- -.015; beta.2 <- .2; beta.3 <- .001;
+
+lambdaT <- c(5, 4, 3)
+lambdaC <- 2
+
+coxData <- lapply(seq_along(sampleSize),
+                  function(i) {
+                      sex <- sample(c(0, 1), size = sampleSize[i], replace = TRUE)
+                      age <- sample(40:70, size = sampleSize[i], replace = TRUE)
+                      bm <- rnorm(sampleSize[i])
+                      trueTime <- rweibull(sampleSize[i],
+                                           shape = 1,
+                                           scale = lambdaT[i] * exp(beta.1 * age + beta.2 * sex + beta.3 * bm ))
+                      censoringTime <- rweibull(sampleSize[i],
+                                                shape = 1,
+                                                scale = lambdaC)
+                      time <- pmin(trueTime, censoringTime)
+                      event <- (time == trueTime)
+                      data.frame(stratum = i,
+                                 sex = sex,
+                                 age = age,
+                                 bm = bm,
+                                 time = time,
+                                 event = event)
+                  })
 ```
 
+So here is a summary of the data for the three sites.
+
+###  Site 1
 ```{r}
-logLik(fit0)
+str(coxData[[1]])
 ```
+
+###  Site 2
+```{r}
+str(coxData[[2]])
+```
+
+###  Site 3
+```{r}
+str(coxData[[3]])
+```
+
+#
+# Aggregated fit
+
+If the data were all aggregated in one place, it would very simple to
+fit the model. Below, we row-bind the data from the three sites.
+
+```{r}
+aggModel <- coxph(formula = Surv(time, event) ~ sex +
+                                age + bm + strata(stratum),
+                            data = do.call(rbind, coxData))
+aggModel
+```
+
+Here `age` and `sex` are significant, but `bm` is not. The estimates
+$\hat{\beta}$ are `(-0.180, .020, .007)`.
+
+We can also print out the value of the (partial) log-likelihood at the
+MLE.
+
+```{r}
+aggModel$loglik
+```
+
+The first is the value at the parameter value `(0, 0, 0)` and the last
+is the value at the MLE.
+
 
 ## Distributed Computation
 
-Assume now that the data `y` is distributed between three sites, none
-of whom want to share actual data among each other or even with a
+Assume now that the data `coxData` is distributed between three sites
+none of whom want to share actual data among each other or even with a
 master computation process. They wish to keep their data secret but
 are willing, together, to provide the sum of their local negative
 log-likelihoods. They need to do this in a way so that the master
 process will not be able to associate the contribution to the
-likelihood from each site. To simulate this, let's partition the data
-`y` as follows.
-
-```{r}
-y1 <- y[1:20]
-y2 <- y[21:27]
-y3 <- y[28:40]
-```
+likelihood from each site.
 
 The overall likelihood function $l(\lambda)$ for the entire data is
 therefore the sum of the likelihoods at each site: $l(\lambda) =
@@ -113,7 +189,6 @@ This is pictorially shown below.
 
 ![](assets/round_robin.png)
 
-
 ## Implementation
 
 The above implementation assumes that the encryption and decryption
@@ -134,6 +209,13 @@ the `addNLLAndForward` method takes care to split the result into an
 integer and fractional part while performing the arithmetic
 operations. (The latter is approximated by a rational number.)
 
+We define a class to encapsulate our sites that will compute the
+partial log likelihood on site data given a parameter $\beta$.
+
+In the code below, we exploit, for expository purposes, a feature of
+`coxph`: a control parameter can be passed to evaluate the
+partial likelihood at a given $\beta$ value.
+
 ```{r}
 library(gmp)
 library(homomorpheR)
@@ -150,9 +232,12 @@ Site <- R6::R6Class("Site",
                         ## is this the master site?
                         iAmMaster = FALSE,
                         ## intermediate result variable
-                        intermediateResult = NA
+                        intermediateResult = NA,
+                        ## Control variable for cox regression
+                        cph.control = NA
                     ),
                     public = list(
+                        count = NA,
                         ## Common denominator for approximate real arithmetic
                         den = NA,
                         ## The public key; everyone has this
@@ -161,6 +246,7 @@ Site <- R6::R6Class("Site",
                             private$name <- name
                             private$data <- data
                             self$den <- den
+                            private$cph.control <- replace(coxph.control(), "iter.max", 0)
                         },
                         setPublicKey = function(pubkey) {
                             self$pubkey <- pubkey
@@ -173,7 +259,7 @@ Site <- R6::R6Class("Site",
                             private$iAmMaster <- TRUE
                         },
                         ## add neg log lik and forward to next site
-                        addNLLAndForward = function(lambda, enc.offset) {
+                        addNLLAndForward = function(beta, enc.offset) {
                             if (private$iAmMaster) {
                                 ## We are master, so don't forward
                                 ## Just store intermediate result and return
@@ -182,7 +268,7 @@ Site <- R6::R6Class("Site",
                                 ## We are workers, so add and forward
                                 ## add negative log likelihood and forward result to next site
                                 ## Note that offset is encrypted
-                                nllValue <- self$nLL(lambda)
+                                nllValue <- self$nLL(beta)
                                 result.int <- floor(nllValue)
                                 result.frac <- nllValue - result.int
                                 result.fracnum <- as.bigq(numerator(as.bigq(result.frac) * self$den))
@@ -191,7 +277,7 @@ Site <- R6::R6Class("Site",
                                 enc.result.fracnum <- pubkey$encrypt(result.fracnum)
                                 result <- list(int = pubkey$add(enc.result.int, enc.offset$int),
                                                frac = pubkey$add(enc.result.fracnum, enc.offset$frac))
-                                private$nextSite$addNLLAndForward(lambda, enc.offset = result)
+                                private$nextSite$addNLLAndForward(beta, enc.offset = result)
                             }
                             ## Return a TRUE result for now.
                             TRUE
@@ -201,7 +287,7 @@ Site <- R6::R6Class("Site",
                             private$nextSite <- nextSite
                         },
                         ## The negative log likelihood
-                        nLL = function(lambda) {
+                            nLL = function(beta) {
                             if (private$iAmMaster) {
                                 ## We're master, so need to get result from sites
                                 ## 1. Generate a random offset and encrypt it
@@ -211,7 +297,7 @@ Site <- R6::R6Class("Site",
                                 enc.offset <- list(int = pubkey$encrypt(offset$int),
                                                    frac = pubkey$encrypt(offset$frac))
                                 ## 2. Send off to next site
-                                throwaway <- private$nextSite$addNLLAndForward(lambda, enc.offset)
+                                throwaway <- private$nextSite$addNLLAndForward(beta, enc.offset)
                                 ## 3. When the call returns, the result will be in
                                 ##    the field intermediateResult, so decrypt that.
                                 sum <- private$intermediateResult
@@ -220,8 +306,15 @@ Site <- R6::R6Class("Site",
                                 fracResult <- as.double(as.bigq(privkey$decrypt(sum$frac) - offset$frac) / den)
                                 intResult + fracResult
                             } else {
-                                ## We're worker, so compute local nLL
-                                -sum(stats::dpois(private$data, lambda, log = TRUE))
+                                ## We're worker, so compute local negative log likelihood
+                                tryCatch({
+                                    m <- coxph(formula = Surv(time, event) ~ sex + age + bm,
+                                                         data = private$data,
+                                                         init = beta,
+                                                         control = private$cph.control)
+                                    -(m$loglik[1])
+                                },
+                                error = function(e) NA)
                             }
                         })
                     )
@@ -241,9 +334,9 @@ den <- gmp::as.bigq(2)^256  #Our denominator for rational approximations
 ### 2. Create sites
 
 ```{r}
-site1 <- Site$new(name = "Site 1", data = y1, den = den)
-site2 <- Site$new(name = "Site 2", data = y2, den = den)
-site3 <- Site$new(name = "Site 3", data = y3, den = den)
+site1 <- Site$new(name = "Site 1", data = coxData[[1]], den = den)
+site2 <- Site$new(name = "Site 2", data = coxData[[2]], den = den)
+site3 <- Site$new(name = "Site 3", data = coxData[[3]], den = den)
 ```
 The master process is also a site but has no data. So has to be thus
 designated.
@@ -288,35 +381,35 @@ site3$setNextSite(master)
 
 
 ```{r}
-fit1 <- mle(master$nLL, start = list(lambda = 5))
+library(stats4)
+nll <- function(age, sex, bm) master$nLL(c(age, sex, bm))
+fit <- mle(nll, start = list(age = 0, sex = 0, bm = 0))
 ```
 
+### 5. Compare the results
 
-Print the summary.
+The summary will show the results.
 
 ```{r}
-summary(fit1)
+summary(fit)
 ```
 
+Note how the estimated coefficients and standard errors closely match
+the full model summary below.
+
 ```{r}
-logLik(fit1)
+summary(aggModel)
+```
+
+And the log likelihood of the distributed homomorphic fit also
+matches as the following computation shows.
+
+```{r}
+## -2 Log L
+-2 * logLik(fit)
 ```
 
 The results should be the same as above.
 
-## Applications via `distcomp` and `opencpu`
 
-One can imagine these sort of computations being constructed within
-the framework described the R package
-[distcomp](https://cran.r-project.org/package=distcomp) where the sites are
-[opencpu](http://opencpu.org) servers and there is a master process executing the
-computation. Much work remains to be done to make this work in a
-seamless manner; however, as this proof-of-concept example shows, the
-technical hurdles are quite surmountable.
-
-## CAVEAT
-
-This is an initial proof-of-concept implementation that has to
-substantially improved for real-world use. You've been warned.
-
-
+## References

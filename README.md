@@ -32,11 +32,16 @@ Then view, for example, as follows:
 vignette("introduction", package="homomorpheR")
 ```
 
-The first introduces simple homomorphic computations and the other
-shows a simple example of Maximum Likelihood Estimation for a Poisson
-parameter.
+Three examples are provided:
+
+- A quick and easy introduction to homomorphic computations
+- An example of Homomorphic Maximum Likelihood Estimation for a Poisson
+  parameter.
+- A larger example of Homomorphic Computations for fitting a
+  Stratified Cox Regression model where the data is distributed across
+  sites.
 
 Eventually, as this library becomes industrial strength, it will be
 incorporated into the computations defined in
-[distcomp](http://cran.r-project.org/package=distcomp).
+[distcomp](https://cran.r-project.org/package=distcomp).
 
