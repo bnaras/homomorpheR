@@ -45,7 +45,8 @@ will have three sites each with patient data (sizes 1000, 500 and
 
 - `sex` (0, 1) for male/female
 - `age` between 40 and 70
-- a biomarker `bm`
+- a biomarker `bm` with a coefficient close to zero
+- another biomarker `bm2` with a non-zero coefficient
 - a `time` to some event of interest
 - an indicator `event` which is 1 if an event was observed and 0
 otherwise.
@@ -53,35 +54,39 @@ otherwise.
 It is common to fit stratified models using sites as strata since the
 patient characteristics usually differ from site to site. So the
 baseline hazards (`lambdaT`) are different for each site but they
-share common coefficients (`beta.1`, `beta.2` and `beta.3` for `age`,
-`sex` and `bm` respy.) for the model. See [@survival-book] by Therneau
-and Grambsch for details. So our model for each site $i$ is
+share common coefficients (`beta.1`, `beta.2`, `beta.3` and `beta.4`
+for `age`, `sex`, `bm` and `bm2` respectively) for the model. See
+[@survival-book] by Therneau and Grambsch for details. So our model
+for each site $i$ is
 
 $$
-S(t, age, sex, bm) =
-[S_0^i(t)]^{\exp(\beta_1 age + \beta_2 sex + \beta_3 bm)}
+S(t, age, sex, bm, bm2) =
+[S_0^i(t)]^{\exp(\beta_1 age + \beta_2 sex + \beta_3 bm + \beta_4 bm2)}
 $$
 
 
 ```{r}
 sampleSize <- c(n1 = 1000, n2 = 500, n3 = 1500)
 
-set.seed(12345)
+set.seed(23893)
 
-beta.1 <- -.015; beta.2 <- .2; beta.3 <- .001;
+beta.1 <- -.015; beta.2 <- .2; beta.3 <- .001; beta.4 <- 0.1
 
 lambdaT <- c(5, 4, 3)
 lambdaC <- 2
 
 coxData <- lapply(seq_along(sampleSize),
                   function(i) {
-                      sex <- sample(c(0, 1), size = sampleSize[i], replace = TRUE)
-                      age <- sample(40:70, size = sampleSize[i], replace = TRUE)
-                      bm <- rnorm(sampleSize[i])
-                      trueTime <- rweibull(sampleSize[i],
+                      n <- sampleSize[i]
+                      sex <- sample(c(0, 1), size = n, replace = TRUE)
+                      age <- sample(40:70, size = n, replace = TRUE)
+                      bm <- rnorm(n)
+                      bm2 <- rnorm(n = n, mean = 0.5)
+                      trueTime <- rweibull(n = n,
                                            shape = 1,
-                                           scale = lambdaT[i] * exp(beta.1 * age + beta.2 * sex + beta.3 * bm ))
-                      censoringTime <- rweibull(sampleSize[i],
+                                           scale = lambdaT[i] *
+                                               exp(beta.1 * age + beta.2 * sex + beta.3 * bm + beta.4 * bm2))
+                      censoringTime <- rweibull(n = n,
                                                 shape = 1,
                                                 scale = lambdaC)
                       time <- pmin(trueTime, censoringTime)
@@ -90,6 +95,7 @@ coxData <- lapply(seq_along(sampleSize),
                                  sex = sex,
                                  age = age,
                                  bm = bm,
+                                 bm2 = bm2,
                                  time = time,
                                  event = event)
                   })
@@ -120,13 +126,13 @@ fit the model. Below, we row-bind the data from the three sites.
 
 ```{r}
 aggModel <- coxph(formula = Surv(time, event) ~ sex +
-                                age + bm + strata(stratum),
+                                age + bm + bm2 + strata(stratum),
                             data = do.call(rbind, coxData))
 aggModel
 ```
 
-Here `age` and `sex` are significant, but `bm` is not. The estimates
-$\hat{\beta}$ are `(-0.180, .020, .007)`.
+Here `age` and `sex` and `bm2` are significant, but `bm` is not. The estimates
+$\hat{\beta}$ are shown above along with standard errors.
 
 We can also print out the value of the (partial) log-likelihood at the
 MLE.
@@ -308,7 +314,7 @@ Site <- R6::R6Class("Site",
                             } else {
                                 ## We're worker, so compute local negative log likelihood
                                 tryCatch({
-                                    m <- coxph(formula = Surv(time, event) ~ sex + age + bm,
+                                    m <- coxph(formula = Surv(time, event) ~ sex + age + bm + bm2,
                                                          data = private$data,
                                                          init = beta,
                                                          control = private$cph.control)
@@ -382,16 +388,35 @@ site3$setNextSite(master)
 
 ```{r}
 library(stats4)
-nll <- function(age, sex, bm) master$nLL(c(age, sex, bm))
-fit <- mle(nll, start = list(age = 0, sex = 0, bm = 0))
+nll <- function(age, sex, bm, bm2) master$nLL(c(age, sex, bm, bm2))
+fit <- mle(nll, start = list(age = 0, sex = 0, bm = 0, bm2 = 0))
 ```
 
 ### 5. Compare the results
 
-The summary will show the results.
+The summary will show the results, but only the coefficients and the
+standard errors. 
 
 ```{r}
 summary(fit)
+```
+
+Let us recreate a summary table similar to what would be produced by
+the `summary` call on the aggregated model, for comparison.
+
+
+```{r}
+ourSummary <- function(fit) {
+    coefs <- coef(fit)
+    se <- sqrt(diag(vcov(fit)))
+    expCoef <- exp(coefs)
+    zScore <- coefs / se
+    pValue <- 2 * pnorm(abs(coefs/se), lower.tail = FALSE)
+    result <- cbind(coefs, expCoef, se, zScore, pValue)
+    colnames(result) <- c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)")
+    result
+}
+print(ourSummary(fit), digits = 3)
 ```
 
 Note how the estimated coefficients and standard errors closely match
@@ -408,8 +433,5 @@ matches as the following computation shows.
 ## -2 Log L
 -2 * logLik(fit)
 ```
-
-The results should be the same as above.
-
 
 ## References
