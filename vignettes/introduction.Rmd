@@ -93,6 +93,7 @@ Ooms (based on Daniel J. Bernstein's generators) in addition to `gmp`
 for arbitrary precision arithmetic.
 
 ```{r}
+library(homomorpheR)
 keyPair <- PaillierKeyPair$new(modulusBits = 1024)
 ```
 
