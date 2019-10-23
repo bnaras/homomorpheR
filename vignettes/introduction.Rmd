@@ -70,7 +70,7 @@ of the Paillier system for secure vote tallying is in
 A bit of notation helps. Let $x$ be any message; for us, it is just a
 large integer. Denote $E(x)$ as the encrypted message and $D(x)$ as
 the decryption of $x$ in some scheme. If the scheme is homomorphic
-over addition, then we have $$ E(x) + E(y) = E(x + y) $$
+over addition, then we have $$ E(x) + E(y) = E(x + y). $$
 
 This means that calculating $x+y$ can be done by decrypting the sum of
 the encrypted values of $x$ and $y$. Thus, entities can merely

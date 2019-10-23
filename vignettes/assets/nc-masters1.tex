@@ -1,0 +1,85 @@
+\documentclass[tikz]{standalone}
+
+\usetikzlibrary{shapes,snakes, arrows, positioning}
+\usepackage{mathpazo}
+%\input stdmargins
+%\usepackage[T1]{fontenc}
+
+%\usepackage{bm}
+
+\newcommand*{\myprime}{^{\prime}\mkern-1.2mu}
+\newcommand*{\mydprime}{^{\prime\prime}\mkern-1.2mu}
+\newcommand*{\mytrprime}{^{\prime\prime\prime}\mkern-1.2mu}
+
+\usepackage[scaled]{helvet}
+\renewcommand*\familydefault{\sfdefault} %% Only if the base font of the document is to be sans serif
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\pagestyle{empty}
+
+\begin{document}
+
+\tikzstyle{site} = [draw, fill=blue!20, circle, minimum height=3em, minimum width=6em]
+\tikzstyle{masterblock} = [draw, fill=red!10, regular polygon,
+regular polygon sides = 12,
+minimum height=4em, minimum width=10em]
+\tikzstyle{imaster} = [draw, fill=red!10, rectangle,
+minimum height=2em, minimum width=6em]
+
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
+
+% The block diagram code is probably more verbose than necessary
+\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+    % We start by placing the blocks
+    \node [site, name=input] (site1) {\textbf{Site 1}};
+    \node [site, right of=site1, node distance=7cm] (site2) {\textbf{Site 2}};
+    \node [site, right of=site2, node distance=7cm] (site3) {\textbf{Site 3}};
+
+    \node [imaster, below left = 6cm and 3cm of site2] (imasterA) {\begin{minipage}{10em}
+        \begin{center}
+          \textbf{NC Master 1}\\
+          $\sum_{i=1}^3E(l_i + r_i)$
+        \end{center}
+    \end{minipage}};
+
+    \node [imaster, below right = 6cm and 3cm of site2] (imasterB) {\begin{minipage}{10em}
+        \begin{center}
+          \textbf{NC Master 2}\\
+          $\sum_{i=1}^3E(l_i - r_i)$
+        \end{center}
+    \end{minipage}};
+
+  \node [masterblock, below = 10cm of site2] (master) {\begin{minipage}{15em}
+        \begin{center}
+          \textbf{Grand Master}\\[\baselineskip]
+          $\sum_{i=1}^3E(l_i + r_i) + \sum_{i=1}^3E(l_i - r_i)$\\
+          $= 2E(\sum_{i=1}^3l_i) = E(2l).$
+        \end{center}
+    \end{minipage}};
+  
+
+    \draw [red, bend left, ->] (master) edge node [near start] {$\boldmath \beta$} (imasterA);
+    \draw [red, bend right, ->] (master) edge node [near start] {$\boldmath \beta$} (imasterB);
+
+    \draw [red, bend right, ->] (imasterA) edge node[sloped, below] {$\beta$} (site1);
+    \draw [blue, bend right,  ->] (site1) edge node[sloped, above] {$E(l_1 + r_1)$} (imasterA);
+    \draw [red, bend right, ->] (imasterB) edge node[sloped, above] {$\beta$} (site1);
+    \draw [blue, bend right, ->] (site1) edge node[sloped, below] {$E(l_1 - r_1)$} (imasterB);
+    \draw [red, bend right, ->] (imasterA) edge node[sloped, above] {$\beta$} (site2);
+    \draw [blue, bend right, ->] (site2) edge node[sloped, below] {$E(l_2 + r_2)$} (imasterA);
+    \draw [red, bend right, ->] (imasterB) edge node[sloped, above] {$\beta$} (site2);
+    \draw [blue, bend right, ->] (site2) edge node[sloped, below] {$E(l_2 - r_2)$} (imasterB);
+    \draw [red, bend right, ->] (imasterA) edge node[sloped, above] {$\beta$} (site3);
+    \draw [blue, bend right, ->] (site3) edge node[sloped, below] {$E(l_3 + r_3)$} (imasterA);
+    \draw [red, bend right, ->] (imasterB) edge node[sloped, above] {$\beta$} (site3);
+    \draw [blue, bend right, ->] (site3) edge node[sloped, below] {$E(l_3 - r_3)$} (imasterB);
+    \draw [blue, bend left, ->] (imasterA) edge node [sloped, below] {$\boldmath \sum_{i=1}^3 E(l_i + r_i)$} (master);
+    \draw [blue, bend right, ->] (imasterB) edge node [sloped, below] {$\boldmath \sum_{i=1}^3 E(l_i - r_i)$} (master);
+
+\end{tikzpicture}
+
+\end{document}
