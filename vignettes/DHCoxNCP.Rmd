@@ -193,19 +193,19 @@ retrieves the values from NCP1 and NCP2 and sums them.
 
 The drawback of the above scheme is that channels of communication
 have to be established from each site to the master process and also
-to the two non-cooperating parties P1 and P2. If the number of
+to the two non-cooperating parties NCP1 and NCP2. If the number of
 participating sites in a computation changes, then both the master and
-P1 and P2 have to be made aware of the change.
+NCP1 and NCP2 have to be made aware of the change.
 
-It would be simpler if only P1 and P2 can talk to both the master and
+It would be simpler if only NCP1 and NCP2 can talk to both the master and
 the sites.  Such a situation would arise, for example, when the sites
-are all participating in a disease specific registry. The parties P1
-and P2 would probably be set up once and any new site that has to be
+are all participating in a disease specific registry. The parties NCP1
+and NCP2 would probably be set up once and any new site that has to be
 onboarded needs only to be known to P1 and P2. This has the added
 advantage of hiding the number of sites, which could even be 1!
 
 Such a communication topology would mean that the $\beta$ values have
-be funneled to the sites through P1 and P2 and that can be easily
+be funneled to the sites through NCP1 and NCP2 and that can be easily
 accomplished.  The picture below shows this configuration and looks
 more complicated than it actually is.
 
