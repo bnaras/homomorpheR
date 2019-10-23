@@ -3,23 +3,21 @@ homomorpheR
 
 Install this package the usual way in R or via:
 
-```{r}
+```
 library(devtools)
 install_github("bnaras/homomorpheR")
 ```
 
-Two vignettes are provided:
-
-```{r}
-vignette(package = "homomorpheR")
-```
-
-will list them after installation.
+Several vignettes are provided and can be listed as below.
 
 ```
 > vignette(package = "homomorpheR")
-Vignettes in package 'homomorpheR':
+Vignettes in package ‘homomorpheR’:
 
+DHCox                   Distributed Stratified Cox Regression using
+                        Homomorphic Computation (source, html)
+DHCoxNCP                Distributed Stratified Cox Regression using
+                        Non-Cooperating Parties (source, html)
 introduction            Introduction to Homomorphic Computation
                         (source, html)
 homomorphing            MLE using Homomorphic Computation (source,
@@ -28,11 +26,11 @@ homomorphing            MLE using Homomorphic Computation (source,
 
 Then view, for example, as follows:
 
-```{r}
+```
 vignette("introduction", package="homomorpheR")
 ```
 
-Three examples are provided:
+Four examples are provided:
 
 - A quick and easy introduction to homomorphic computations
 - An example of Homomorphic Maximum Likelihood Estimation for a Poisson
@@ -40,8 +38,8 @@ Three examples are provided:
 - A larger example of Homomorphic Computations for fitting a
   Stratified Cox Regression model where the data is distributed across
   sites.
+- A more advanced example of Homomorphic Stratified Cox Regression
+  using Non-cooperating parties
 
-Eventually, as this library becomes industrial strength, it will be
-incorporated into the computations defined in
-[distcomp](https://cran.r-project.org/package=distcomp).
+A related project is [distcomp](https://cran.r-project.org/package=distcomp).
 

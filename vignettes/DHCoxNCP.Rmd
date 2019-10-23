@@ -9,8 +9,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Distributed Stratified Cox Regression using
-  Non-Cooperating Parties}
+  %\VignetteIndexEntry{Distributed Stratified Cox Regression using Non-Cooperating Parties}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
