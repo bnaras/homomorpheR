@@ -1,6 +1,6 @@
 #' Construct a Paillier public key with the given modulus.
 #' @docType class
-#' @seealso \code{PaillierPrivateKey} which goes hand-in-hand with this object
+#' @seealso `PaillierPrivateKey` which goes hand-in-hand with this object
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp mod.bigz
@@ -13,13 +13,15 @@
 #' @field nPlusOne one more than the modulus
 #' @section Methods:
 #' \describe{
-#'   \item{\code{PaillierPublicKey$new(bits, n)}}{Create a new public key with given \code{bits} and modulus
+#'   \item{`PaillierPublicKey$new(bits, n)`}{Create a new public key with given `bits` and modulus
 #'         \code{n}. It also precomputes a few values for more efficient computations}
-#'   \item{\code{PaillierPublicKey$encrypt(m)}}{Encrypt a message. The value \code{m} should be less than
+#'   \item{`PaillierPublicKey$encrypt(m)`}{Encrypt a message. The value `m` should be less than
 #'         the modulus, not checked}
-#'   \item{\code{PaillierPublicKey$add(a, b)}}{Return the sum of two encrypted messages \code{a} and \code{b}}
-#'   \item{\code{PaillierPublicKey$mult(a, b)}}{Return the product of two encrypted messages \code{a} and
-#'              \code{b}}
+#'   \item{`PaillierPublicKey$add(a, b)`}{Return the sum of two encrypted messages `a` and `b`}
+#'   \item{`PaillierPublicKey$sub(a, b)`}{Return the difference, a - b, of two encrypted messages `a` and `b`}
+#'   \item{`PaillierPublicKey$add_real(den, r, a)`}{Return the sum of an encrypted real message `r`, a list consisting of a encrypted integer part (named `int`) and an encrypted fractional part (named `frac`), and a real number `a`; `den` is a denominator to use for the rational approximation.}
+#'   \item{`PaillierPublicKey$sub_real(den, r, a)`}{Return the difference r - a, of an encrypted real message `r`, a list consisting of a encrypted integer part (named `int`) and an encrypted fractional part (named `frac`), and a real number `a`; `den` is a denominator to use for the rational approximation.}
+#'   \item{`PaillierPublicKey$mult(a, b)`}{Return the product of two encrypted messages `a` and `b`}
 #' }
 #'
 #' @export
@@ -62,8 +64,39 @@ PaillierPublicKey <- R6Class("PaillierPublicKey",
                                                 ONE),
                                             self$nSquared))
                                 },
+                                ## a + b
                                 add = function(a, b) {
                                     mod.bigz(mul.bigz(a, b), self$nSquared)
+                                },
+                                ## a - b
+                                sub = function(a, b) {
+                                    self$add(a, self$nSquared - b)
+                                },
+                                ## below a is a list with int and frac parts
+                                ## while b is a real number
+                                ## den is a denominator
+                                ## a + b
+                                add_real = function(den, a, b) {
+                                    int_value <- floor(b)
+                                    frac_value <- b - int_value
+                                    frac_number  <- gmp::as.bigq(gmp::numerator(gmp::as.bigq(frac_value) * den))
+                                    enc_int_value <- self$encrypt(int_value)
+                                    enc_frac_number <- pubkey$encrypt(frac_number)
+                                    list(int = self$add(enc_int_value, a$int),
+                                         frac = self$add(enc_frac_number, a$frac))
+                                },
+                                ## below a is a list with int and frac parts
+                                ## while b is a real number
+                                ## den is a denominator
+                                ## a - b
+                                sub_real = function(den, a, b) {
+                                    int_value <- floor(b)
+                                    frac_value <- b - int_value
+                                    frac_number  <- gmp::as.bigq(gmp::numerator(gmp::as.bigq(frac_value) * den))
+                                    enc_int_value <- self$encrypt(int_value)
+                                    enc_frac_number <- pubkey$encrypt(frac_number)
+                                    list(int = self$sub(enc_int_value, a$int),
+                                         frac = self$sub(enc_frac_number, a$frac))
                                 },
                                 mult = function(a, b) {
                                     powm(a, b, self$nSquared)
@@ -72,7 +105,7 @@ PaillierPublicKey <- R6Class("PaillierPublicKey",
 
 #' Construct a Paillier private key with the given secret and a public key
 #' @docType class
-#' @seealso \code{PaillierPublicKey} which goes hand-in-hand with this object
+#' @seealso `PaillierPublicKey` which goes hand-in-hand with this object
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp mod.bigz
@@ -86,10 +119,10 @@ PaillierPublicKey <- R6Class("PaillierPublicKey",
 #'
 #' @section Methods:
 #' \describe{
-#'   \item{\code{PaillierPrivateKey$new(lambda, pubkey)}}{Create a new private key with given secret
-#'         \code{lambda} and the public key}
-#'   \item{\code{PaillierPrivateKey$getLambda()}}{Return the secret \code{lambda}}
-#'   \item{\code{PaillierPrivateKey$decrypt(c)}}{Decrypt a message. The value \code{c} should be an
+#'   \item{`PaillierPrivateKey$new(lambda, pubkey)`}{Create a new private key with given secret
+#'         `lambda` and the public key}
+#'   \item{`PaillierPrivateKey$getLambda()`}{Return the secret `lambda`}
+#'   \item{`PaillierPrivateKey$decrypt(c)`}{Decrypt a message. The value `c` should be an
 #'         encrypted value}
 #' }
 #'
@@ -136,7 +169,7 @@ PaillierPrivateKey <- R6Class("PaillierPrivateKey",
 
 #' Construct a Paillier public and private key pair given a fixed number of bits
 #' @docType class
-#' @seealso \code{PaillierPublicKey} and \code{PaillierPrivateKey}
+#' @seealso \code{\link{PaillierPublicKey}} and \code{\link{PaillierPrivateKey}}
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp sub.bigz
@@ -151,9 +184,9 @@ PaillierPrivateKey <- R6Class("PaillierPrivateKey",
 #'
 #' @section Methods:
 #' \describe{
-#'   \item{\code{PaillierKeyPair$new(modulusBits)}}{Create a new private key with specified
+#'   \item{`PaillierKeyPair$new(modulusBits)}`}{Create a new private key with specified
 #'         number of modulus bits}
-#'   \item{\code{PaillierKeyPair$getPrivateKey()}}{Return the private key}
+#'   \item{`PaillierKeyPair$getPrivateKey()`}{Return the private key}
 #' }
 #'
 #' @examples
