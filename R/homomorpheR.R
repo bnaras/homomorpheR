@@ -44,5 +44,5 @@ ZERO <- as.bigz(0L)
 #' @export
 random.bigz <- function(nBits) {
     nBytes <- nBits %/% 8L
-    as.bigz(paste0(c("0x", random(n = nBytes)), collapse = ""))
+    as.bigz(paste0(c("0x", sodium::random(n = nBytes)), collapse = ""))
 }

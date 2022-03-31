@@ -1,0 +1,20 @@
+authors:
+
+  Balasubramanian Narasimhan:
+    href: https://naras.su.domains
+
+navbar:
+ components:
+   articles:
+    text: Articles
+    menu:
+    - text: Introduction
+      href: articles/introduction.html
+    - text: Maximum Likelihood Estimation
+      href: articles/homomorphing.html
+    - text: Distributed Cox Regression
+      href: articles/DHCox.html
+    - text: Distributed Query Count using Noncooperating parties
+      href: articles/QueryNCP.html
+    - text: Distributed Cox Regression using Noncooperating parties
+      href: articles/DHCoxNCP.html

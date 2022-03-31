@@ -4,26 +4,21 @@
 \name{PaillierKeyPair}
 \alias{PaillierKeyPair}
 \title{Construct a Paillier public and private key pair given a fixed number of bits}
-\format{An \code{\link{R6Class}} generator object}
-\usage{
-PaillierKeyPair
+\format{
+An \code{\link{R6Class}} generator object
 }
 \description{
 Construct a Paillier public and private key pair given a fixed number of bits
-}
-\section{Fields}{
 
-\describe{
-\item{\code{pubkey}}{the Paillier public key}
-}}
+Construct a Paillier public and private key pair given a fixed number of bits
+}
 \section{Methods}{
 
 \describe{
-  \item{\code{PaillierKeyPair$new(modulusBits)}}{Create a new private key with specified
-        number of modulus bits}
-  \item{\code{PaillierKeyPair$getPrivateKey()}}{Return the private key}
+\item{\code{PaillierKeyPair$getPrivateKey()}}{Return the private key}
 }
 }
+
 \examples{
 keys <- PaillierKeyPair$new(1024)
 keys$pubkey
@@ -31,7 +26,71 @@ keys$getPrivateKey()
 
 }
 \seealso{
-\code{PaillierPublicKey} and \code{PaillierPrivateKey}
+\code{\link{PaillierPublicKey}} and \code{\link{PaillierPrivateKey}}
 }
-\keyword{datasets}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
+\describe{
+\item{\code{pubkey}}{the public key}
+}
+\if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-new}{\code{PaillierKeyPair$new()}}
+\item \href{#method-getPrivateKey}{\code{PaillierKeyPair$getPrivateKey()}}
+\item \href{#method-clone}{\code{PaillierKeyPair$clone()}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-new"></a>}}
+\if{latex}{\out{\hypertarget{method-new}{}}}
+\subsection{Method \code{new()}}{
+Create a new public private key pair with specified number of modulus bits
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierKeyPair$new(modulusBits)}\if{html}{\out{</div>}}
+}
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{modulusBits}}{the number of bits to use}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+a \code{PaillierKeyPair} object
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-getPrivateKey"></a>}}
+\if{latex}{\out{\hypertarget{method-getPrivateKey}{}}}
+\subsection{Method \code{getPrivateKey()}}{
+Return the private key
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierKeyPair$getPrivateKey()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+the private key
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierKeyPair$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
+}

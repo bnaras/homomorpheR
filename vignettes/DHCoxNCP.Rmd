@@ -136,8 +136,8 @@ MLE.
 aggModel$loglik
 ```
 
-The first is the value at the parameter value `(0, 0, 0)` and the last
-is the value at the MLE.
+The first is the value at the initial parameter value `(0, 0, 0)` and
+the second is the value at the MLE.
 
 
 ## Distributed Computation
@@ -532,10 +532,10 @@ summary(aggModel)
 ```
 
 And the log likelihood of the distributed homomorphic fit also
-matches that of the aggregated model as the following computation shows.
+matches that of the model on aggregated data:
 
 ```{r}
-cat(sprintf("logLik(MLE fit): %f, logLik(Agg. fit): %f\n", logLik(fit), aggModel$loglik[2]))
+cat(sprintf("logLik(MLE fit): %f, logLik(Agg. fit): %f.\n", logLik(fit), aggModel$loglik[2]))
 ```
 
 ## References

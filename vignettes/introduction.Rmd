@@ -37,7 +37,7 @@ way to perform computations on encrypted data, either in a distributed
 setting or in the cloud, thereby handling many of the headaches
 associated with storing/moving/anonymizing data. Homomorphic
 computation also finds application in secure voting, verifyable
-computing etc.
+computing, secure multi-party computation, etc.
 
 A homomorphic encryption scheme is one that provides such a
 homomorphism along with the infrastructure to carry out the
@@ -73,9 +73,9 @@ the decryption of $x$ in some scheme. If the scheme is homomorphic
 over addition, then we have $$ E(x) + E(y) = E(x + y). $$
 
 This means that calculating $x+y$ can be done by decrypting the sum of
-the encrypted values of $x$ and $y$. Thus, entities can merely
-exchange encrypted values throughout.  This is pictorially shown in
-the figure (source:
+the encrypted values of $x$ and $y$. Thus, entities need exchange only
+encrypted values throughout.  This is pictorially shown in the figure
+(source:
 [http://jeremykun.com/tag/homomorphic-encryption](http://jeremykun.com/tag/homomorphic-encryption)
 ) below:
 

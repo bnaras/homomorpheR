@@ -401,14 +401,10 @@ summary(aggModel)
 ```
 
 And the log likelihood of the distributed homomorphic fit also
-matches as the following computation shows.
+matches that of the model on aggregated data:
 
 ```{r}
-## -2 Log L
--2 * logLik(fit)
+cat(sprintf("logLik(MLE fit): %f, logLik(Agg. fit): %f.\n", logLik(fit), aggModel$loglik[2]))
 ```
-
-The results should be the same as above.
-
 
 ## References

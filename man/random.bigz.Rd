@@ -14,4 +14,3 @@ random.bigz(nBits)
 Return a random big number using the cryptographically secure random number generator
 from in the \code{sodium} package.
 }
-

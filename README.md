@@ -1,45 +1,39 @@
 homomorpheR
 ===========
 
-Install this package the usual way in R or via:
+The published version may be found on
+[CRAN](https://cran.r-project.org/package=homomorpheR) and can be
+installed as usual.
+
+## Development version
+
+Install this development version by cutting and pasting into your R
+session, which will install all dependencies also.
 
 ```
-library(devtools)
-install_github("bnaras/homomorpheR")
+## Install a package if not already installed
+install_if_needed <- function(packages, ...) {
+    toInstall <- setdiff(packages, installed.packages()[, 1])
+    if (length(toInstall) > 0) install.packages(toInstall, ...)
+}
+install_if_needed(c("gmp", "sodium", "devtools"), repos = "https://cloud.r-project.org")
+devtools::install_github("bnaras/homomorpheR")
 ```
 
-Several vignettes are provided and can be listed as below.
+Four vignettes are provided:
 
-```
-> vignette(package = "homomorpheR")
-Vignettes in package ‘homomorpheR’:
-
-DHCox                   Distributed Stratified Cox Regression using
-                        Homomorphic Computation (source, html)
-DHCoxNCP                Distributed Stratified Cox Regression using
-                        Non-Cooperating Parties (source, html)
-introduction            Introduction to Homomorphic Computation
-                        (source, html)
-homomorphing            MLE using Homomorphic Computation (source,
-                        html)
-```
-
-Then view, for example, as follows:
-
-```
-vignette("introduction", package="homomorpheR")
-```
-
-Four examples are provided:
-
-- A quick and easy introduction to homomorphic computations
+- A quick and easy introduction to homomorphic computations,
 - An example of Homomorphic Maximum Likelihood Estimation for a Poisson
-  parameter.
-- A larger example of Homomorphic Computations for fitting a
-  Stratified Cox Regression model where the data is distributed across
-  sites.
-- A more advanced example of Homomorphic Stratified Cox Regression
-  using Non-cooperating parties
+  parameter,
+- Fitting a Stratified Cox Regression model where the data is
+  distributed across sites,
+- An example of Query Count using Noncooperating parties,
+- Fitting a Stratified Cox Regression model where the data is
+  distributed across sites using Non-cooperating parties.
 
 A related project is [distcomp](https://cran.r-project.org/package=distcomp).
 
+## Website
+
+You can view everything, including documentation and vignettes on the
+[homomorpheR website](https://bnaras.github.io/homomorpheR). 

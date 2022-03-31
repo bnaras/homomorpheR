@@ -3,7 +3,6 @@
 \docType{package}
 \name{homomorpheR}
 \alias{homomorpheR}
-\alias{homomorpheR-package}
 \title{homomorpheR: Homomorphic computations in R}
 \description{
 \code{homomorpheR} is a start at a rudimentary package for
@@ -36,4 +35,3 @@ identical(x, edx)
 
 \url{https://mhe.github.io/jspaillier/}
 }
-

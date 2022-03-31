@@ -4,15 +4,19 @@
 \name{PaillierPublicKey}
 \alias{PaillierPublicKey}
 \title{Construct a Paillier public key with the given modulus.}
-\format{An \code{\link{R6Class}} generator object}
-\usage{
-PaillierPublicKey
+\format{
+An \code{\link{R6Class}} generator object
 }
 \description{
 Construct a Paillier public key with the given modulus.
-}
-\section{Fields}{
 
+Construct a Paillier public key with the given modulus.
+}
+\seealso{
+\code{PaillierPrivateKey} which goes hand-in-hand with this object
+}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
 \describe{
 \item{\code{bits}}{the number of bits in the modulus}
 
@@ -21,21 +25,202 @@ Construct a Paillier public key with the given modulus.
 \item{\code{nSquared}}{the square of the modulus}
 
 \item{\code{nPlusOne}}{one more than the modulus}
-}}
+}
+\if{html}{\out{</div>}}
+}
 \section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-new}{\code{PaillierPublicKey$new()}}
+\item \href{#method-encrypt}{\code{PaillierPublicKey$encrypt()}}
+\item \href{#method-add}{\code{PaillierPublicKey$add()}}
+\item \href{#method-sub}{\code{PaillierPublicKey$sub()}}
+\item \href{#method-add_real}{\code{PaillierPublicKey$add_real()}}
+\item \href{#method-sub_real}{\code{PaillierPublicKey$sub_real()}}
+\item \href{#method-mult}{\code{PaillierPublicKey$mult()}}
+\item \href{#method-clone}{\code{PaillierPublicKey$clone()}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-new"></a>}}
+\if{latex}{\out{\hypertarget{method-new}{}}}
+\subsection{Method \code{new()}}{
+Create a new public key and precompute some internal values for efficiency
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$new(bits, n)}\if{html}{\out{</div>}}
+}
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
 \describe{
-  \item{\code{PaillierPublicKey$new(bits, n)}}{Create a new public key with given \code{bits} and modulus
-        \code{n}. It also precomputes a few values for more efficient computations}
-  \item{\code{PaillierPublicKey$encrypt(m)}}{Encrypt a message. The value \code{m} should be less than
-        the modulus, not checked}
-  \item{\code{PaillierPublicKey$add(a, b)}}{Return the sum of two encrypted messages \code{a} and \code{b}}
-  \item{\code{PaillierPublicKey$mult(a, b)}}{Return the product of two encrypted messages \code{a} and
-             \code{b}}
-}
-}
-\seealso{
-\code{PaillierPrivateKey} which goes hand-in-hand with this object
-}
-\keyword{datasets}
+\item{\code{bits}}{number of bits to use}
 
+\item{\code{n}}{the modulus to use}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+a new \code{PaillierPublicKey} object
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-encrypt"></a>}}
+\if{latex}{\out{\hypertarget{method-encrypt}{}}}
+\subsection{Method \code{encrypt()}}{
+Encrypt a message
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$encrypt(m)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{m}}{the message}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+the encrypted message
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-add"></a>}}
+\if{latex}{\out{\hypertarget{method-add}{}}}
+\subsection{Method \code{add()}}{
+Add two encrypted messages
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$add(a, b)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{a}}{a message}
+
+\item{\code{b}}{another message}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+the sum of \code{a} and \code{b}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-sub"></a>}}
+\if{latex}{\out{\hypertarget{method-sub}{}}}
+\subsection{Method \code{sub()}}{
+Subtract one encrypted message from another
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$sub(a, b)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{a}}{a message}
+
+\item{\code{b}}{another message}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+the difference \code{a - b}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-add_real"></a>}}
+\if{latex}{\out{\hypertarget{method-add_real}{}}}
+\subsection{Method \code{add_real()}}{
+Return the sum \code{a + b}
+of an encrypted real message \code{a},
+a list consisting of a encrypted
+integer part (named \code{int}) and an
+encrypted fractional part (named \code{frac}),
+and a real number \code{a} using
+\code{den} as denominator in the rational
+approximation.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$add_real(den, a, b)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{den}}{the denominator to use for rational approximations}
+
+\item{\code{a}}{the \emph{real} message, a list consisting of the integer and fractional parts named \code{int} and \code{frac} respectively}
+
+\item{\code{b}}{a simple real number}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-sub_real"></a>}}
+\if{latex}{\out{\hypertarget{method-sub_real}{}}}
+\subsection{Method \code{sub_real()}}{
+Return the difference \code{a - b}
+of an encrypted real message \code{a},
+a list consisting of a encrypted
+integer part (named \code{int}) and an
+encrypted fractional part (named \code{frac}),
+and a real number \code{b} using
+\code{den} as denominator in the rational
+approximation.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$sub_real(den, a, b)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{den}}{the denominator to use for rational approximations}
+
+\item{\code{a}}{the \emph{real} message, a list consisting of the integer and fractional parts named \code{int} and \code{frac} respectively}
+
+\item{\code{b}}{a simple real number}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-mult"></a>}}
+\if{latex}{\out{\hypertarget{method-mult}{}}}
+\subsection{Method \code{mult()}}{
+Return the product of two encrypted
+messages \code{a} and \code{b}
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$mult(a, b)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{a}}{a message}
+
+\item{\code{b}}{another message}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+the product of \code{a} and \code{b}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PaillierPublicKey$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
+}
