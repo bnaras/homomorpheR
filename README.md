@@ -1,5 +1,9 @@
-homomorpheR
-===========
+# homomorpheR
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/bnaras/homomorpheR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bnaras/homomorpheR/actions/workflows/R-CMD-check.yaml)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/homomorpheR)](https://cran.r-project.org/package=homomorpheR)
+<!-- badges: end -->
 
 The published version may be found on
 [CRAN](https://cran.r-project.org/package=homomorpheR) and can be
