@@ -36,4 +36,4 @@ A related project is [distcomp](https://cran.r-project.org/package=distcomp).
 ## Website
 
 You can view everything, including documentation and vignettes on the
-[homomorpheR website](https://bnaras.github.io/homomorpheR). 
+[homomorpheR website](https://bnaras.github.io/homomorpheR/). 

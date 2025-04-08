@@ -5,7 +5,7 @@
 \alias{PaillierPrivateKey}
 \title{Construct a Paillier private key with the given secret and a public key}
 \format{
-An \code{\link{R6Class}} generator object
+An \code{\link[R6:R6Class]{R6::R6Class()}} generator object
 }
 \description{
 Construct a Paillier private key with the given secret and a public key
@@ -13,7 +13,7 @@ Construct a Paillier private key with the given secret and a public key
 Construct a Paillier private key with the given secret and a public key
 }
 \seealso{
-\code{PaillierPublicKey} which goes hand-in-hand with this object
+\code{\link[=PaillierPublicKey]{PaillierPublicKey()}} which goes hand-in-hand with this object
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -25,15 +25,15 @@ Construct a Paillier private key with the given secret and a public key
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{PaillierPrivateKey$new()}}
-\item \href{#method-getLambda}{\code{PaillierPrivateKey$getLambda()}}
-\item \href{#method-decrypt}{\code{PaillierPrivateKey$decrypt()}}
-\item \href{#method-clone}{\code{PaillierPrivateKey$clone()}}
+\item \href{#method-PaillierPrivateKey-new}{\code{PaillierPrivateKey$new()}}
+\item \href{#method-PaillierPrivateKey-getLambda}{\code{PaillierPrivateKey$getLambda()}}
+\item \href{#method-PaillierPrivateKey-decrypt}{\code{PaillierPrivateKey$decrypt()}}
+\item \href{#method-PaillierPrivateKey-clone}{\code{PaillierPrivateKey$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-PaillierPrivateKey-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPrivateKey-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new private key with given secret \code{lambda} and the public key
 \subsection{Usage}{
@@ -51,8 +51,8 @@ Create a new private key with given secret \code{lambda} and the public key
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-getLambda"></a>}}
-\if{latex}{\out{\hypertarget{method-getLambda}{}}}
+\if{html}{\out{<a id="method-PaillierPrivateKey-getLambda"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPrivateKey-getLambda}{}}}
 \subsection{Method \code{getLambda()}}{
 Return the secret lambda
 \subsection{Usage}{
@@ -64,8 +64,8 @@ lambda
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-decrypt"></a>}}
-\if{latex}{\out{\hypertarget{method-decrypt}{}}}
+\if{html}{\out{<a id="method-PaillierPrivateKey-decrypt"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPrivateKey-decrypt}{}}}
 \subsection{Method \code{decrypt()}}{
 Decrypt a message
 \subsection{Usage}{
@@ -84,8 +84,8 @@ the decrypted message
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-PaillierPrivateKey-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPrivateKey-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

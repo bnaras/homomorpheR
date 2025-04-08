@@ -1,6 +1,6 @@
 #' homomorpheR: Homomorphic computations in R
 #'
-#' \code{homomorpheR} is a start at a rudimentary package for
+#' `homomorpheR` is a start at a rudimentary package for
 #' homomorphic computations in R. The goal is to collect homomorphic
 #' encryption schemes in this package for privacy-preserving
 #' distributed computations; for example, applications of the sort
@@ -11,12 +11,10 @@
 #' and also uses direct translations of other implementations,
 #' particularly the one in Javascript.
 #'
-#' For a quick overview of the features, read the
-#' \code{\link{homomorpheR}} vignette by running
-#' \code{vignette("homomorpheR")}.
+#' For a quick overview of the features, refer to the vignettes in this package.
 #'
-#' @references \url{https://en.wikipedia.org/wiki/Homomorphic_encryption}
-#' @references \url{https://mhe.github.io/jspaillier/}
+#' @references [Homomorphic Encryyption](https://en.wikipedia.org/wiki/Homomorphic_encryption)
+#' @references [Paillier Encryption](https://mhe.github.io/jspaillier/)
 #'
 #' @importFrom gmp as.bigz
 #'
@@ -28,10 +26,11 @@
 #' x <- lapply(1:100, function(x) random.bigz(nBits = 512))
 #' edx <- lapply(x, encryptAndDecrypt)
 #' identical(x, edx)
-#' @docType package
 #' @name homomorpheR
 #'
-NULL
+"_PACKAGE"
+
+
 ONE <- as.bigz(1L)
 ZERO <- as.bigz(0L)
 

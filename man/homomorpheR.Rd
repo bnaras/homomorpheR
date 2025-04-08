@@ -2,6 +2,7 @@
 % Please edit documentation in R/homomorpheR.R
 \docType{package}
 \name{homomorpheR}
+\alias{homomorpheR-package}
 \alias{homomorpheR}
 \title{homomorpheR: Homomorphic computations in R}
 \description{
@@ -17,9 +18,7 @@ scheme. The current implementation makes no pretense at efficiency
 and also uses direct translations of other implementations,
 particularly the one in Javascript.
 
-For a quick overview of the features, read the
-\code{\link{homomorpheR}} vignette by running
-\code{vignette("homomorpheR")}.
+For a quick overview of the features, refer to the vignettes in this package.
 }
 \examples{
 keys <- PaillierKeyPair$new(1024) # Generate new key pair
@@ -31,7 +30,19 @@ edx <- lapply(x, encryptAndDecrypt)
 identical(x, edx)
 }
 \references{
-\url{https://en.wikipedia.org/wiki/Homomorphic_encryption}
+\href{https://en.wikipedia.org/wiki/Homomorphic_encryption}{Homomorphic Encryyption}
 
-\url{https://mhe.github.io/jspaillier/}
+\href{https://mhe.github.io/jspaillier/}{Paillier Encryption}
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/bnaras/homomorpheR}
+  \item Report bugs at \url{https://github.com/bnaras/homomorpheR/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU}
+
 }

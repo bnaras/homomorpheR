@@ -34,8 +34,8 @@ example using Cox regression.
 But first, we need the `survival` package and the `homomopheR` package.
 
 ```{r}
-if (!require("survival")) {
-    stop("this vignette requires the survival package")
+if (!require("survival") || !requireNamespace("digest", quietly = TRUE)) {
+    stop("this vignette requires both the survival & digest package")
 }
 library(homomorpheR)
 ```
@@ -182,7 +182,7 @@ obtain $2l$!
 
 This is pictorially shown below.
 
-![](assets/mpc.png)
+![Multipart Computation](assets/mpc.png)
 
 The red arrows show the master proposing a value $\beta$ to each of
 the sites, which reply back to NCP1 and NCP2. The master then
@@ -208,7 +208,7 @@ be funneled to the sites through NCP1 and NCP2 and that can be easily
 accomplished.  The picture below shows this configuration and looks
 more complicated than it actually is.
 
-![](assets/mpc2.png)
+![Multiparty Computation w/o master communicating to sites](assets/mpc2.png)
 
 To summarize, the modified scheme has several characteristics:
 

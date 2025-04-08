@@ -1,28 +1,27 @@
 Package: homomorpheR
 Type: Package
 Title: Homomorphic Computations in R
-Version: 0.2-5
-Date: 2022-03-30
+Version: 0.3
+Date: 2025-04-08
 VignetteBuilder: knitr
 Authors@R: c(person("Balasubramanian", "Narasimhan", role=c("aut", "cre"),
 	   	   email = "naras@stat.Stanford.EDU"))
-URL: http://github.com/bnaras/homomorpheR
-BugReports: http://github.com/bnaras/homomorpheR/issues
+URL: https://bnaras.github.io/homomorpheR
+BugReports: https://github.com/bnaras/homomorpheR/issues
 Suggests: 
     knitr,
     rmarkdown,
     survival,
     dplyr,
-    magrittr
+    magrittr,
+    digest
 Imports: 
     R6,
     gmp,
-    sodium,
-    memoise,
-    digest
+    sodium
 Description: Homomorphic computations in R for privacy-preserving applications. Currently only
              the Paillier Scheme is implemented.
 License: MIT + file LICENSE
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.2
 Encoding: UTF-8

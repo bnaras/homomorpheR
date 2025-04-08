@@ -5,7 +5,7 @@
 \alias{PaillierKeyPair}
 \title{Construct a Paillier public and private key pair given a fixed number of bits}
 \format{
-An \code{\link{R6Class}} generator object
+An \code{\link[R6:R6Class]{R6::R6Class()}} generator object
 }
 \description{
 Construct a Paillier public and private key pair given a fixed number of bits
@@ -26,7 +26,7 @@ keys$getPrivateKey()
 
 }
 \seealso{
-\code{\link{PaillierPublicKey}} and \code{\link{PaillierPrivateKey}}
+\code{\link[=PaillierPublicKey]{PaillierPublicKey()}} and \code{\link[=PaillierPrivateKey]{PaillierPrivateKey()}}
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -38,14 +38,14 @@ keys$getPrivateKey()
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{PaillierKeyPair$new()}}
-\item \href{#method-getPrivateKey}{\code{PaillierKeyPair$getPrivateKey()}}
-\item \href{#method-clone}{\code{PaillierKeyPair$clone()}}
+\item \href{#method-PaillierKeyPair-new}{\code{PaillierKeyPair$new()}}
+\item \href{#method-PaillierKeyPair-getPrivateKey}{\code{PaillierKeyPair$getPrivateKey()}}
+\item \href{#method-PaillierKeyPair-clone}{\code{PaillierKeyPair$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-PaillierKeyPair-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierKeyPair-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new public private key pair with specified number of modulus bits
 \subsection{Usage}{
@@ -64,8 +64,8 @@ a \code{PaillierKeyPair} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-getPrivateKey"></a>}}
-\if{latex}{\out{\hypertarget{method-getPrivateKey}{}}}
+\if{html}{\out{<a id="method-PaillierKeyPair-getPrivateKey"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierKeyPair-getPrivateKey}{}}}
 \subsection{Method \code{getPrivateKey()}}{
 Return the private key
 \subsection{Usage}{
@@ -77,8 +77,8 @@ the private key
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-PaillierKeyPair-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierKeyPair-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{
