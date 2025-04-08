@@ -188,7 +188,7 @@ values of $x$ respectively.
 
 This is pictorially shown below.
 
-![](assets/round_robin.png)
+![Round Robin Scheme](assets/round_robin.png)
 
 ## Implementation
 

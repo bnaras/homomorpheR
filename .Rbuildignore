@@ -12,3 +12,4 @@
 ^NOTES\.md$
 ^CRAN-RELEASE$
 ^inst/stuff
+^\.github$

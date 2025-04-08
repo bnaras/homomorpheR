@@ -75,9 +75,7 @@ over addition, then we have $$ E(x) + E(y) = E(x + y). $$
 This means that calculating $x+y$ can be done by decrypting the sum of
 the encrypted values of $x$ and $y$. Thus, entities need exchange only
 encrypted values throughout.  This is pictorially shown in the figure
-(source:
-[http://jeremykun.com/tag/homomorphic-encryption](http://jeremykun.com/tag/homomorphic-encryption)
-) below:
+(source: Jeremy Kun) below:
 
 <div style="text-align:center" markdown="1">
 ![Homomorphic Computation](assets/homo.jpeg)

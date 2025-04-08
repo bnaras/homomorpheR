@@ -1,15 +1,14 @@
 #' Construct a Paillier public key with the given modulus.
 #' @docType class
-#' @seealso `PaillierPrivateKey` which goes hand-in-hand with this object
+#' @seealso [PaillierPrivateKey()] which goes hand-in-hand with this object
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp mod.bigz
 #' @importFrom gmp mul.bigz
 #' @importFrom gmp powm
 #' @importFrom gmp as.bigz
+#' @return An [R6::R6Class()] generator object
 #' @export
-#' @format An \code{\link{R6Class}} generator object
-
 PaillierPublicKey <- R6Class("PaillierPublicKey",
                              private = list(
                                randomize = function(a) {
@@ -141,7 +140,7 @@ PaillierPublicKey <- R6Class("PaillierPublicKey",
 
 #' Construct a Paillier private key with the given secret and a public key
 #' @docType class
-#' @seealso `PaillierPublicKey` which goes hand-in-hand with this object
+#' @seealso [PaillierPublicKey()] which goes hand-in-hand with this object
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp mod.bigz
@@ -152,7 +151,7 @@ PaillierPublicKey <- R6Class("PaillierPublicKey",
 #' @importFrom gmp inv.bigz
 #' @importFrom gmp as.bigz
 #' @export
-#' @format An \code{\link{R6Class}} generator object
+#' @format An [R6::R6Class()] generator object
 PaillierPrivateKey <- R6Class("PaillierPrivateKey",
                               private = list(
 
@@ -210,7 +209,7 @@ PaillierPrivateKey <- R6Class("PaillierPrivateKey",
 
 #' Construct a Paillier public and private key pair given a fixed number of bits
 #' @docType class
-#' @seealso \code{\link{PaillierPublicKey}} and \code{\link{PaillierPrivateKey}}
+#' @seealso [PaillierPublicKey()] and [PaillierPrivateKey()]
 #' @importFrom R6 R6Class
 #' @importFrom gmp add.bigz
 #' @importFrom gmp sub.bigz
@@ -234,7 +233,7 @@ PaillierPrivateKey <- R6Class("PaillierPrivateKey",
 #' keys$getPrivateKey()
 #'
 #' @export
-#' @format An \code{\link{R6Class}} generator object
+#' @format An [R6::R6Class()] generator object
 PaillierKeyPair <- R6Class("PaillierKeyPair",
                            private = list(
 

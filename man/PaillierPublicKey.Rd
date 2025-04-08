@@ -4,8 +4,8 @@
 \name{PaillierPublicKey}
 \alias{PaillierPublicKey}
 \title{Construct a Paillier public key with the given modulus.}
-\format{
-An \code{\link{R6Class}} generator object
+\value{
+An \code{\link[R6:R6Class]{R6::R6Class()}} generator object
 }
 \description{
 Construct a Paillier public key with the given modulus.
@@ -13,7 +13,7 @@ Construct a Paillier public key with the given modulus.
 Construct a Paillier public key with the given modulus.
 }
 \seealso{
-\code{PaillierPrivateKey} which goes hand-in-hand with this object
+\code{\link[=PaillierPrivateKey]{PaillierPrivateKey()}} which goes hand-in-hand with this object
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -31,19 +31,19 @@ Construct a Paillier public key with the given modulus.
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{PaillierPublicKey$new()}}
-\item \href{#method-encrypt}{\code{PaillierPublicKey$encrypt()}}
-\item \href{#method-add}{\code{PaillierPublicKey$add()}}
-\item \href{#method-sub}{\code{PaillierPublicKey$sub()}}
-\item \href{#method-add_real}{\code{PaillierPublicKey$add_real()}}
-\item \href{#method-sub_real}{\code{PaillierPublicKey$sub_real()}}
-\item \href{#method-mult}{\code{PaillierPublicKey$mult()}}
-\item \href{#method-clone}{\code{PaillierPublicKey$clone()}}
+\item \href{#method-PaillierPublicKey-new}{\code{PaillierPublicKey$new()}}
+\item \href{#method-PaillierPublicKey-encrypt}{\code{PaillierPublicKey$encrypt()}}
+\item \href{#method-PaillierPublicKey-add}{\code{PaillierPublicKey$add()}}
+\item \href{#method-PaillierPublicKey-sub}{\code{PaillierPublicKey$sub()}}
+\item \href{#method-PaillierPublicKey-add_real}{\code{PaillierPublicKey$add_real()}}
+\item \href{#method-PaillierPublicKey-sub_real}{\code{PaillierPublicKey$sub_real()}}
+\item \href{#method-PaillierPublicKey-mult}{\code{PaillierPublicKey$mult()}}
+\item \href{#method-PaillierPublicKey-clone}{\code{PaillierPublicKey$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new public key and precompute some internal values for efficiency
 \subsection{Usage}{
@@ -64,8 +64,8 @@ a new \code{PaillierPublicKey} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-encrypt"></a>}}
-\if{latex}{\out{\hypertarget{method-encrypt}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-encrypt"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-encrypt}{}}}
 \subsection{Method \code{encrypt()}}{
 Encrypt a message
 \subsection{Usage}{
@@ -84,8 +84,8 @@ the encrypted message
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-add"></a>}}
-\if{latex}{\out{\hypertarget{method-add}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-add"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-add}{}}}
 \subsection{Method \code{add()}}{
 Add two encrypted messages
 \subsection{Usage}{
@@ -106,8 +106,8 @@ the sum of \code{a} and \code{b}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-sub"></a>}}
-\if{latex}{\out{\hypertarget{method-sub}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-sub"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-sub}{}}}
 \subsection{Method \code{sub()}}{
 Subtract one encrypted message from another
 \subsection{Usage}{
@@ -128,8 +128,8 @@ the difference \code{a - b}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-add_real"></a>}}
-\if{latex}{\out{\hypertarget{method-add_real}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-add_real"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-add_real}{}}}
 \subsection{Method \code{add_real()}}{
 Return the sum \code{a + b}
 of an encrypted real message \code{a},
@@ -156,8 +156,8 @@ approximation.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-sub_real"></a>}}
-\if{latex}{\out{\hypertarget{method-sub_real}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-sub_real"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-sub_real}{}}}
 \subsection{Method \code{sub_real()}}{
 Return the difference \code{a - b}
 of an encrypted real message \code{a},
@@ -184,8 +184,8 @@ approximation.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-mult"></a>}}
-\if{latex}{\out{\hypertarget{method-mult}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-mult"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-mult}{}}}
 \subsection{Method \code{mult()}}{
 Return the product of two encrypted
 messages \code{a} and \code{b}
@@ -207,8 +207,8 @@ the product of \code{a} and \code{b}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-PaillierPublicKey-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-PaillierPublicKey-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{
