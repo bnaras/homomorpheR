@@ -15,6 +15,7 @@ Suggests:
     rmarkdown,
     survival,
     digest,
+    CVXR,
     tinytest
 Imports:
     S7,

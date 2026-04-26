@@ -24,6 +24,8 @@ navbar:
       href: articles/cox.html
     - text: Distributed Cox Regression (Threshold CKKS)
       href: articles/cox-threshold.html
+    - text: Federated Consensus ADMM (CVXR + Threshold CKKS)
+      href: articles/cvxr-consensus-admm.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties

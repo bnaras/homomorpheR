@@ -373,11 +373,12 @@ method(master_encrypt, CKKSMaster) <- function(master, value) {
     pt <- openfhe::make_ckks_packed_plaintext(cc, value)
     openfhe::encrypt(master@keypair@public, pt, cc = cc)
 }
-method(master_decrypt, CKKSMaster) <- function(master, ciphertext) {
+method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
     cc <- master@crypto_context
     pt <- openfhe::decrypt(ciphertext, master@keypair@secret, cc = cc)
-    openfhe::set_length(pt, 1L)
-    openfhe::get_real_packed_value(pt)[1]
+    openfhe::set_length(pt, as.integer(len))
+    vals <- openfhe::get_real_packed_value(pt)
+    if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
 method(master_encrypt, ThresholdMaster) <- function(master, value) {
@@ -385,7 +386,7 @@ method(master_encrypt, ThresholdMaster) <- function(master, value) {
     pt <- openfhe::make_ckks_packed_plaintext(cc, value)
     openfhe::encrypt(master@joint_pubkey, pt, cc = cc)
 }
-method(master_decrypt, ThresholdMaster) <- function(master, ciphertext) {
+method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L) {
     cc  <- master@crypto_context
     sks <- master@secret_keys
     n   <- length(sks)
@@ -402,8 +403,9 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext) {
     ## Fuse to recover the plaintext sum. n-of-n: any subset of the
     ## partials would not suffice.
     pt <- do.call(openfhe::multiparty_decrypt_fusion, c(list(cc), partials))
-    openfhe::set_length(pt, 1L)
-    openfhe::get_real_packed_value(pt)[1]
+    openfhe::set_length(pt, as.integer(len))
+    vals <- openfhe::get_real_packed_value(pt)
+    if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
 # ---- Helpers --------------------------------------------------------------
