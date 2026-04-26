@@ -1,6 +1,7 @@
 #' @importFrom S7 new_class new_generic new_object method method<- class_any class_character class_integer S7_object S7_inherits
 #' @importFrom stats runif
 #' @importFrom openfhe make_ckks_packed_plaintext get_real_packed_value
+#' @importFrom openfhe multiparty_key_gen multiparty_decrypt_lead multiparty_decrypt_main multiparty_decrypt_fusion
 NULL
 
 ## Site / Master / NCParty actor classes.
@@ -109,6 +110,38 @@ CKKSMaster <- new_class(
     )
 )
 
+#' Threshold-CKKS master (n-of-n key generation)
+#'
+#' A [Master] that drives the protocol over `openfhe`'s CKKS with
+#' threshold key generation. There is no single secret key: each
+#' site holds a secret share `sk_i`, and the joint public key
+#' `pk_{1..n}` is built by chaining `multiparty_key_gen()` across
+#' sites. Encryption goes under `joint_pubkey`. Decryption requires
+#' all `n` sites to contribute partial decryptions, which the master
+#' then fuses.
+#'
+#' Constructed by [make_threshold_master()].
+#'
+#' @param name short identifier.
+#' @param crypto_context an `openfhe` `CryptoContext` with the
+#'   `MULTIPARTY` feature enabled.
+#' @param joint_pubkey the joint public key produced by chaining
+#'   `multiparty_key_gen()` across the sites.
+#' @param secret_keys a list of per-site secret keys, in site order
+#'   (the first is the lead site whose `sk` started the chain).
+#' @param state an environment for mutable bookkeeping.
+#' @export
+ThresholdMaster <- new_class(
+    "ThresholdMaster",
+    parent  = Master,
+    package = "homomorpheR",
+    properties = list(
+        crypto_context = class_any,
+        joint_pubkey   = class_any,
+        secret_keys    = class_any
+    )
+)
+
 #' A non-cooperating party
 #'
 #' Sits between the master and the sites in the non-cooperating-parties
@@ -168,6 +201,57 @@ make_ckks_master <- function(name, crypto_context, keypair) {
                     state   = new.env(parent = emptyenv()))
     m@state$pubkey  <- keypair@public
     m@state$privkey <- keypair@secret
+    m
+}
+
+#' Construct a threshold-CKKS master and the per-site secret shares
+#'
+#' Runs the chained `multiparty_key_gen()` setup across `n_sites`
+#' sites. The first site generates a fresh keypair `(pk_1, sk_1)`;
+#' each subsequent site `i` calls `multiparty_key_gen(cc, pk_{i-1})`
+#' to produce `(pk_{1..i}, sk_i)`. The final `pk_{1..n}` is the
+#' joint public key under which everything is encrypted. Each site
+#' keeps its own `sk_i`; no single party holds the joint secret.
+#'
+#' Decryption is n-of-n: each site contributes a partial
+#' decryption (`multiparty_decrypt_lead` for the first, then
+#' `multiparty_decrypt_main` for the rest), and the master fuses
+#' them via `multiparty_decrypt_fusion`. This happens automatically
+#' inside [master_decrypt()] when called on a `ThresholdMaster`.
+#'
+#' @param name short identifier.
+#' @param crypto_context an `openfhe` `CryptoContext` configured for
+#'   CKKS *with* the `MULTIPARTY` feature enabled. Pass
+#'   `features = c(Feature$MULTIPARTY)` to `fhe_context()`.
+#' @param n_sites number of participating sites (>= 2).
+#' @return a [ThresholdMaster].
+#' @export
+make_threshold_master <- function(name, crypto_context, n_sites) {
+    if (n_sites < 2)
+        cli_abort("Threshold key generation requires at least two sites.")
+
+    sks <- vector("list", n_sites)
+    pks <- vector("list", n_sites)
+
+    kp1 <- openfhe::key_gen(crypto_context)
+    sks[[1]] <- kp1@secret
+    pks[[1]] <- kp1@public
+
+    for (i in 2:n_sites) {
+        kpi <- openfhe::multiparty_key_gen(crypto_context, pks[[i - 1]])
+        sks[[i]] <- kpi@secret
+        pks[[i]] <- kpi@public
+    }
+
+    joint_pk <- pks[[n_sites]]
+
+    m <- ThresholdMaster(
+        name           = name,
+        crypto_context = crypto_context,
+        joint_pubkey   = joint_pk,
+        secret_keys    = sks,
+        state          = new.env(parent = emptyenv()))
+    m@state$pubkey <- joint_pk
     m
 }
 
@@ -292,6 +376,32 @@ method(master_encrypt, CKKSMaster) <- function(master, value) {
 method(master_decrypt, CKKSMaster) <- function(master, ciphertext) {
     cc <- master@crypto_context
     pt <- openfhe::decrypt(ciphertext, master@keypair@secret, cc = cc)
+    openfhe::set_length(pt, 1L)
+    openfhe::get_real_packed_value(pt)[1]
+}
+
+method(master_encrypt, ThresholdMaster) <- function(master, value) {
+    cc <- master@crypto_context
+    pt <- openfhe::make_ckks_packed_plaintext(cc, value)
+    openfhe::encrypt(master@joint_pubkey, pt, cc = cc)
+}
+method(master_decrypt, ThresholdMaster) <- function(master, ciphertext) {
+    cc  <- master@crypto_context
+    sks <- master@secret_keys
+    n   <- length(sks)
+
+    ## Each site computes a partial decryption of `ciphertext`. In a
+    ## real deployment the partials travel from sites to the master
+    ## over the network; here they are ordinary R objects.
+    partials      <- vector("list", n)
+    partials[[1]] <- openfhe::multiparty_decrypt_lead(cc, sks[[1]], ciphertext)
+    for (i in 2:n) {
+        partials[[i]] <- openfhe::multiparty_decrypt_main(cc, sks[[i]], ciphertext)
+    }
+
+    ## Fuse to recover the plaintext sum. n-of-n: any subset of the
+    ## partials would not suffice.
+    pt <- do.call(openfhe::multiparty_decrypt_fusion, c(list(cc), partials))
     openfhe::set_length(pt, 1L)
     openfhe::get_real_packed_value(pt)[1]
 }

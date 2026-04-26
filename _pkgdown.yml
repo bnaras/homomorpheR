@@ -22,6 +22,8 @@ navbar:
       href: articles/DHCox.html
     - text: Distributed Cox Regression (CKKS)
       href: articles/cox.html
+    - text: Distributed Cox Regression (Threshold CKKS)
+      href: articles/cox-threshold.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties
