@@ -1,0 +1,361 @@
+---
+title: "Threshold Cox + Output Differential Privacy (Demonstration)"
+author: "Balasubramanian Narasimhan"
+date: '`r Sys.Date()`'
+bibliography: homomorphing.bib
+output:
+  html_document:
+  fig_caption: yes
+  theme: cerulean
+  toc: yes
+  toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Threshold Cox + Output DP (Demonstration)}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r echo=F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+```
+
+## Why this vignette exists
+
+This vignette is a **demonstration**, not a recommendation.
+`vignette("cox-threshold")` shows the lossless threshold-FHE
+protocol: bit-identical to `coxph()`, no single decrypter, and the
+aggregator sees only $\ell(\beta)$ at each optimiser query. That
+trajectory of joint log-likelihood values is the residual exposure
+the lossless protocol accepts as the cost of preserving accuracy.
+
+A natural question is whether one can compose the threshold-FHE
+channel with **output differential privacy** to bound that
+residual exposure formally. The answer in this simulation is "yes,
+the cryptographic protocol composes cleanly and the implementation
+is one extra `rnorm()` call per site per query, but the
+accuracy/privacy trade-off does not produce a usable point at
+small $\varepsilon$ given the optimisers we use here." This
+vignette runs that trade-off end-to-end and reports the numbers.
+
+`feedback_he_not_dp` in the package's notes records the framing
+explicitly: lossless threshold-FHE is the package's primary path;
+DP demonstrations show *what happens if* a user composes output
+DP on top, not the recommended deployment for precision-critical
+workloads.
+
+## A brief output-DP primer
+
+Given a query $f: \mathcal{D} \to \mathbb{R}$ on a dataset $D$,
+the **Gaussian mechanism** releases
+$\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2)$. If $f$'s
+*sensitivity* (the largest change $f$ can undergo when one record
+is added or removed) is $\Delta$, then for any
+$\varepsilon \in (0, 1)$ and $\delta > 0$, choosing
+$\sigma \geq \Delta \sqrt{2\ln(1.25/\delta)}/\varepsilon$ makes a
+single release of $\tilde f$ satisfy $(\varepsilon, \delta)$
+differential privacy.
+
+The optimiser issues many queries, so the per-query budget
+composes. We use **zCDP composition** [Bun & Steinke, 2016]:
+the Gaussian mechanism is $\rho$-zCDP with $\rho = (\Delta/\sigma)^2/2$;
+$T$ queries compose linearly to $T \cdot \rho$ in zCDP units; and
+that converts to $(\varepsilon, \delta)$ via
+$\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}$.
+
+## The protocol
+
+The setup is identical to `vignette("cox-threshold")`, except each
+site adds an independent Gaussian noise term to its local
+contribution before encryption. Since variances of independent
+normals add, the decrypted total is
+$\ell(\beta) + \mathcal{N}(0, \sigma^2)$ when each site adds
+$\mathcal{N}(0, \sigma^2/N)$.
+
+## The Cox setup (same simulation as the other Cox vignettes)
+
+```{r}
+suppressPackageStartupMessages(library(survival))
+library(homomorpheR)
+library(stats4)
+
+sample_size <- c(n1 = 1000, n2 = 500, n3 = 1500)
+set.seed(12345)
+
+beta_true <- c(age = -0.015, sex = 0.2, bm = 0.001)
+lambda_T  <- c(5, 4, 3)
+lambda_C  <- 2
+
+cox_data <- lapply(seq_along(sample_size), function(i) {
+  n   <- sample_size[i]
+  sex <- sample(c(0, 1), size = n, replace = TRUE)
+  age <- sample(40:70, size = n, replace = TRUE)
+  bm  <- rnorm(n)
+  true_time <- rweibull(n, shape = 1,
+                        scale = lambda_T[i] *
+                          exp(beta_true["age"] * age +
+                              beta_true["sex"] * sex +
+                              beta_true["bm"]  * bm))
+  cens_time <- rweibull(n, shape = 1, scale = lambda_C)
+  time  <- pmin(true_time, cens_time)
+  event <- (time == true_time)
+  data.frame(stratum = i, sex = sex, age = age, bm = bm,
+             time = time, event = event)
+})
+
+agg_data <- do.call(rbind, cox_data)
+agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
+                   data = agg_data)
+oracle_coef <- coef(agg_model)
+
+cph_control <- replace(coxph.control(), "iter.max", 0)
+
+local_cox_nll <- function(data, beta) {
+    fit <- tryCatch(
+        coxph(Surv(time, event) ~ sex + age + bm,
+              data    = data,
+              init    = beta,
+              control = cph_control),
+        error = function(e) NULL)
+    if (is.null(fit)) NA_real_ else -fit$loglik[1]
+}
+```
+
+## Threshold setup and DP-noised workers
+
+The threshold infrastructure is the same as `cox-threshold`. The
+DP twist lives entirely inside the per-worker `local_fn`: each
+worker adds an independent $\mathcal{N}(0, \sigma^2/N)$ draw to its
+local nLL before returning. The master/worker runner sees only the
+noisy local value and encrypts it as usual.
+
+```{r}
+cc <- openfhe::fhe_context("CKKS",
+                           multiplicative_depth = 1L,
+                           scaling_mod_size     = 59L,
+                           first_mod_size       = 60L,
+                           batch_size           = 8L,
+                           features             = c(openfhe::Feature$MULTIPARTY))
+
+n_sites <- length(cox_data)
+
+build_dp_workers <- function(sigma) {
+    lapply(seq_len(n_sites), function(i) {
+        make_worker(
+            paste0("Site ", i),
+            data     = cox_data[[i]],
+            local_fn = function(data, beta) {
+                nll <- local_cox_nll(data, beta)
+                if (is.na(nll)) return(NA_real_)
+                nll + rnorm(1L, mean = 0, sd = sigma / sqrt(n_sites))
+            })
+    })
+}
+
+fit_at_sigma <- function(sigma, method = "BFGS", seed = 1L) {
+    set.seed(seed)   # stabilise the DP-noise draws across runs
+    master <- make_threshold_master("Aggregator",
+                                    crypto_context = cc,
+                                    n_sites        = n_sites)
+    set_workers(master, build_dp_workers(sigma))
+    dp_nLL <- function(sex, age, bm)
+        run_master_worker(master, c(sex, age, bm))
+    stats4::mle(dp_nLL,
+                start   = list(sex = 0, age = 0, bm = 0),
+                method  = method,
+                control = list(reltol = 1e-7))
+}
+```
+
+## Mechanical correctness: $\sigma = 0$ reproduces `cox-threshold`
+
+When the noise is zero the protocol reduces to the lossless
+threshold protocol. The fitted coefficients match `coxph()` to
+threshold-CKKS precision.
+
+```{r}
+fit_clean <- fit_at_sigma(0)
+clean_check <- data.frame(
+    coefficient = names(oracle_coef),
+    cleartext   = unname(oracle_coef),
+    protocol    = unname(coef(fit_clean)[names(oracle_coef)]),
+    abs_diff    = abs(unname(coef(fit_clean)[names(oracle_coef)] - oracle_coef))
+)
+knitr::kable(clean_check, digits = 9,
+             caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
+```
+
+The maximum absolute coefficient difference at $\sigma = 0$ is
+`r signif(max(clean_check$abs_diff), 3)`. The DP layer adds no
+measurable error when the noise is zero, so the cryptographic
+channel is doing exactly what it does in the lossless vignette.
+Every deviation from `coxph()` below is attributable to the noise.
+
+## BFGS at increasing noise: where does it break?
+
+We sweep $\sigma$ across four orders of magnitude. Each fit is
+one full BFGS run over the threshold-DP encrypted nLL.
+
+```{r}
+sigma_grid_bfgs <- c(1e-4, 1e-3, 1e-2, 1e-1, 1)
+fits_bfgs <- lapply(sigma_grid_bfgs, fit_at_sigma, method = "BFGS")
+names(fits_bfgs) <- sprintf("sigma_%g", sigma_grid_bfgs)
+
+bfgs_table <- data.frame(
+    sigma        = sigma_grid_bfgs,
+    n_evals      = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
+    sex          = sapply(fits_bfgs, function(f) coef(f)[["sex"]]),
+    age          = sapply(fits_bfgs, function(f) coef(f)[["age"]]),
+    bm           = sapply(fits_bfgs, function(f) coef(f)[["bm"]]),
+    max_abs_diff = sapply(fits_bfgs, function(f)
+        max(abs(coef(f) - oracle_coef[names(coef(f))]))))
+knitr::kable(bfgs_table, digits = 6,
+             caption = "BFGS over the threshold-DP nLL at five noise scales")
+```
+
+Read `max_abs_diff`: it grows roughly linearly with $\sigma$ in
+the small-$\sigma$ regime (1e-4 → 1e-2) and the qualitative answer
+collapses between $\sigma = 0.1$ and $\sigma = 1$. At $\sigma = 1$
+BFGS exits cleanly but the fit is unusable.
+
+### Why BFGS breaks
+
+BFGS estimates gradients by finite differences. With default
+`ndeps = 1e-3` the gradient noise per coordinate inflates from
+the function-value noise of $\sigma$ to roughly $\sigma\sqrt{2}/(2h)
+\approx 707\,\sigma$. Near the optimum the true gradient is small
+and the noise dominates. Any optimiser that takes derivatives by
+differencing nearby function values will have this exact failure
+mode against any DP mechanism that adds enough noise to be
+meaningful.
+
+This is not a defect of the cryptographic protocol. The protocol
+is doing exactly what it claims: releasing $\ell(\beta) +
+\mathcal{N}(0, \sigma^2)$ at every query.
+
+## Nelder–Mead at the same noise scale
+
+Nelder–Mead is gradient-free; it never amplifies noise through a
+$1/h$ divisor. Noise still hurts it, but more gently than BFGS.
+
+```{r}
+fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
+nm_compare <- data.frame(
+    optimizer = c("BFGS", "Nelder-Mead", "coxph oracle"),
+    sigma     = c(1, 1, NA),
+    n_evals   = c(fits_bfgs[["sigma_1"]]@details$counts[["function"]],
+                  fit_nm_1@details$counts[["function"]],
+                  NA),
+    sex       = c(coef(fits_bfgs[["sigma_1"]])[["sex"]],
+                  coef(fit_nm_1)[["sex"]],
+                  oracle_coef[["sex"]]),
+    age       = c(coef(fits_bfgs[["sigma_1"]])[["age"]],
+                  coef(fit_nm_1)[["age"]],
+                  oracle_coef[["age"]]),
+    bm        = c(coef(fits_bfgs[["sigma_1"]])[["bm"]],
+                  coef(fit_nm_1)[["bm"]],
+                  oracle_coef[["bm"]])
+)
+knitr::kable(nm_compare, digits = 6,
+             caption = "BFGS vs Nelder-Mead at sigma = 1")
+```
+
+Nelder–Mead at $\sigma = 1$ recovers the right sign on `sex` and
+keeps the substantive direction of the effect. BFGS at the same
+$\sigma$ flipped the sign. The price is more function evaluations,
+which feeds back into the privacy budget below.
+
+## Privacy budget
+
+For each fit, with sensitivity $\Delta = 1$ (placeholder) and
+target $\delta = 10^{-5}$, zCDP composition gives:
+
+```{r}
+zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
+
+bfgs_budget <- data.frame(
+    optimizer = "BFGS",
+    sigma     = sigma_grid_bfgs,
+    n_queries = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
+    stringsAsFactors = FALSE)
+nm_budget <- data.frame(
+    optimizer = "Nelder-Mead",
+    sigma     = 1,
+    n_queries = fit_nm_1@details$counts[["function"]])
+budget <- rbind(bfgs_budget, nm_budget)
+budget$rho_per_query              <- (1 / budget$sigma)^2 / 2
+budget$rho_total                  <- budget$n_queries * budget$rho_per_query
+budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
+knitr::kable(budget, digits = 4,
+             caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
+```
+
+Read the `epsilon_at_delta_1e_minus_5` column. At noise scales the
+optimisers can tolerate without producing a broken fit, the
+resulting $\varepsilon$ is large. Whether large $\varepsilon$ is
+acceptable is a use-case decision; we report the numbers and stop.
+
+### What it would take to push $\varepsilon$ smaller
+
+Three directions, none pursued here:
+
+1. **Tighter sensitivity bound.** $\Delta = 1$ is conservative;
+   careful Cox-specific analysis could reduce it.
+2. **Far fewer queries.** An optimiser that found the MLE in
+   $\le 10$ queries would improve the budget by $\sim 10\times$;
+   DP-SGD-style methods achieve this via subsampling and
+   momentum.
+3. **Subsampling amplification.** Per-record subsampling with the
+   appropriate amplification accountant — incompatible with the
+   current "compute the whole nLL at every site at every query"
+   shape, but adaptable.
+
+These are research questions, not package-level concerns. The
+package's main story is the lossless cox progression.
+
+## What this demonstrates
+
+1. **The cryptographic protocol is correct under the noise.** At
+   $\sigma = 0$ it reproduces `cox-threshold` exactly.
+2. **The two layers compose without interaction.** Threshold FHE
+   handles "who holds the key"; output DP handles "what the
+   released values reveal." Adding the DP layer is one `rnorm()`
+   call per site per query and zero new homomorpheR machinery.
+3. **The accuracy/noise trade-off is characterised end-to-end.**
+   The vignette runs five $\sigma$ values with BFGS and one with
+   Nelder–Mead, and reports the recovered fits and the privacy
+   budgets in tables.
+4. **The optimiser-vs-noise interaction shapes the trade-off.**
+   BFGS amplifies function-value noise through finite-difference
+   gradients and breaks at moderate $\sigma$; Nelder–Mead at
+   $\sigma = 1$ recovers a usable estimate at the cost of more
+   queries. The cryptographic layer is not the limit — the
+   optimiser is.
+
+## What this does not address
+
+- **Tight Cox sensitivity.** $\Delta = 1$ is a placeholder.
+- **DP-SGD or stochastic gradient methods.** Standard alternative
+  for tight DP budgets; out of scope here.
+- **Adaptive noise schedules.** All queries here use the same
+  $\sigma$; adaptive schedules can be tighter.
+- **Malicious-site protection.** A hostile site can corrupt
+  either its $\text{nLL}_i$ or its $z_i$. Out of scope.
+
+Readers who need lossless fits should use
+`vignette("cox-threshold")` and accept the residual
+released-function leakage that comes with it.
+
+## References
+
+- Dwork & Roth (2014). *The Algorithmic Foundations of
+  Differential Privacy.* §3.5.3 (Gaussian mechanism).
+- Bun & Steinke (2016). *Concentrated Differential Privacy.* TCC.
+  Source for the zCDP composition bound used above.
+- Abadi et al. (2016). *Deep Learning with Differential Privacy.*
+  CCS. The DP-SGD paper.

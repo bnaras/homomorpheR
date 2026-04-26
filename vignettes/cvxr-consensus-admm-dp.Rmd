@@ -1,0 +1,409 @@
+---
+title: "Consensus ADMM + Output Differential Privacy (Demonstration)"
+author: "Balasubramanian Narasimhan"
+date: '`r Sys.Date()`'
+bibliography: homomorphing.bib
+output:
+  html_document:
+  fig_caption: yes
+  theme: cerulean
+  toc: yes
+  toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Consensus ADMM + Output DP (Demonstration)}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r echo=F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+```
+
+## Why this vignette exists
+
+This vignette is a **demonstration**, not a recommendation.
+`vignette("cvxr-consensus-admm")` shows the lossless consensus-ADMM
+protocol over the threshold-FHE channel: bit-identical to the
+centralised CVXR fit, no single decrypter, residuals drive
+convergence. The aggregator sees the full trajectory $\{z^k\}$ as
+plaintext after each iteration's threshold fusion.
+
+A natural question is whether one can compose that lossless
+channel with **output differential privacy** to bound the
+trajectory leakage formally. The answer in this simulation is: yes,
+the cryptographic protocol composes cleanly and the implementation
+is one extra `rnorm()` call per site per iteration, but the
+accuracy/privacy trade-off does not produce a usable point at
+small $\varepsilon$ given the optimiser structure here. This
+vignette runs that trade-off end-to-end.
+
+`feedback_he_not_dp` in the package's notes records the framing
+explicitly: lossless threshold-FHE is the package's primary path;
+DP demonstrations show *what happens if* a user composes output DP
+on top, not the recommended deployment for precision-critical
+workloads.
+
+## A brief output-DP primer
+
+Given a query $f: \mathcal{D} \to \mathbb{R}^p$, the **Gaussian
+mechanism** releases $\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2 I)$.
+Sensitivity-driven $\sigma$ gives single-query
+$(\varepsilon, \delta)$ DP. Multi-query composition uses **zCDP**
+[Bun & Steinke 2016]: each release is $(\Delta/\sigma)^2/2$-zCDP;
+$T$ releases compose linearly to $T \cdot \rho$; convert back to
+$(\varepsilon, \delta)$ via $\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}$.
+
+## The protocol modification
+
+The setup is identical to `vignette("cvxr-consensus-admm")`. The
+only change is **noise injection at each site**: at every ADMM
+iteration site $i$ adds an independent draw
+$\eta_i \sim \mathcal{N}(0, \sigma^2 N \cdot I)$ to $x_i + u_i$
+*before* encrypting. The encrypted noise terms sum under the joint
+key, the $1/N$ scaling contracts the variance back to $\sigma^2$
+per coordinate, and the recovered $z$ has noise
+$\mathcal{N}(0, \sigma^2 I)$.
+
+Distributing the noise across sites (rather than centralising it
+at the aggregator) means:
+
+1. No single point ever holds the noiseless value. Even if the
+   aggregator is compromised it sees only ciphertexts of *noised*
+   contributions until the final fusion.
+2. The trust model matches `cox-threshold-dp`: each site is its
+   own randomness boundary.
+
+## The stopping rule changes
+
+Residual-based convergence checks are not meaningful under noise:
+the residuals never shrink below the per-iteration noise floor.
+We replace residual-based stopping with **fixed $T$** equal to
+the cleartext convergence iteration count for the chosen $\rho$.
+The $\sigma = 0$ row of the table below verifies that the protocol
+with the noise mechanism turned off lands on the lossless ADMM
+fit at the same fixed $T$.
+
+## Setup
+
+```{r}
+suppressPackageStartupMessages({
+    library(homomorpheR)
+    library(CVXR)
+    library(S7)
+})
+
+N   <- 3L
+p   <- 4L
+lam <- 1
+```
+
+```{r}
+build_local_problem <- function(X_i, y_i, rho_val) {
+    x  <- Variable(p)
+    zp <- Parameter(p)
+    up <- Parameter(p)
+    y_signs <- 2 * y_i - 1
+    margins <- -y_signs * (X_i %*% x)
+    local_loss <- sum(logistic(margins)) +
+                  (lam / (2 * N)) * sum_squares(x)
+    augmented  <- (rho_val / 2) * sum_squares(x - zp + up)
+    prob <- Problem(Minimize(local_loss + augmented))
+    value(zp) <- rep(0, p); value(up) <- rep(0, p)
+    list(prob = prob, x = x, zp = zp, up = up)
+}
+
+ConsensusSite <- new_class("ConsensusSite",
+    properties = list(
+        name  = class_character,
+        n     = class_integer,
+        state = class_any))
+
+make_consensus_site <- function(name, X_i, y_i, rho_val) {
+    st        <- new.env(parent = emptyenv())
+    st$X      <- X_i
+    st$y      <- y_i
+    built     <- build_local_problem(X_i, y_i, rho_val)
+    st$prob   <- built$prob
+    st$x_var  <- built$x
+    st$zp     <- built$zp
+    st$up     <- built$up
+    st$x_curr <- rep(0, ncol(X_i))
+    st$u_curr <- rep(0, ncol(X_i))
+    ConsensusSite(name = name, n = nrow(X_i), state = st)
+}
+
+local_update <- function(site, z_curr) {
+    st <- site@state
+    value(st$zp) <- z_curr
+    value(st$up) <- st$u_curr
+    suppressMessages(suppressWarnings(psolve(st$prob, solver = "CLARABEL")))
+    if (!status(st$prob) %in% c("optimal", "optimal_inaccurate"))
+        stop("Local CVXR solve at ", site@name, " did not reach optimal status.")
+    st$x_curr <- as.numeric(value(st$x_var))
+    invisible(st$x_curr)
+}
+```
+
+## Simulated cohort
+
+```{r}
+set.seed(20260412)
+n_per_site <- c(500L, 1000L, 1500L)
+beta_true  <- c(intercept = -0.5, age = 0.4, bmi = -0.3, sex = 0.6)
+
+make_site_data <- function(n) {
+    X  <- cbind(1, rnorm(n), rnorm(n), rbinom(n, 1, 0.5))
+    pr <- plogis(as.numeric(X %*% beta_true))
+    y  <- as.integer(runif(n) < pr)
+    list(X = X, y = y)
+}
+site_data <- lapply(n_per_site, make_site_data)
+```
+
+## Cleartext $\rho$ sweep
+
+Pick $\rho$ programmatically — same idiom as the lossless ADMM
+vignette.
+
+```{r}
+tol      <- 1e-3
+max_iter <- 60L
+
+sweep_one_rho <- function(rho_val) {
+    built <- lapply(site_data,
+                    function(s) build_local_problem(s$X, s$y, rho_val))
+    x_curr <- u_curr <- replicate(N, rep(0, p), simplify = FALSE)
+    z      <- rep(0, p)
+    k_conv <- NA_integer_
+    for (k in seq_len(max_iter)) {
+        for (i in seq_len(N)) {
+            value(built[[i]]$zp) <- z
+            value(built[[i]]$up) <- u_curr[[i]]
+            suppressMessages(suppressWarnings(
+                psolve(built[[i]]$prob, solver = "CLARABEL")))
+            x_curr[[i]] <- as.numeric(value(built[[i]]$x))
+        }
+        z_prev <- z
+        z <- Reduce(`+`, Map(`+`, x_curr, u_curr)) / N
+        for (i in seq_len(N)) u_curr[[i]] <- u_curr[[i]] + x_curr[[i]] - z
+        pri <- sqrt(sum(vapply(seq_len(N),
+            function(i) sum((x_curr[[i]] - z)^2), 0)) / N)
+        dua <- rho_val * sqrt(sum((z - z_prev)^2))
+        if (pri < tol && dua < tol) { k_conv <- k; break }
+    }
+    data.frame(rho = rho_val,
+               iters = if (is.na(k_conv)) max_iter else k_conv,
+               converged = !is.na(k_conv))
+}
+
+rho_grid  <- c(10, 20, 50, 100, 500)
+rho_sweep <- do.call(rbind, lapply(rho_grid, sweep_one_rho))
+knitr::kable(rho_sweep, caption = "Cleartext consensus-ADMM convergence")
+
+converged_rows <- rho_sweep[rho_sweep$converged, ]
+if (nrow(converged_rows) == 0L)
+    stop("No rho in the grid converged within max_iter.")
+
+rho_chosen <- converged_rows$rho[which.min(converged_rows$iters)]
+T_fixed    <- converged_rows$iters[converged_rows$rho == rho_chosen]
+cat(sprintf("Chosen rho = %g (T = %d iterations cleartext).\n",
+            rho_chosen, T_fixed))
+```
+
+The DP-ADMM loop below runs for exactly $T = `r T_fixed`$
+iterations regardless of residuals.
+
+## Threshold-FHE setup
+
+```{r}
+cc <- openfhe::fhe_context("CKKS",
+                           multiplicative_depth = 1L,
+                           scaling_mod_size     = 59L,
+                           first_mod_size       = 60L,
+                           batch_size           = 8L,
+                           features             = c(openfhe::Feature$MULTIPARTY))
+```
+
+The DP version of the consensus step. The only change from the
+lossless ADMM vignette's `encrypted_consensus()` is the
+`rnorm(p, ..., sd = sigma * sqrt(Nv))` term inside the per-site
+loop:
+
+```{r}
+encrypted_consensus_dp <- function(threshold_master, sites, sigma) {
+    Nv  <- length(sites)
+    cts <- vector("list", Nv)
+    for (i in seq_along(sites)) {
+        st  <- sites[[i]]@state
+        val <- st$x_curr + st$u_curr +
+               rnorm(p, mean = 0, sd = sigma * sqrt(Nv))
+        cts[[i]] <- master_encrypt(threshold_master, val)
+    }
+    ct_sum <- Reduce(`+`, cts)
+    ct_avg <- ct_sum * (1 / Nv)
+    master_decrypt(threshold_master, ct_avg, len = p)
+}
+```
+
+## The DP-ADMM loop
+
+```{r}
+run_dp_admm <- function(sigma, T_iter = T_fixed, seed = NULL) {
+    if (!is.null(seed)) set.seed(seed)
+    master <- make_threshold_master("Aggregator",
+                                    crypto_context = cc,
+                                    n_sites        = N)
+    sites <- list(
+        make_consensus_site("Site 1", site_data[[1]]$X, site_data[[1]]$y, rho_chosen),
+        make_consensus_site("Site 2", site_data[[2]]$X, site_data[[2]]$y, rho_chosen),
+        make_consensus_site("Site 3", site_data[[3]]$X, site_data[[3]]$y, rho_chosen))
+
+    z_curr <- rep(0, p)
+    z_hist <- matrix(NA_real_, nrow = T_iter, ncol = p,
+                     dimnames = list(NULL, names(beta_true)))
+    for (k in seq_len(T_iter)) {
+        for (s in sites) local_update(s, z_curr)
+        z_curr <- encrypted_consensus_dp(master, sites, sigma)
+        for (s in sites) {
+            s@state$u_curr <- s@state$u_curr + (s@state$x_curr - z_curr)
+        }
+        z_hist[k, ] <- z_curr
+    }
+    list(z = z_curr, z_hist = z_hist)
+}
+```
+
+## Centralised CVXR oracle
+
+```{r}
+X_pooled  <- do.call(rbind, lapply(site_data, `[[`, "X"))
+y_pooled  <- unlist(lapply(site_data, `[[`, "y"))
+beta_var  <- Variable(p)
+y_signs_p <- 2 * y_pooled - 1
+margins_p <- -y_signs_p * (X_pooled %*% beta_var)
+suppressMessages(suppressWarnings(
+    psolve(Problem(Minimize(sum(logistic(margins_p)) +
+                            (lam / 2) * sum_squares(beta_var))),
+           solver = "CLARABEL")))
+beta_oracle <- as.numeric(value(beta_var))
+names(beta_oracle) <- names(beta_true)
+```
+
+## The $\sigma$ sweep
+
+Six $\sigma$ values from zero to one. The $\sigma = 0$ row is the
+sanity check that the DP mechanism is a no-op when off.
+
+```{r}
+sigma_grid    <- c(0, 1e-4, 1e-3, 1e-2, 1e-1, 1)
+sweep_results <- vector("list", length(sigma_grid))
+for (j in seq_along(sigma_grid)) {
+    sweep_results[[j]] <- run_dp_admm(sigma = sigma_grid[j], seed = 100L + j)
+}
+names(sweep_results) <- sprintf("sigma=%.0e", sigma_grid)
+```
+
+## $\sigma = 0$ sanity check
+
+```{r}
+clean_dev <- max(abs(sweep_results[[1]]$z - beta_oracle))
+agree_tol <- 10 * tol
+if (clean_dev > agree_tol)
+    stop("DP-ADMM at sigma = 0 disagrees with the centralised oracle.")
+cat(sprintf("Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n",
+            clean_dev, agree_tol))
+```
+
+## Summary table
+
+```{r}
+summary_df <- do.call(rbind, lapply(seq_along(sigma_grid), function(j) {
+    z <- sweep_results[[j]]$z
+    data.frame(sigma     = sigma_grid[j],
+               intercept = z[1],
+               age       = z[2],
+               bmi       = z[3],
+               sex       = z[4],
+               max_dev   = max(abs(z - beta_oracle)))
+}))
+oracle_row <- data.frame(sigma = NA, intercept = beta_oracle[1],
+                         age = beta_oracle[2], bmi = beta_oracle[3],
+                         sex = beta_oracle[4], max_dev = 0)
+summary_table <- rbind(summary_df, oracle_row)
+rownames(summary_table) <- c(sprintf("sigma=%g", sigma_grid), "oracle")
+knitr::kable(summary_table, digits = 6,
+             caption = "DP-ADMM coefficients vs centralised CVXR")
+```
+
+The deviation grows roughly linearly with $\sigma$ in the
+small-$\sigma$ regime and then leaves the linear band — at
+$\sigma = 1$ the recovered coefficients drift far from the
+centralised oracle. The protocol is faithfully running the same
+algorithm at every $\sigma$; the deterioration is what the noise
+mechanism does to the optimisation, not what the cryptographic
+channel does.
+
+## Privacy budget
+
+Per-iteration zCDP: $\rho_{\text{iter}} = (\Delta/\sigma)^2/2$ per
+*site* per coordinate. Across $T = `r T_fixed`$ iterations and
+$N = `r N`$ sites, total $\rho = T \cdot N \cdot (\Delta/\sigma)^2/2$.
+Convert to $(\varepsilon, \delta)$ via the standard formula.
+
+```{r}
+zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
+
+budget <- data.frame(sigma = sigma_grid[sigma_grid > 0])
+budget$rho_total                  <- T_fixed * N * (1 / budget$sigma)^2 / 2
+budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
+knitr::kable(budget, digits = 4,
+             caption = "zCDP composition; sensitivity Delta = 1, delta = 1e-5")
+```
+
+Read `epsilon_at_delta_1e_minus_5`. The smallest $\varepsilon$
+attained — at $\sigma = 1$ where the fit is already broken — is
+still in the dozens. Whether large $\varepsilon$ is acceptable is a
+use-case decision; we report the numbers and stop.
+
+## What this demonstrates
+
+1. **The cryptographic protocol composes cleanly with output
+   DP.** At $\sigma = 0$ the DP-ADMM protocol reproduces the
+   lossless ADMM fit. The DP layer is one `rnorm()` call per site
+   per iteration and zero new homomorpheR machinery.
+2. **The accuracy/privacy trade-off is reported end-to-end.** Six
+   $\sigma$ values, one fixed-$T$ DP-ADMM run each, summary table
+   showing the recovered coefficients and the deviation from the
+   centralised oracle.
+3. **At noise scales the optimiser tolerates, $\varepsilon$ is
+   large.** zCDP composition over $T \cdot N$ Gaussian releases
+   inflates the budget; tightening it requires either fewer
+   iterations, tighter sensitivity, or subsampling amplification —
+   all out of scope for this demonstration.
+
+## What this does not address
+
+- **Tight sensitivity bounds** for the consensus update. $\Delta = 1$
+  is a placeholder.
+- **Adaptive noise** schedules across iterations.
+- **Subsampling amplification** of the DP accountant.
+- **Malicious-site protection.** A hostile site can corrupt either
+  its $(x_i + u_i)$ or its noise draw; out of scope.
+
+Readers who need the lossless fit should use
+`vignette("cvxr-consensus-admm")` and accept the trajectory
+exposure that comes with it.
+
+## References
+
+- Bun & Steinke (2016). *Concentrated Differential Privacy.* TCC.
+- Cyffers, Bellet & Upadhyay (2023). *Muffliato:
+  Peer-to-Peer Privacy Amplification for Decentralised
+  Optimisation and Averaging.* The DP-ADMM analytic companion to
+  this empirical demonstration.

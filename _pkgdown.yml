@@ -32,6 +32,10 @@ navbar:
       href: articles/encrypted-regression.html
     - text: Privacy-Preserving Count Aggregation (BFV)
       href: articles/privacy-preserving-aggregation.html
+    - text: Threshold Cox + Output DP (Demonstration)
+      href: articles/cox-threshold-dp.html
+    - text: Consensus ADMM + Output DP (Demonstration)
+      href: articles/cvxr-consensus-admm-dp.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties
