@@ -26,6 +26,8 @@ navbar:
       href: articles/cox-threshold.html
     - text: Federated Consensus ADMM (CVXR + Threshold CKKS)
       href: articles/cvxr-consensus-admm.html
+    - text: Secure Model Inference (CKKS, two-party)
+      href: articles/secure-inference.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties
