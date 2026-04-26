@@ -14,10 +14,14 @@ navbar:
     menu:
     - text: Introduction
       href: articles/introduction.html
-    - text: Maximum Likelihood Estimation
+    - text: Maximum Likelihood Estimation (Paillier)
       href: articles/homomorphing.html
-    - text: Distributed Cox Regression
+    - text: Maximum Likelihood Estimation (CKKS)
+      href: articles/mle.html
+    - text: Distributed Cox Regression (Paillier)
       href: articles/DHCox.html
+    - text: Distributed Cox Regression (CKKS)
+      href: articles/cox.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties

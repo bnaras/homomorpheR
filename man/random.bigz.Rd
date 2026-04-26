@@ -2,15 +2,18 @@
 % Please edit documentation in R/homomorpheR.R
 \name{random.bigz}
 \alias{random.bigz}
-\title{Return a random big number using the cryptographically secure random number generator
-from in the \code{sodium} package.}
+\title{Random big integer}
 \usage{
 random.bigz(nBits)
 }
 \arguments{
-\item{nBits, }{the number of bits, which must be a multiple of 8, is not checked for efficiency.}
+\item{nBits}{number of bits, which must be a multiple of 8 (not
+checked, for efficiency).}
+}
+\value{
+a \link[gmp:biginteger]{gmp::bigz} value.
 }
 \description{
-Return a random big number using the cryptographically secure random number generator
-from in the \code{sodium} package.
+Returns a random big integer using the cryptographically secure
+generator from the \code{sodium} package.
 }

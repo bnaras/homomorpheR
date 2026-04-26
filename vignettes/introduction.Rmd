@@ -92,7 +92,7 @@ for arbitrary precision arithmetic.
 
 ```{r}
 library(homomorpheR)
-keyPair <- PaillierKeyPair$new(modulusBits = 1024)
+keyPair <- paillier_keypair(modulus_bits = 1024)
 ```
 
 Examine the `keyPair` object:
@@ -101,20 +101,23 @@ Examine the `keyPair` object:
 keyPair
 ```
 
-The `pubkey` field can be distributed all interested parties but the
-private key, obtainable by `getPrivateKey()` should be kept secret for
-decryption.
+The `pubkey` slot can be distributed to all interested parties, but
+the private key, obtainable via `get_private_key()`, should be kept
+secret for decryption.
 
-The main functions are the `encrypt` function for the public key, and
-the `decrypt` function for the private key.
+The main generics are `encrypt()` for the public key and `decrypt()`
+for the private key. Encrypted values are wrapped in
+`PaillierCiphertext` objects so that R's `+`, `-`, and `*` operators
+dispatch to the homomorphic operations directly.
 
 ## Some tests
 
-We can now perform some simple tests. But before that a simple
-function that encrypts and decrypts.
+We can now perform some simple tests. First a small helper that
+encrypts and immediately decrypts:
 
 ```{r}
-encryptAndDecrypt <- function(x) keyPair$getPrivateKey()$decrypt(keyPair$pubkey$encrypt(x))
+encryptAndDecrypt <- function(x)
+    decrypt(get_private_key(keyPair), encrypt(keyPair@pubkey, x))
 ```
 
 Now we can encrypt and decrypt some numbers.
@@ -131,6 +134,18 @@ large random numbers.
 m <- lapply(1:100, function(x) random.bigz(nBits = 512))
 md <- lapply(m, encryptAndDecrypt)
 identical(m, md)
+```
+
+We can also do arithmetic directly on encrypted values. The result
+decrypts to the same value we would have obtained on the cleartext:
+
+```{r}
+ct_a <- encrypt(keyPair@pubkey, gmp::as.bigz(123))
+ct_b <- encrypt(keyPair@pubkey, gmp::as.bigz(456))
+priv <- get_private_key(keyPair)
+identical(gmp::as.bigz(123 + 456),     decrypt(priv, ct_a + ct_b))
+identical(gmp::as.bigz(123 - 456),     decrypt(priv, ct_a - ct_b))
+identical(gmp::as.bigz(123 * 5),       decrypt(priv, ct_a * gmp::as.bigz(5)))
 ```
 
 ## References

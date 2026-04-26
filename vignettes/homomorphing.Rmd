@@ -128,167 +128,46 @@ Also, since we are only using homomorphic additive properties, a
 partial homomorphic scheme such as the Paillier Encryption system will
 be sufficient for our computations.
 
-We define a class to encapsulate our sites that will compute the
-Poisson likelihood on site data given a parameter $\lambda$. Note how
-the `addNLLAndForward` method takes care to split the result into an
-integer and fractional part while performing the arithmetic
-operations. (The latter is approximated by a rational number.)
+The package exports a small actor surface — `Site`, `Master`, and
+the helpers `make_site()`, `make_master()`, `round_robin_chain()`,
+`run_round_robin()` — that captures the round-robin protocol once
+and lets each application supply its own per-site summary function.
+
+The per-site negative log-likelihood is just an ordinary R function
+of `(data, theta)`. We write it out and hand it to the constructor:
 
 ```{r}
-library(gmp)
 library(homomorpheR)
-Site <- R6::R6Class("Site",
-                    private = list(
-                        ## name of the site
-                        name = NA,
-                        ## only master has this, NA for workers
-                        privkey = NA,
-                        ## local data
-                        data = NA,
-                        ## The next site in the communication: NA for master
-                        nextSite = NA,
-                        ## is this the master site?
-                        iAmMaster = FALSE,
-                        ## intermediate result variable
-                        intermediateResult = NA
-                    ),
-                    public = list(
-                        ## Common denominator for approximate real arithmetic
-                        den = NA,
-                        ## The public key; everyone has this
-                        pubkey = NA,
-                        initialize = function(name, data, den) {
-                            private$name <- name
-                            private$data <- data
-                            self$den <- den
-                        },
-                        setPublicKey = function(pubkey) {
-                            self$pubkey <- pubkey
-                        },
-                        setPrivateKey = function(privkey) {
-                            private$privkey <- privkey
-                        },
-                        ## Make me master
-                        makeMeMaster = function() {
-                            private$iAmMaster <- TRUE
-                        },
-                        ## add neg log lik and forward to next site
-                        addNLLAndForward = function(lambda, enc.offset) {
-                            if (private$iAmMaster) {
-                                ## We are master, so don't forward
-                                ## Just store intermediate result and return
-                                private$intermediateResult <- enc.offset
-                            } else {
-                                ## We are workers, so add and forward
-                                ## add negative log likelihood and forward result to next site
-                                ## Note that offset is encrypted
-                                nllValue <- self$nLL(lambda)
-                                result.int <- floor(nllValue)
-                                result.frac <- nllValue - result.int
-                                result.fracnum <- as.bigq(numerator(as.bigq(result.frac) * self$den))
-                                pubkey <- self$pubkey
-                                enc.result.int <- pubkey$encrypt(result.int)
-                                enc.result.fracnum <- pubkey$encrypt(result.fracnum)
-                                result <- list(int = pubkey$add(enc.result.int, enc.offset$int),
-                                               frac = pubkey$add(enc.result.fracnum, enc.offset$frac))
-                                private$nextSite$addNLLAndForward(lambda, enc.offset = result)
-                            }
-                            ## Return a TRUE result for now.
-                            TRUE
-                        },
-                        ## Set the next site in the communication graph
-                        setNextSite = function(nextSite) {
-                            private$nextSite <- nextSite
-                        },
-                        ## The negative log likelihood
-                        nLL = function(lambda) {
-                            if (private$iAmMaster) {
-                                ## We're master, so need to get result from sites
-                                ## 1. Generate a random offset and encrypt it
-                                pubkey <- self$pubkey
-                                offset <- list(int = random.bigz(nBits = 256),
-                                               frac = random.bigz(nBits = 256))
-                                enc.offset <- list(int = pubkey$encrypt(offset$int),
-                                                   frac = pubkey$encrypt(offset$frac))
-                                ## 2. Send off to next site
-                                throwaway <- private$nextSite$addNLLAndForward(lambda, enc.offset)
-                                ## 3. When the call returns, the result will be in
-                                ##    the field intermediateResult, so decrypt that.
-                                sum <- private$intermediateResult
-                                privkey <- private$privkey
-                                intResult <- as.double(privkey$decrypt(sum$int) - offset$int)
-                                fracResult <- as.double(as.bigq(privkey$decrypt(sum$frac) - offset$frac) / den)
-                                intResult + fracResult
-                            } else {
-                                ## We're worker, so compute local nLL
-                                -sum(stats::dpois(private$data, lambda, log = TRUE))
-                            }
-                        })
-                    )
+
+local_nll <- function(data, lambda) {
+    -sum(stats::dpois(data, lambda, log = TRUE))
+}
 ```
 
-We are now ready to use our sites in the computation.
-
-### 1. Generate public and private key pair
-
-We also choose a denominator for all our rational approximations.
+### 1. Generate a key pair
 
 ```{r}
-keys <- PaillierKeyPair$new(1024) ## Generate new public and private key.
-den <- gmp::as.bigq(2)^256  #Our denominator for rational approximations
+keys <- paillier_keypair(modulus_bits = 1024)
 ```
 
-### 2. Create sites
+### 2. Build sites and master, wire the chain
 
 ```{r}
-site1 <- Site$new(name = "Site 1", data = y1, den = den)
-site2 <- Site$new(name = "Site 2", data = y2, den = den)
-site3 <- Site$new(name = "Site 3", data = y3, den = den)
-```
-The master process is also a site but has no data. So has to be thus
-designated.
-
-```{r}
-## Master has no data!
-master <- Site$new(name = "Master", data = c(), den = den)
-master$makeMeMaster()
+site1  <- make_site("Site 1", data = y1, local_fn = local_nll)
+site2  <- make_site("Site 2", data = y2, local_fn = local_nll)
+site3  <- make_site("Site 3", data = y3, local_fn = local_nll)
+master <- make_master("Master", keypair = keys)
+round_robin_chain(master, list(site1, site2, site3))
 ```
 
-### 2. Distribute public key to sites
+`round_robin_chain()` wires `master -> site1 -> site2 -> site3 -> master`
+and broadcasts the public key to every site.
 
-
-```{r}
-site1$setPublicKey(keys$pubkey)
-site2$setPublicKey(keys$pubkey)
-site3$setPublicKey(keys$pubkey)
-master$setPublicKey(keys$pubkey)
-```
-
-Only master has private key for decryption.
+### 3. Perform the likelihood estimation
 
 ```{r}
-master$setPrivateKey(keys$getPrivateKey())
-```
-
-
-### 3. Define the communication graph
-
-Master will always send to the first site, and then the others have to
-forward results in turn with the last site returning to the master.
-
-```{r}
-master$setNextSite(site1)
-site1$setNextSite(site2)
-site2$setNextSite(site3)
-site3$setNextSite(master)
-```
-
-### 4. Perform the likelihood estimation
-
-
-
-```{r}
-fit1 <- mle(master$nLL, start = list(lambda = 5))
+fit1 <- mle(function(lambda) run_round_robin(master, lambda),
+            start = list(lambda = 5))
 ```
 
 

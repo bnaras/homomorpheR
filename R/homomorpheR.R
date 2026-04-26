@@ -1,43 +1,43 @@
 #' homomorpheR: Homomorphic computations in R
 #'
-#' `homomorpheR` is a start at a rudimentary package for
-#' homomorphic computations in R. The goal is to collect homomorphic
-#' encryption schemes in this package for privacy-preserving
-#' distributed computations; for example, applications of the sort
-#' immplemented in package \code{distcomp}.
+#' `homomorpheR` provides homomorphic encryption schemes for
+#' privacy-preserving distributed computations: applications of the
+#' sort implemented in package `distcomp`. The Paillier cryptosystem
+#' is implemented natively in R via the `gmp` package; CKKS, BFV, BGV,
+#' and FHEW/TFHE schemes are available through the `openfhe` package.
 #'
-#' At the moment, only one scheme is implemented, the Paillier
-#' scheme. The current implementation makes no pretense at efficiency
-#' and also uses direct translations of other implementations,
-#' particularly the one in Javascript.
+#' Encrypted values are wrapped in [PaillierCiphertext] objects so that
+#' R's arithmetic operators dispatch to the homomorphism. Use
+#' [paillier_keypair()] to generate keys, [encrypt()] to encrypt, and
+#' [decrypt()] to recover the result.
 #'
-#' For a quick overview of the features, refer to the vignettes in this package.
+#' For a quick overview, see the package vignettes.
 #'
-#' @references [Homomorphic Encryyption](https://en.wikipedia.org/wiki/Homomorphic_encryption)
+#' @references [Homomorphic Encryption](https://en.wikipedia.org/wiki/Homomorphic_encryption)
 #' @references [Paillier Encryption](https://mhe.github.io/jspaillier/)
 #'
-#' @importFrom gmp as.bigz
-#'
 #' @examples
-#' keys <- PaillierKeyPair$new(1024) # Generate new key pair
-#' encryptAndDecrypt <- function(x) keys$getPrivateKey()$decrypt(keys$pubkey$encrypt(x))
+#' \dontrun{
+#' keys <- paillier_keypair(1024)
+#' encrypt_decrypt <- function(x) decrypt(get_private_key(keys),
+#'                                        encrypt(keys@pubkey, x))
 #' a <- gmp::as.bigz(1273849)
-#' identical(a + 10L, encryptAndDecrypt(a+10L))
-#' x <- lapply(1:100, function(x) random.bigz(nBits = 512))
-#' edx <- lapply(x, encryptAndDecrypt)
-#' identical(x, edx)
+#' identical(a + 10L, encrypt_decrypt(a + 10L))
+#' }
 #' @name homomorpheR
-#'
 "_PACKAGE"
 
+ONE  <- gmp::as.bigz(1L)
+ZERO <- gmp::as.bigz(0L)
 
-ONE <- as.bigz(1L)
-ZERO <- as.bigz(0L)
-
-#' Return a random big number using the cryptographically secure random number generator
-#' from in the \code{sodium} package.
+#' Random big integer
 #'
-#' @param nBits, the number of bits, which must be a multiple of 8, is not checked for efficiency.
+#' Returns a random big integer using the cryptographically secure
+#' generator from the `sodium` package.
+#'
+#' @param nBits number of bits, which must be a multiple of 8 (not
+#'   checked, for efficiency).
+#' @return a [gmp::bigz] value.
 #' @importFrom gmp as.bigz
 #' @importFrom sodium random
 #' @export

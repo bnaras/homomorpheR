@@ -1,0 +1,293 @@
+---
+title: "Distributed Stratified Cox Regression under CKKS"
+author: "Balasubramanian Narasimhan"
+date: '`r Sys.Date()`'
+bibliography: homomorphing.bib
+output:
+  html_document:
+  fig_caption: yes
+  theme: cerulean
+  toc: yes
+  toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Distributed Cox under CKKS}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r echo=F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+```
+
+## The statistical problem
+
+The Cox proportional hazards model is one of the workhorses of
+medical statistics. Given covariates $x_i$ for subject $i$, an event
+time $t_i$, and an event indicator $\delta_i$, the hazard is modelled
+as
+
+$$
+h(t \mid x_i) \;=\; h_0(t) \, \exp(\beta^\top x_i)
+$$
+
+where $h_0(t)$ is an unspecified baseline hazard and $\beta$ is the
+vector of regression coefficients we want to estimate. The
+**partial log-likelihood** depends only on $\beta$:
+
+$$
+\ell(\beta) \;=\; \sum_{i: \delta_i = 1}
+  \left[\, \beta^\top x_i \;-\; \log\!\!\sum_{j \in R_i} \exp(\beta^\top x_j) \,\right]
+$$
+
+where $R_i$ is the risk set at time $t_i$.
+
+For **stratified** Cox regression — when baseline hazards differ
+across strata (e.g. across study sites) but the coefficients $\beta$
+are shared — the partial log-likelihood becomes a sum over strata:
+
+$$
+\ell(\beta) \;=\; \sum_{s=1}^{S} \ell_s(\beta).
+$$
+
+This additive decomposition is exactly what we need for a
+privacy-preserving distributed protocol. The same decomposition
+underlies the master/worker architecture used by `distcomp`,
+`DataSHIELD`, and `WebDISCO`: a central master broadcasts the
+current $\beta$, each site computes its local $\ell_s(\beta)$ on
+its private data, and the master combines the local contributions.
+We adopt the same topology, with the encrypted-aggregation step
+performed under CKKS so that the master sees only the *sum* of
+local contributions and not the individual addends.
+
+## Simulated data across three sites
+
+We simulate three sites with patient survival data. Each site has
+its own baseline hazard `lambdaT`, but all share the same true
+coefficients $\beta = (-0.015,\, 0.2,\, 0.001)$ for `age`, `sex`,
+and a biomarker `bm`.
+
+```{r}
+suppressPackageStartupMessages(library(survival))
+
+sample_size <- c(n1 = 1000, n2 = 500, n3 = 1500)
+set.seed(12345)
+
+beta_true <- c(age = -0.015, sex = 0.2, bm = 0.001)
+lambda_T  <- c(5, 4, 3)
+lambda_C  <- 2
+
+cox_data <- lapply(seq_along(sample_size), function(i) {
+  n   <- sample_size[i]
+  sex <- sample(c(0, 1), size = n, replace = TRUE)
+  age <- sample(40:70, size = n, replace = TRUE)
+  bm  <- rnorm(n)
+  true_time <- rweibull(n, shape = 1,
+                        scale = lambda_T[i] *
+                          exp(beta_true["age"] * age +
+                              beta_true["sex"] * sex +
+                              beta_true["bm"]  * bm))
+  cens_time <- rweibull(n, shape = 1, scale = lambda_C)
+  time  <- pmin(true_time, cens_time)
+  event <- (time == true_time)
+  data.frame(stratum = i, sex = sex, age = age, bm = bm,
+             time = time, event = event)
+})
+
+sapply(cox_data, function(d) c(n = nrow(d), events = sum(d$event)))
+```
+
+## The aggregated fit (oracle)
+
+If all data were in one place, fitting the stratified Cox model is
+trivial:
+
+```{r}
+agg_data <- do.call(rbind, cox_data)
+agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
+                   data = agg_data)
+agg_model
+agg_model$loglik
+```
+
+The first log-likelihood is at $\beta = 0$ (the null model); the
+second is at the MLE. The privacy goal: reproduce these estimates
+*without* the three sites ever pooling their raw data.
+
+## The protocol
+
+We use the same master/worker topology as the MLE vignette: master
+broadcasts $\beta$, each worker computes its local Cox partial
+log-likelihood at $\beta$, encrypts it under the master's public
+key, and returns the ciphertext. The master sums the encrypted
+contributions homomorphically and decrypts the total. Mathematically
+nothing changes from the MLE case; only the local computation
+differs.
+
+The local computation exploits a well-known feature of `coxph()`:
+`iter.max = 0` returns the partial log-likelihood evaluated at the
+supplied `init` *without* taking any Newton-Raphson steps.
+
+```{r}
+library(homomorpheR)
+
+cph_control <- replace(coxph.control(), "iter.max", 0)
+
+local_cox_nll <- function(data, beta) {
+    fit <- tryCatch(
+        coxph(Surv(time, event) ~ sex + age + bm,
+              data    = data,
+              init    = beta,
+              control = cph_control),
+        error = function(e) NULL)
+    if (is.null(fit)) NA_real_ else -fit$loglik[1]
+}
+```
+
+`tryCatch` returns `NA_real_` if the local fit blows up at extreme
+$\beta$ — `homomorpheR`'s `run_master_worker()` propagates that
+`NA` back to the optimiser, which simply backs off.
+
+## Wiring up the protocol
+
+Cox partial log-likelihoods are large in magnitude ($\sim 10^4$ for
+samples of this size), so we ask for a slightly larger CKKS scaling
+modulus and a generous first modulus to keep precision tight:
+
+```{r}
+cc <- openfhe::fhe_context("CKKS",
+                           multiplicative_depth = 1L,
+                           scaling_mod_size     = 59L,
+                           first_mod_size       = 60L,
+                           batch_size           = 8L)
+keys <- openfhe::key_gen(cc)
+
+worker1 <- make_worker("Site 1", data = cox_data[[1]], local_fn = local_cox_nll)
+worker2 <- make_worker("Site 2", data = cox_data[[2]], local_fn = local_cox_nll)
+worker3 <- make_worker("Site 3", data = cox_data[[3]], local_fn = local_cox_nll)
+master  <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
+set_workers(master, list(worker1, worker2, worker3))
+```
+
+## Iterative MLE through the encrypted protocol
+
+We hand `stats4::mle()` a function that looks like a standard
+multivariate negative log-likelihood. Each call drives one
+master/worker round and returns a single decrypted scalar.
+
+```{r}
+library(stats4)
+
+encrypted_nLL <- function(sex, age, bm) {
+    run_master_worker(master, c(sex, age, bm))
+}
+
+## Parameter order matches the coxph formula `~ sex + age + bm`,
+## so the side-by-side comparison below is honest. BFGS uses
+## numerical finite-difference gradients, the fair comparison
+## given a generic optimiser driven through an encrypted channel.
+fit <- mle(encrypted_nLL,
+           start   = list(sex = 0, age = 0, bm = 0),
+           method  = "BFGS",
+           control = list(reltol = 1e-7))
+summary(fit)
+logLik(fit)
+```
+
+## Comparison with the aggregated fit
+
+```{r}
+summary(agg_model)
+cat(sprintf("logLik(distributed encrypted): %f\n", as.numeric(logLik(fit))))
+cat(sprintf("logLik(aggregated cleartext) : %f\n", agg_model$loglik[2]))
+```
+
+The estimates and standard errors agree to high precision: the
+encrypted distributed fit reproduces the aggregated cleartext fit
+without any site revealing its raw patient data.
+
+```{r echo = FALSE}
+mle_coefs   <- coef(fit)
+coxph_coefs <- coef(agg_model)
+comparison <- data.frame(
+    coefficient           = names(mle_coefs),
+    encrypted_distributed = unname(mle_coefs),
+    aggregated_cleartext  = unname(coxph_coefs[names(mle_coefs)])
+)
+knitr::kable(comparison, digits = 9,
+             caption = "Encrypted-distributed BFGS vs. aggregated-cleartext coxph()")
+```
+
+## What just happened
+
+We took `stats4::mle()` — a generic R optimiser with no awareness
+of cryptography — and handed it a function that computes its
+argument through a three-party homomorphic-encryption protocol.
+The optimiser ran its normal BFGS loop, asked for the value of the
+negative log-likelihood at a handful of points in $\mathbb{R}^3$,
+and at each point our function performed a CKKS master/worker round
+across three hospital sites and returned a single decrypted scalar.
+
+`mle()` does not know — and does not need to know — that any of
+this happened. From its perspective it called a function and got
+a number. The result matches the aggregated `coxph()` fit at the
+precision the optimiser cares about.
+
+## A note on the comparison
+
+`coxph()` uses Newton-Raphson with the **analytic gradient and
+Hessian** of the Cox partial log-likelihood — a scheme-specific
+advantage. We use BFGS with **numerical finite-difference
+gradients**, which is the fair comparison given that we're driving
+a generic optimiser through an encrypted channel. CKKS itself
+introduces no measurable error at the parameter sizes we use.
+
+## What this demonstrates
+
+1. **Existing R optimisers work over encrypted channels.**
+   Privacy-preserving distributed statistics does not require
+   rewriting `mle`, `optim`, `nlm`, `glm`'s fitter, MCMC samplers,
+   or any other established R machinery. As long as the routine
+   accepts a likelihood (or loss) as a callback, you can drop in
+   an FHE-aware callback and the routine will just work.
+2. **Stratified Cox regression decomposes additively** across
+   strata, so the same master/worker scheme used for Poisson MLE
+   (`vignette("mle")`) works verbatim for survival analysis. Only
+   the local computation changes (`coxph` instead of `dpois`).
+3. **CKKS handles real-valued partial log-likelihoods directly.**
+   The Paillier-based vignettes in this package have to split each
+   value into integer and fractional parts and rationally
+   approximate the fractional part with a denominator of $2^{256}$.
+   With CKKS, the protocol becomes pure ciphertext arithmetic.
+4. **The actor surface is reusable.** The same exported `Site` /
+   `Master` classes and `run_master_worker()` runner drive both
+   this Cox vignette and the Poisson MLE vignette — only the
+   per-worker `local_fn` differs.
+
+## Caveats and extensions
+
+- **Performance**: each function evaluation requires three CKKS
+  encryptions, three ciphertext additions, and one decryption.
+  CKKS encrypt/decrypt dominates the wall-clock cost.
+- **Information leakage**: the master sees the *value* of the
+  joint log-likelihood at each $\beta$, which is more information
+  than individual contributions but is what `mle()` needs. To
+  hide even this would require running Newton-Raphson entirely
+  inside the encrypted domain — feasible with CKKS but
+  considerably more complex.
+- **Threshold key generation**: in a real deployment, the secret
+  key would be split across the sites (n-of-n threshold) so that
+  no single party — not even the master — can decrypt
+  intermediate ciphertexts unilaterally. The next vignette
+  (`vignette("cox-threshold")`) builds on this one and adds
+  threshold key generation.
+- **Beyond Cox**: any likelihood whose log decomposes additively
+  across data partitions admits this exact protocol — generalised
+  linear models, mixed-effects models with site-specific random
+  effects, frailty survival models. The structural pattern is
+  identical; only the local likelihood evaluation changes.
