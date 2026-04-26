@@ -1,0 +1,182 @@
+---
+title: "Encrypted Logistic Regression Prediction"
+author: "Balasubramanian Narasimhan"
+date: '`r Sys.Date()`'
+bibliography: homomorphing.bib
+output:
+  html_document:
+  fig_caption: yes
+  theme: cerulean
+  toc: yes
+  toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Encrypted Logistic Regression Prediction}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r echo=F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+```
+
+## Overview
+
+The `secure-inference` vignette showed a *linear* model evaluated
+on encrypted patient data. This vignette goes one step further:
+the prediction needs the logistic sigmoid
+
+$$\sigma(\eta) = \frac{1}{1 + e^{-\eta}},$$
+
+a non-polynomial function that on its face cannot be evaluated
+under encryption — both BFV/BGV and CKKS only support polynomial
+arithmetic. Using a Chebyshev polynomial approximation of the
+sigmoid, however, we can evaluate the entire logistic
+prediction (linear predictor *and* sigmoid) under encryption with
+only addition and multiplication.
+
+## The setting
+
+A hospital holds patient data. A researcher holds a trained
+logistic-regression model. The researcher wants to score patients
+without seeing their data; the hospital wants predictions without
+seeing the model coefficients. The same two-party shape as
+`secure-inference`, with a non-linear scorer.
+
+## Step 1: train in the clear
+
+```{r}
+set.seed(123)
+n <- 500
+age       <- rnorm(n, 55, 10)
+biomarker <- rnorm(n, 0, 1)
+prob      <- plogis(-2 + 0.03 * age + 0.8 * biomarker)
+outcome   <- rbinom(n, 1, prob)
+
+model <- glm(outcome ~ age + biomarker, family = binomial)
+beta  <- coef(model)
+cat("Coefficients (intercept, age, biomarker):", round(beta, 4), "\n")
+```
+
+## Step 2: encrypt patient data
+
+CKKS needs enough multiplicative depth for the Chebyshev
+polynomial. We use depth 8 and enable `Feature$ADVANCEDSHE` for
+the polynomial-evaluation primitives.
+
+```{r}
+library(openfhe)
+
+cc <- fhe_context("CKKS",
+                  multiplicative_depth = 8L,
+                  scaling_mod_size     = 50L,
+                  batch_size           = 16L,
+                  features             = c(Feature$ADVANCEDSHE))
+keys <- key_gen(cc, eval_mult = TRUE)
+
+new_age <- c(45, 52, 60, 38, 70, 55, 48, 63,
+             41, 57, 66, 44, 72, 50, 59, 35)
+new_bm  <- c(-0.5,  0.3, 1.2, -1.0, 0.8, 0.1, -0.3, 1.5,
+             -0.8,  0.6, 0.9, -0.4, 1.1, 0.0,  0.7, -1.2)
+
+ct_age <- encrypt(keys@public, make_ckks_packed_plaintext(cc, new_age), cc = cc)
+ct_bm  <- encrypt(keys@public, make_ckks_packed_plaintext(cc, new_bm),  cc = cc)
+```
+
+## Step 3: evaluate the linear predictor (encrypted)
+
+$\eta = \beta_0 + \beta_1\, \text{age} + \beta_2\, \text{biomarker}$,
+all arithmetic on encrypted data:
+
+```{r}
+ct_eta <- ct_age * beta[2]
+ct_eta <- ct_eta + ct_bm * beta[3]
+ct_eta <- ct_eta + beta[1]
+```
+
+## Step 4: apply the sigmoid (encrypted)
+
+`openfhe` exposes Chebyshev approximations of common transcendental
+functions, including the logistic sigmoid. The interval $[a, b]$
+must cover the realisable range of $\eta$; degree 16 gives good
+precision with depth modest enough to fit the budget we declared
+above.
+
+```{r}
+ct_prob <- eval_logistic(ct_eta, a = -4, b = 4, degree = 16)
+```
+
+## Step 5: decrypt predictions
+
+```{r}
+result <- decrypt(ct_prob, keys@secret, cc = cc)
+set_length(result, 16L)
+encrypted_probs <- get_real_packed_value(result)[1:16]
+
+cleartext_probs <- plogis(beta[1] + beta[2] * new_age + beta[3] * new_bm)
+max_err <- max(abs(encrypted_probs - cleartext_probs))
+cat(sprintf("Max absolute error vs cleartext sigmoid: %.2e\n", max_err))
+```
+
+## What this demonstrates
+
+1. **Model coefficients applied to encrypted data.** The
+   hospital never sees the model; the researcher never sees the
+   patient data. Same transport guarantee as `secure-inference`.
+2. **The sigmoid evaluated entirely under encryption.** No
+   intermediate decryption, no protocol back-and-forth — the
+   whole logistic prediction completes inside the ciphertext
+   domain.
+3. **CKKS precision is more than enough for medical
+   prediction.** The maximum absolute error against the
+   cleartext sigmoid is `r signif(max_err, 2)`, well below any
+   threshold that would matter for a clinical decision.
+
+## Connection to homomorpheR's Paillier vignettes
+
+The Paillier vignettes (`vignette("homomorphing")`,
+`vignette("DHCox")`, `vignette("DHCoxNCP")`) demonstrate
+distributed Cox regression and MLE under additive Paillier
+encryption. That approach requires:
+
+- sending encrypted *sufficient statistics* (sums) between sites
+  rather than evaluating the full likelihood under encryption,
+- iterative protocols where the master site decrypts intermediate
+  aggregates,
+- careful real-number encoding via integer / fractional split.
+
+With CKKS via `openfhe`:
+
+- real numbers are encrypted directly — no manual scaling,
+- multiplication works — enabling polynomial and sigmoid
+  evaluation directly under encryption,
+- the full computation can happen in the encrypted domain.
+
+## Limitations
+
+- **Multiplicative depth**: each multiplication consumes one
+  level of the ciphertext. Deeper computations require larger
+  parameters and more memory.
+- **Approximation error**: CKKS is approximate. For deployment,
+  validate that the precision is sufficient for your use case.
+- **Performance**: encrypted computation is orders of magnitude
+  slower than cleartext.
+- **Threat model**: this transport-layer demonstration shares the
+  model-extraction caveat from `vignette("secure-inference")`.
+  The hospital holding the secret key can in principle recover
+  the coefficients by issuing carefully chosen queries. The
+  Chebyshev sigmoid makes the recovery somewhat less trivial
+  than the linear case, but does not eliminate the issue. Real
+  deployments still need defences (output DP, query budgets,
+  threshold FHE) on top of the FHE transport.
+
+```{r echo=FALSE}
+## Detach openfhe so its `encrypt`/`decrypt` generics do not bleed
+## into other vignettes built later in the same R session.
+detach("package:openfhe", unload = FALSE, force = TRUE)
+```

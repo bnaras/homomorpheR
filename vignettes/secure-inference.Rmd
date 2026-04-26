@@ -274,3 +274,9 @@ result  <- decrypt(ct_recv, keys@secret, cc = cc)
 set_length(result, 8L)
 get_real_packed_value(result)[1:8]
 ```
+
+```{r echo=FALSE}
+## Detach openfhe so its `encrypt`/`decrypt` generics do not bleed
+## into other vignettes built later in the same R session.
+detach("package:openfhe", unload = FALSE, force = TRUE)
+```
