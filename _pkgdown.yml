@@ -30,6 +30,8 @@ navbar:
       href: articles/secure-inference.html
     - text: Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)
       href: articles/encrypted-regression.html
+    - text: Privacy-Preserving Count Aggregation (BFV)
+      href: articles/privacy-preserving-aggregation.html
     - text: Distributed Query Count using Noncooperating parties
       href: articles/QueryNCP.html
     - text: Distributed Cox Regression using Noncooperating parties
