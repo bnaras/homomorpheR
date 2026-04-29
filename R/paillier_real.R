@@ -30,7 +30,7 @@ NULL
 #' the modulus carried by the public key). Negative real numbers and
 #' running totals that cross zero are stored in their mod-`n`
 #' representation, which lives in the upper half of `[0, n)`. The
-#' [decrypt()] method for `PaillierEncryptedReal` re-centres the raw
+#' [decrypt()] method for `PaillierEncryptedReal` re-centers the raw
 #' decrypted residues into the interval `(-n/2, n/2)` so that signed
 #' values round-trip correctly. This means a `PaillierEncryptedReal`
 #' is *correct for signed real arithmetic* as long as the true
@@ -39,7 +39,7 @@ NULL
 #'
 #' This convention applies only to `PaillierEncryptedReal`. The
 #' integer-only [PaillierCiphertext] decrypt method preserves raw
-#' mod-`n` semantics and does not centre.
+#' mod-`n` semantics and does not center.
 #'
 #' @param int the [PaillierCiphertext] holding the integer part.
 #' @param frac the [PaillierCiphertext] holding the scaled fractional part.

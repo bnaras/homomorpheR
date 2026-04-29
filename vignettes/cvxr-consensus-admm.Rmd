@@ -33,11 +33,11 @@ callback — compose with FHE: hand them a callback that performs an
 encrypted master/worker round, and the optimiser cannot tell.
 
 That pattern fits any objective with a sum-decomposable
-log-likelihood, but it does not generalise to arbitrary convex
-programs. The richer R toolkit for convex optimisation —
+log-likelihood, but it does not generalize to arbitrary convex
+programs. The richer R toolkit for convex optimization —
 [CVXR]{} — operates on a *symbolic* problem, not a callback. We
 cannot hand CVXR a function that secretly does FHE on every call,
-because CVXR does not call our function: it canonicalises the
+because CVXR does not call our function: it canonicalizes the
 problem once and ships the canonical form to a numerical solver.
 
 The replacement is **federated consensus ADMM**. We split the
@@ -114,7 +114,7 @@ lam <- 1
 ```
 
 We build the local problem so that DPP can engage: $z$ and $u$ are
-`Parameter`s (so canonicalisation is shared across iterations);
+`Parameter`s (so canonicalization is shared across iterations);
 $X_i$, $y_i$, and $\rho$ are *constants* baked in at construction
 time (so the augmented Lagrangian term enters affinely in the
 parameters and the DPP fast path is not broken).
@@ -405,7 +405,7 @@ if (max_diff > 10 * reltol)
    appears only after the n-of-n partial-decryption fusion.
 3. **DPP keeps the inner loop fast.** Each site's CVXR problem is
    built once at setup; ADMM iterations only update the
-   parameter values. Without DPP, the canonicalisation would
+   parameter values. Without DPP, the canonicalization would
    re-run every iteration and the vignette would be infeasible.
 
 ## What this still does not deliver

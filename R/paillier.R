@@ -137,9 +137,9 @@ encrypt <- new_generic("encrypt", "public_key")
 #'
 #' - [PaillierCiphertext] (integer) -> a [gmp::bigz] in `[0, n)`. This
 #'   preserves raw mod-`n` arithmetic; callers wanting signed
-#'   integers should re-centre themselves (`if (m > n/2) m - n`).
+#'   integers should re-center themselves (`if (m > n/2) m - n`).
 #' - [PaillierEncryptedReal] -> a `numeric` in `(-n/2, n/2)`. The
-#'   method re-centres the raw mod-`n` residues so that negative
+#'   method re-centers the raw mod-`n` residues so that negative
 #'   real numbers and running totals that cross zero round-trip
 #'   correctly. See [PaillierEncryptedReal] for the full convention.
 #'

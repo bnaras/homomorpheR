@@ -29,7 +29,7 @@ knitr::opts_chunk$set(
 
 The Cox proportional hazards model is one of the workhorses of
 medical statistics. Given covariates $x_i$ for subject $i$, an event
-time $t_i$, and an event indicator $\delta_i$, the hazard is modelled
+time $t_i$, and an event indicator $\delta_i$, the hazard is modeled
 as
 
 $$
@@ -287,7 +287,7 @@ introduces no measurable error at the parameter sizes we use.
   (`vignette("cox-threshold")`) builds on this one and adds
   threshold key generation.
 - **Beyond Cox**: any likelihood whose log decomposes additively
-  across data partitions admits this exact protocol — generalised
+  across data partitions admits this exact protocol — generalized
   linear models, mixed-effects models with site-specific random
   effects, frailty survival models. The structural pattern is
   identical; only the local likelihood evaluation changes.

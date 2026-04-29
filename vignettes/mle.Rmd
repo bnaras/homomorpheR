@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 Suppose we have count data $y_1, y_2, \ldots, y_n$ that we model as
 independent draws from a Poisson distribution with unknown parameter
 $\lambda$. The maximum likelihood estimate is
-$\hat{\lambda} = \bar{y}$, obtained by minimising the negative
+$\hat{\lambda} = \bar{y}$, obtained by minimizing the negative
 log-likelihood
 
 $$
@@ -80,7 +80,7 @@ parties — and the sum must not reveal the individual addends.
 
 We use the **master/worker** topology that distcomp- and
 DataSHIELD-style federated analyses actually deploy: a star with the
-master at the centre and one independent worker per site. There is no
+master at the center and one independent worker per site. There is no
 chain and no inter-site communication.
 
 In words:
@@ -108,7 +108,7 @@ single party holds the secret key. We will revisit that in the Cox
 threshold vignette.
 
 (The companion Paillier vignette `vignette("homomorphing")` uses an
-older *round-robin* protocol with a random offset travelling around a
+older *round-robin* protocol with a random offset traveling around a
 chain. That idiom was a Paillier-era pedagogical artifact; with
 proper FHE plus threshold key generation we no longer need it.)
 

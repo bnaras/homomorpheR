@@ -326,7 +326,7 @@ package's main story is the lossless cox progression.
    handles "who holds the key"; output DP handles "what the
    released values reveal." Adding the DP layer is one `rnorm()`
    call per site per query and zero new homomorpheR machinery.
-3. **The accuracy/noise trade-off is characterised end-to-end.**
+3. **The accuracy/noise trade-off is characterized end-to-end.**
    The vignette runs five $\sigma$ values with BFGS and one with
    Nelder–Mead, and reports the recovered fits and the privacy
    budgets in tables.

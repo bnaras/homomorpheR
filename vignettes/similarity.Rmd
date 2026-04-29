@@ -67,7 +67,7 @@ package build.
 
 ## The setup
 
-Three sites — labelled $S_1, S_2, S_3$ — each hold a cohort of
+Three sites — labeled $S_1, S_2, S_3$ — each hold a cohort of
 patients. Each cohort is embedded with the site's privately
 fine-tuned model into $\mathbf{R}^p$ for some fixed dimension
 $p$ (the architecture is shared across sites; only the weights
@@ -213,14 +213,14 @@ labels are the retrieval ground truth: a query of phenotype
 $j$ should be matched to database patients of phenotype $j$.
 
 ```{r}
-phenotype_centres <- matrix(rnorm(n_phenotypes * p, sd = 1),
+phenotype_centers <- matrix(rnorm(n_phenotypes * p, sd = 1),
                             n_phenotypes, p)
 
 embed_public <- function(n) {
   labels  <- sample.int(n_phenotypes, n, replace = TRUE)
-  centres <- phenotype_centres[labels, , drop = FALSE]
+  centers <- phenotype_centers[labels, , drop = FALSE]
   noise   <- matrix(rnorm(n * p, sd = 0.4), n, p)
-  z <- centres + noise
+  z <- centers + noise
   z <- z / sqrt(rowSums(z^2))            # unit norm
   list(z = z, label = labels)
 }

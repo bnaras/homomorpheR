@@ -170,7 +170,7 @@ With `openfhe`'s BFV:
 
 - **Multiplication** is available — encrypted products,
   variances, more complex integer-valued aggregates.
-- **Performance** — OpenFHE's optimised C++ backend is orders of
+- **Performance** — OpenFHE's optimized C++ backend is orders of
   magnitude faster than pure-R Paillier on `gmp::bigz`.
 - **SIMD packing** — BFV encrypts integer vectors; multiple
   per-site counts can ride in the slots of a single ciphertext

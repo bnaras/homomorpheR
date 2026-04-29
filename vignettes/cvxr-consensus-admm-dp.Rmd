@@ -346,7 +346,7 @@ small-$\sigma$ regime and then leaves the linear band — at
 $\sigma = 1$ the recovered coefficients drift far from the
 centralised oracle. The protocol is faithfully running the same
 algorithm at every $\sigma$; the deterioration is what the noise
-mechanism does to the optimisation, not what the cryptographic
+mechanism does to the optimization, not what the cryptographic
 channel does.
 
 ## Privacy budget
