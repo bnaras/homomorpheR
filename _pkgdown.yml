@@ -28,6 +28,8 @@ navbar:
       href: articles/cvxr-consensus-admm.html
     - text: Secure Model Inference (CKKS, two-party)
       href: articles/secure-inference.html
+    - text: Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)
+      href: articles/similarity.html
     - text: Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)
       href: articles/encrypted-regression.html
     - text: Privacy-Preserving Count Aggregation (BFV)
