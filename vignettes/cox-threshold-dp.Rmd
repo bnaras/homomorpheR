@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 This vignette is a **demonstration**, not a recommendation.
 `vignette("cox-threshold")` shows the lossless threshold-FHE
 protocol: bit-identical to `coxph()`, no single decrypter, and the
-aggregator sees only $\ell(\beta)$ at each optimiser query. That
+aggregator sees only $\ell(\beta)$ at each optimizer query. That
 trajectory of joint log-likelihood values is the residual exposure
 the lossless protocol accepts as the cost of preserving accuracy.
 
@@ -40,7 +40,7 @@ residual exposure formally. The answer in this simulation is "yes,
 the cryptographic protocol composes cleanly and the implementation
 is one extra `rnorm()` call per site per query, but the
 accuracy/privacy trade-off does not produce a usable point at
-small $\varepsilon$ given the optimisers we use here." This
+small $\varepsilon$ given the optimizers we use here." This
 vignette runs that trade-off end-to-end and reports the numbers.
 
 `feedback_he_not_dp` in the package's notes records the framing
@@ -61,7 +61,7 @@ $\sigma \geq \Delta \sqrt{2\ln(1.25/\delta)}/\varepsilon$ makes a
 single release of $\tilde f$ satisfy $(\varepsilon, \delta)$
 differential privacy.
 
-The optimiser issues many queries, so the per-query budget
+The optimizer issues many queries, so the per-query budget
 composes. We use **zCDP composition** [Bun & Steinke, 2016]:
 the Gaussian mechanism is $\rho$-zCDP with $\rho = (\Delta/\sigma)^2/2$;
 $T$ queries compose linearly to $T \cdot \rho$ in zCDP units; and
@@ -77,47 +77,31 @@ normals add, the decrypted total is
 $\ell(\beta) + \mathcal{N}(0, \sigma^2)$ when each site adds
 $\mathcal{N}(0, \sigma^2/N)$.
 
-## The Cox setup (same simulation as the other Cox vignettes)
+## The Cox setup (same DLBCL data as the other Cox vignettes)
 
 ```{r}
 suppressPackageStartupMessages(library(survival))
 library(homomorpheR)
 library(stats4)
+data(DLBCL)
 
-sample_size <- c(n1 = 1000, n2 = 500, n3 = 1500)
-set.seed(12345)
+cox_data <- split(
+  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
+            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
+  DLBCL$Subgroup)
 
-beta_true <- c(age = -0.015, sex = 0.2, bm = 0.001)
-lambda_T  <- c(5, 4, 3)
-lambda_C  <- 2
-
-cox_data <- lapply(seq_along(sample_size), function(i) {
-  n   <- sample_size[i]
-  sex <- sample(c(0, 1), size = n, replace = TRUE)
-  age <- sample(40:70, size = n, replace = TRUE)
-  bm  <- rnorm(n)
-  true_time <- rweibull(n, shape = 1,
-                        scale = lambda_T[i] *
-                          exp(beta_true["age"] * age +
-                              beta_true["sex"] * sex +
-                              beta_true["bm"]  * bm))
-  cens_time <- rweibull(n, shape = 1, scale = lambda_C)
-  time  <- pmin(true_time, cens_time)
-  event <- (time == true_time)
-  data.frame(stratum = i, sex = sex, age = age, bm = bm,
-             time = time, event = event)
-})
-
-agg_data <- do.call(rbind, cox_data)
-agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
-                   data = agg_data)
+agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
+                       Prolif_sig + BMP6 + MHC2_sig +
+                       strata(Subgroup),
+                   data = DLBCL)
 oracle_coef <- coef(agg_model)
 
 cph_control <- replace(coxph.control(), "iter.max", 0)
 
 local_cox_nll <- function(data, beta) {
     fit <- tryCatch(
-        coxph(Surv(time, event) ~ sex + age + bm,
+        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
+                  BMP6 + MHC2_sig,
               data    = data,
               init    = beta,
               control = cph_control),
@@ -145,10 +129,10 @@ cc <- openfhe::fhe_context("CKKS",
 n_sites <- length(cox_data)
 
 build_dp_workers <- function(sigma) {
-    lapply(seq_len(n_sites), function(i) {
+    lapply(names(cox_data), function(nm) {
         make_worker(
-            paste0("Site ", i),
-            data     = cox_data[[i]],
+            nm,
+            data     = cox_data[[nm]],
             local_fn = function(data, beta) {
                 nll <- local_cox_nll(data, beta)
                 if (is.na(nll)) return(NA_real_)
@@ -158,15 +142,16 @@ build_dp_workers <- function(sigma) {
 }
 
 fit_at_sigma <- function(sigma, method = "BFGS", seed = 1L) {
-    set.seed(seed)   # stabilise the DP-noise draws across runs
+    set.seed(seed)   # stabilize the DP-noise draws across runs
     master <- make_threshold_master("Aggregator",
                                     crypto_context = cc,
                                     n_sites        = n_sites)
     set_workers(master, build_dp_workers(sigma))
-    dp_nLL <- function(sex, age, bm)
-        run_master_worker(master, c(sex, age, bm))
+    dp_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
+        run_master_worker(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
     stats4::mle(dp_nLL,
-                start   = list(sex = 0, age = 0, bm = 0),
+                start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
+                               BMP6    = 0, MHC2_sig = 0),
                 method  = method,
                 control = list(reltol = 1e-7))
 }
@@ -209,9 +194,11 @@ names(fits_bfgs) <- sprintf("sigma_%g", sigma_grid_bfgs)
 bfgs_table <- data.frame(
     sigma        = sigma_grid_bfgs,
     n_evals      = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
-    sex          = sapply(fits_bfgs, function(f) coef(f)[["sex"]]),
-    age          = sapply(fits_bfgs, function(f) coef(f)[["age"]]),
-    bm           = sapply(fits_bfgs, function(f) coef(f)[["bm"]]),
+    GCB_sig      = sapply(fits_bfgs, function(f) coef(f)[["GCB_sig"]]),
+    LN_sig       = sapply(fits_bfgs, function(f) coef(f)[["LN_sig"]]),
+    Prolif_sig   = sapply(fits_bfgs, function(f) coef(f)[["Prolif_sig"]]),
+    BMP6         = sapply(fits_bfgs, function(f) coef(f)[["BMP6"]]),
+    MHC2_sig     = sapply(fits_bfgs, function(f) coef(f)[["MHC2_sig"]]),
     max_abs_diff = sapply(fits_bfgs, function(f)
         max(abs(coef(f) - oracle_coef[names(coef(f))]))))
 knitr::kable(bfgs_table, digits = 6,
@@ -229,7 +216,7 @@ BFGS estimates gradients by finite differences. With default
 `ndeps = 1e-3` the gradient noise per coordinate inflates from
 the function-value noise of $\sigma$ to roughly $\sigma\sqrt{2}/(2h)
 \approx 707\,\sigma$. Near the optimum the true gradient is small
-and the noise dominates. Any optimiser that takes derivatives by
+and the noise dominates. Any optimizer that takes derivatives by
 differencing nearby function values will have this exact failure
 mode against any DP mechanism that adds enough noise to be
 meaningful.
@@ -245,30 +232,29 @@ $1/h$ divisor. Noise still hurts it, but more gently than BFGS.
 
 ```{r}
 fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
+
+bfgs1 <- coef(fits_bfgs[["sigma_1"]])
+nm1   <- coef(fit_nm_1)
+coefs <- names(oracle_coef)
+
 nm_compare <- data.frame(
-    optimizer = c("BFGS", "Nelder-Mead", "coxph oracle"),
-    sigma     = c(1, 1, NA),
-    n_evals   = c(fits_bfgs[["sigma_1"]]@details$counts[["function"]],
-                  fit_nm_1@details$counts[["function"]],
-                  NA),
-    sex       = c(coef(fits_bfgs[["sigma_1"]])[["sex"]],
-                  coef(fit_nm_1)[["sex"]],
-                  oracle_coef[["sex"]]),
-    age       = c(coef(fits_bfgs[["sigma_1"]])[["age"]],
-                  coef(fit_nm_1)[["age"]],
-                  oracle_coef[["age"]]),
-    bm        = c(coef(fits_bfgs[["sigma_1"]])[["bm"]],
-                  coef(fit_nm_1)[["bm"]],
-                  oracle_coef[["bm"]])
+    coefficient  = coefs,
+    coxph_oracle = unname(oracle_coef[coefs]),
+    BFGS_sigma1  = unname(bfgs1[coefs]),
+    NM_sigma1    = unname(nm1[coefs])
 )
 knitr::kable(nm_compare, digits = 6,
-             caption = "BFGS vs Nelder-Mead at sigma = 1")
+             caption = sprintf(
+                 "BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)",
+                 fits_bfgs[["sigma_1"]]@details$counts[["function"]],
+                 fit_nm_1@details$counts[["function"]]))
 ```
 
-Nelder–Mead at $\sigma = 1$ recovers the right sign on `sex` and
-keeps the substantive direction of the effect. BFGS at the same
-$\sigma$ flipped the sign. The price is more function evaluations,
-which feeds back into the privacy budget below.
+At $\sigma = 1$ BFGS is unusable: at least one signature lands at
+the wrong sign relative to the cleartext oracle. Nelder–Mead at
+the same $\sigma$ keeps every coefficient on the side of zero
+that the centralized fit puts it on. The price is more function
+evaluations, which feeds back into the privacy budget below.
 
 ## Privacy budget
 
@@ -296,7 +282,7 @@ knitr::kable(budget, digits = 4,
 ```
 
 Read the `epsilon_at_delta_1e_minus_5` column. At noise scales the
-optimisers can tolerate without producing a broken fit, the
+optimizers can tolerate without producing a broken fit, the
 resulting $\varepsilon$ is large. Whether large $\varepsilon$ is
 acceptable is a use-case decision; we report the numbers and stop.
 
@@ -306,7 +292,7 @@ Three directions, none pursued here:
 
 1. **Tighter sensitivity bound.** $\Delta = 1$ is conservative;
    careful Cox-specific analysis could reduce it.
-2. **Far fewer queries.** An optimiser that found the MLE in
+2. **Far fewer queries.** An optimizer that found the MLE in
    $\le 10$ queries would improve the budget by $\sim 10\times$;
    DP-SGD-style methods achieve this via subsampling and
    momentum.
@@ -330,12 +316,12 @@ package's main story is the lossless cox progression.
    The vignette runs five $\sigma$ values with BFGS and one with
    Nelder–Mead, and reports the recovered fits and the privacy
    budgets in tables.
-4. **The optimiser-vs-noise interaction shapes the trade-off.**
+4. **The optimizer-vs-noise interaction shapes the trade-off.**
    BFGS amplifies function-value noise through finite-difference
    gradients and breaks at moderate $\sigma$; Nelder–Mead at
    $\sigma = 1$ recovers a usable estimate at the cost of more
    queries. The cryptographic layer is not the limit — the
-   optimiser is.
+   optimizer is.
 
 ## What this does not address
 

@@ -727,8 +727,7 @@ recall_at_k <- function(query_label, top_rows, k = top_k) {
   matched / k
 }
 
-run_one_query <- function(q_pub, q_label, db_list, M_list,
-                          align = TRUE) {
+run_one_query <- function(q_pub, db_list, M_list, align = TRUE) {
   rows <- list()
   for (k_site in seq_along(db_list)) {
     Mq  <- if (align) as.numeric(M_list[[k_site]] %*% q_pub) else q_pub
@@ -770,7 +769,7 @@ for (alpha_k in sweep_grid) {
     align <- cond == "with_alignment"
     rec <- numeric(n_queries)
     for (q in seq_len(n_queries)) {
-      top_rows <- run_one_query(query_pop$z[q, ], query_pop$label[q],
+      top_rows <- run_one_query(query_pop$z[q, ],
                                 db_regime, M_hat_regime, align = align)
       rec[q] <- recall_at_k(query_pop$label[q], top_rows)
     }
@@ -876,12 +875,25 @@ par(op)
   to this vignette's pedagogical aim. With encrypted top-$k$,
   the master would never see the full score distribution —
   only the top-$k$ release.
-- **Server-side normalization.** The orthogonality constraint
-  on $M_k$ removes the need for a homomorphic inverse-square-
-  root: $\|M_k q\| = \|q\| = 1$ by construction. For richer
-  fine-tuning regimes where the alignment is not exactly an
-  isometry, server-side renormalization via Newton iteration
-  would be required and would dominate the depth budget.
+- **Server-side normalization, and why orthogonality is not
+  optional here.** The orthogonality constraint on $M_k$ is
+  doing two jobs at once: $\|M_k q\| = \|q\| = 1$ removes the
+  homomorphic inverse-square-root (the depth-dominating Newton
+  iteration of Qu & Xu 2023 / Prantl et al. *De Bello
+  Homomorphico* 2023), *and*
+  every per-site score $\langle M_k q, v\rangle$ is a cosine in
+  $[-1,1]$ in site $k$'s private geometry on the same scale
+  across sites so that the federation-wide top-$k$ is a single
+  comparable ranking. Replacing $M_k$ with a non-isometric head
+  — a learned affine, an MLP, any per-site non-linearity tacked
+  onto the public foundation model — loses both properties
+  simultaneously: it forces encrypted re-normalization *and*
+  leaves per-site scores on different scales, requiring a
+  published or homomorphically-computed calibration that has
+  its own privacy story. The orthogonal-alignment design is
+  therefore the head class compatible with cheap circuit and
+  comparable scores at the same time, not just a convenient
+  simplification.
 - **Slot-tiling for production scale.** The vignette runs at
   $p = 32$ with one ciphertext per database vector. Production
   at $p = 512$ would pack many database vectors per ciphertext

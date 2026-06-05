@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 The companion `cox` vignette fits a stratified Cox model across three
 sites under CKKS via master/worker. The master holds the secret key
 and decrypts the encrypted partial likelihood at every iteration of
-the optimiser. This is *operationally* convenient — one party owns
+the optimizer. This is *operationally* convenient — one party owns
 decryption — but it leaves a meaningful piece of the threat model
 unaddressed: the master is trusted not to decrypt anything it
 shouldn't.
@@ -77,38 +77,22 @@ master saw in `vignette("cox")`. The strict improvement is that
 ciphertexts or partial decryptions is useless without the joint
 fusion.
 
-## The Cox setup (same simulation as `cox.Rmd`)
+## The Cox setup (same DLBCL data as `cox.Rmd`)
 
 ```{r}
 suppressPackageStartupMessages(library(survival))
+library(homomorpheR)
+data(DLBCL)
 
-sample_size <- c(n1 = 1000, n2 = 500, n3 = 1500)
-set.seed(12345)
+cox_data <- split(
+  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
+            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
+  DLBCL$Subgroup)
 
-beta_true <- c(age = -0.015, sex = 0.2, bm = 0.001)
-lambda_T  <- c(5, 4, 3)
-lambda_C  <- 2
-
-cox_data <- lapply(seq_along(sample_size), function(i) {
-  n   <- sample_size[i]
-  sex <- sample(c(0, 1), size = n, replace = TRUE)
-  age <- sample(40:70, size = n, replace = TRUE)
-  bm  <- rnorm(n)
-  true_time <- rweibull(n, shape = 1,
-                        scale = lambda_T[i] *
-                          exp(beta_true["age"] * age +
-                              beta_true["sex"] * sex +
-                              beta_true["bm"]  * bm))
-  cens_time <- rweibull(n, shape = 1, scale = lambda_C)
-  time  <- pmin(true_time, cens_time)
-  event <- (time == true_time)
-  data.frame(stratum = i, sex = sex, age = age, bm = bm,
-             time = time, event = event)
-})
-
-agg_data <- do.call(rbind, cox_data)
-agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
-                   data = agg_data)
+agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
+                       Prolif_sig + BMP6 + MHC2_sig +
+                       strata(Subgroup),
+                   data = DLBCL)
 ```
 
 ## The protocol
@@ -120,7 +104,7 @@ agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
 3. Site 3 calls `multiparty_key_gen(cc, pk_{12})` to produce $(\mathit{pk}_{123}, \mathit{sk}_3)$.
 4. The final $\mathit{pk}_{123}$ is the **joint public key**. Each site keeps its own $\mathit{sk}_i$.
 
-**Per query** (called inside the optimiser):
+**Per query** (called inside the optimizer):
 
 1. Each site $i$ computes its local Cox negative log-likelihood
    $\ell_i(\beta)$ and encrypts it under the joint public key.
@@ -141,13 +125,12 @@ single-decrypter case.
 ## Implementation
 
 ```{r}
-library(homomorpheR)
-
 cph_control <- replace(coxph.control(), "iter.max", 0)
 
 local_cox_nll <- function(data, beta) {
     fit <- tryCatch(
-        coxph(Surv(time, event) ~ sex + age + bm,
+        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
+                  BMP6 + MHC2_sig,
               data    = data,
               init    = beta,
               control = cph_control),
@@ -179,28 +162,29 @@ master <- make_threshold_master("Aggregator",
                                 crypto_context = cc,
                                 n_sites        = 3)
 
-worker1 <- make_worker("Site 1", data = cox_data[[1]], local_fn = local_cox_nll)
-worker2 <- make_worker("Site 2", data = cox_data[[2]], local_fn = local_cox_nll)
-worker3 <- make_worker("Site 3", data = cox_data[[3]], local_fn = local_cox_nll)
+worker_gcb <- make_worker("GCB",      data = cox_data[["GCB"]],      local_fn = local_cox_nll)
+worker_abc <- make_worker("ABC",      data = cox_data[["ABC"]],      local_fn = local_cox_nll)
+worker_t3  <- make_worker("Type III", data = cox_data[["Type III"]], local_fn = local_cox_nll)
 
-set_workers(master, list(worker1, worker2, worker3))
+set_workers(master, list(worker_gcb, worker_abc, worker_t3))
 ```
 
 ## Iterative MLE through the threshold protocol
 
-The optimiser-facing code is *identical* to `cox.Rmd`. Same
+The optimizer-facing code is *identical* to `cox.Rmd`. Same
 `run_master_worker()` runner, same `mle()` driver — only the
 underlying master class changed.
 
 ```{r}
 library(stats4)
 
-encrypted_nLL <- function(sex, age, bm) {
-    run_master_worker(master, c(sex, age, bm))
+encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
+    run_master_worker(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
 }
 
 fit <- mle(encrypted_nLL,
-           start   = list(sex = 0, age = 0, bm = 0),
+           start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
+                          BMP6    = 0, MHC2_sig = 0),
            method  = "BFGS",
            control = list(reltol = 1e-7))
 summary(fit)
@@ -223,7 +207,8 @@ coxph_coefs <- coef(agg_model)
 comparison <- data.frame(
     coefficient            = names(mle_coefs),
     threshold_distributed  = unname(mle_coefs),
-    aggregated_cleartext   = unname(coxph_coefs[names(mle_coefs)])
+    aggregated_cleartext   = unname(coxph_coefs[names(mle_coefs)]),
+    abs_diff               = unname(abs(mle_coefs - coxph_coefs[names(mle_coefs)]))
 )
 knitr::kable(comparison, digits = 9,
              caption = "Threshold-distributed BFGS vs. aggregated-cleartext coxph()")
@@ -237,21 +222,21 @@ knitr::kable(comparison, digits = 9,
    undecryptable by any single party in the system.
 2. **Same statistical fit as the trusted-master version.** The
    coefficients and standard errors agree with `coxph()` to the
-   precision the optimiser cares about. Threshold key generation
+   precision the optimizer cares about. Threshold key generation
    is a trust-model improvement; it does not change the fit.
-3. **Same optimiser, same callback shape, same code structure.**
+3. **Same optimizer, same callback shape, same code structure.**
    The only line that changed compared to `cox.Rmd` is the master
    constructor (`make_threshold_master()` instead of
-   `make_ckks_master()`). The optimiser sees nothing different.
+   `make_ckks_master()`). The optimizer sees nothing different.
 
 ## What this still does not deliver
 
 - **The aggregator sees $\ell(\beta)$ at every iteration.** That is
-  the optimiser's *function value* — what `mle()` is asking for.
+  the optimizer's *function value* — what `mle()` is asking for.
   The information leak is "the value of the joint partial
   log-likelihood at every $\beta$ visited," not "individual
   per-site contributions" (which are properly hidden). Hiding
-  $\ell(\beta)$ would require running the optimiser inside the
+  $\ell(\beta)$ would require running the optimizer inside the
   encrypted domain — feasible but considerably more complex.
 - **Honest-but-curious is the trust model.** Sites are assumed to
   follow the protocol. A malicious site could submit a corrupted
@@ -267,7 +252,7 @@ knitr::kable(comparison, digits = 9,
 ## Where this fits
 
 Read `vignette("cox")` first if you have not — that vignette
-establishes the master/worker protocol and the optimiser-driven
+establishes the master/worker protocol and the optimizer-driven
 shape this one inherits. The only difference here is the master:
 threshold instead of single-decrypter. Same code, stronger trust
 model.

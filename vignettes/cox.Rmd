@@ -65,41 +65,34 @@ We adopt the same topology, with the encrypted-aggregation step
 performed under CKKS so that the master sees only the *sum* of
 local contributions and not the individual addends.
 
-## Simulated data across three sites
+## DLBCL lymphoma cohort
 
-We simulate three sites with patient survival data. Each site has
-its own baseline hazard `lambdaT`, but all share the same true
-coefficients $\beta = (-0.015,\, 0.2,\, 0.001)$ for `age`, `sex`,
-and a biomarker `bm`.
+We use the diffuse large-B-cell lymphoma (DLBCL) cohort of
+@Rosenwald2002 — 240 patients with 138 deaths over a median
+follow-up of 2.8 years — the same dataset that @BayleFanLou2025
+use to motivate distributed Cox estimation. The published outcome
+predictor combines five expression signatures: germinal-center B
+cell, lymph node, proliferation, BMP6, and MHC class II. We model
+the hazard as a function of those five signatures, stratified by
+molecular subgroup (GCB, ABC, Type III) and *use the subgroup
+itself as the site boundary*. This is biologically and
+operationally realistic: GCB, ABC, and Type III tumors arise from
+different cells of origin and tend to be diagnosed at different
+referral centers. The three sites are imbalanced in size (GCB
+$n=115$, ABC $n=73$, Type III $n=52$, with 54, 51, and 33 deaths
+respectively), which the master/worker protocol handles
+transparently.
 
 ```{r}
 suppressPackageStartupMessages(library(survival))
+library(homomorpheR)
+data(DLBCL)
 
-sample_size <- c(n1 = 1000, n2 = 500, n3 = 1500)
-set.seed(12345)
-
-beta_true <- c(age = -0.015, sex = 0.2, bm = 0.001)
-lambda_T  <- c(5, 4, 3)
-lambda_C  <- 2
-
-cox_data <- lapply(seq_along(sample_size), function(i) {
-  n   <- sample_size[i]
-  sex <- sample(c(0, 1), size = n, replace = TRUE)
-  age <- sample(40:70, size = n, replace = TRUE)
-  bm  <- rnorm(n)
-  true_time <- rweibull(n, shape = 1,
-                        scale = lambda_T[i] *
-                          exp(beta_true["age"] * age +
-                              beta_true["sex"] * sex +
-                              beta_true["bm"]  * bm))
-  cens_time <- rweibull(n, shape = 1, scale = lambda_C)
-  time  <- pmin(true_time, cens_time)
-  event <- (time == true_time)
-  data.frame(stratum = i, sex = sex, age = age, bm = bm,
-             time = time, event = event)
-})
-
-sapply(cox_data, function(d) c(n = nrow(d), events = sum(d$event)))
+cox_data <- split(
+  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
+            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
+  DLBCL$Subgroup)
+sapply(cox_data, function(df) c(n = nrow(df), events = sum(df$status)))
 ```
 
 ## The aggregated fit (oracle)
@@ -108,9 +101,10 @@ If all data were in one place, fitting the stratified Cox model is
 trivial:
 
 ```{r}
-agg_data <- do.call(rbind, cox_data)
-agg_model <- coxph(Surv(time, event) ~ sex + age + bm + strata(stratum),
-                   data = agg_data)
+agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
+                       Prolif_sig + BMP6 + MHC2_sig +
+                       strata(Subgroup),
+                   data = DLBCL)
 agg_model
 agg_model$loglik
 ```
@@ -134,13 +128,12 @@ The local computation exploits a well-known feature of `coxph()`:
 supplied `init` *without* taking any Newton-Raphson steps.
 
 ```{r}
-library(homomorpheR)
-
 cph_control <- replace(coxph.control(), "iter.max", 0)
 
 local_cox_nll <- function(data, beta) {
     fit <- tryCatch(
-        coxph(Surv(time, event) ~ sex + age + bm,
+        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
+                  BMP6 + MHC2_sig,
               data    = data,
               init    = beta,
               control = cph_control),
@@ -151,13 +144,14 @@ local_cox_nll <- function(data, beta) {
 
 `tryCatch` returns `NA_real_` if the local fit blows up at extreme
 $\beta$ — `homomorpheR`'s `run_master_worker()` propagates that
-`NA` back to the optimiser, which simply backs off.
+`NA` back to the optimizer, which simply backs off.
 
 ## Wiring up the protocol
 
-Cox partial log-likelihoods are large in magnitude ($\sim 10^4$ for
-samples of this size), so we ask for a slightly larger CKKS scaling
-modulus and a generous first modulus to keep precision tight:
+The summed stratified Cox nLL on this cohort has magnitude
+$\approx 5 \times 10^2$ — comfortably within CKKS precision at
+the default scaling parameters. We lift `scaling_mod_size` from
+50 to 59 and set `first_mod_size = 60` for a safety margin.
 
 ```{r}
 cc <- openfhe::fhe_context("CKKS",
@@ -167,11 +161,11 @@ cc <- openfhe::fhe_context("CKKS",
                            batch_size           = 8L)
 keys <- openfhe::key_gen(cc)
 
-worker1 <- make_worker("Site 1", data = cox_data[[1]], local_fn = local_cox_nll)
-worker2 <- make_worker("Site 2", data = cox_data[[2]], local_fn = local_cox_nll)
-worker3 <- make_worker("Site 3", data = cox_data[[3]], local_fn = local_cox_nll)
-master  <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
-set_workers(master, list(worker1, worker2, worker3))
+worker_gcb <- make_worker("GCB",      data = cox_data[["GCB"]],      local_fn = local_cox_nll)
+worker_abc <- make_worker("ABC",      data = cox_data[["ABC"]],      local_fn = local_cox_nll)
+worker_t3  <- make_worker("Type III", data = cox_data[["Type III"]], local_fn = local_cox_nll)
+master     <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
+set_workers(master, list(worker_gcb, worker_abc, worker_t3))
 ```
 
 ## Iterative MLE through the encrypted protocol
@@ -183,16 +177,17 @@ master/worker round and returns a single decrypted scalar.
 ```{r}
 library(stats4)
 
-encrypted_nLL <- function(sex, age, bm) {
-    run_master_worker(master, c(sex, age, bm))
+encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
+    run_master_worker(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
 }
 
-## Parameter order matches the coxph formula `~ sex + age + bm`,
-## so the side-by-side comparison below is honest. BFGS uses
-## numerical finite-difference gradients, the fair comparison
-## given a generic optimiser driven through an encrypted channel.
+## Parameter order matches the coxph formula above, so the
+## side-by-side comparison below is honest. BFGS uses numerical
+## finite-difference gradients, the fair comparison given a
+## generic optimizer driven through an encrypted channel.
 fit <- mle(encrypted_nLL,
-           start   = list(sex = 0, age = 0, bm = 0),
+           start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
+                          BMP6    = 0, MHC2_sig = 0),
            method  = "BFGS",
            control = list(reltol = 1e-7))
 summary(fit)
@@ -217,7 +212,8 @@ coxph_coefs <- coef(agg_model)
 comparison <- data.frame(
     coefficient           = names(mle_coefs),
     encrypted_distributed = unname(mle_coefs),
-    aggregated_cleartext  = unname(coxph_coefs[names(mle_coefs)])
+    aggregated_cleartext  = unname(coxph_coefs[names(mle_coefs)]),
+    abs_diff              = unname(abs(mle_coefs - coxph_coefs[names(mle_coefs)]))
 )
 knitr::kable(comparison, digits = 9,
              caption = "Encrypted-distributed BFGS vs. aggregated-cleartext coxph()")
@@ -225,18 +221,18 @@ knitr::kable(comparison, digits = 9,
 
 ## What just happened
 
-We took `stats4::mle()` — a generic R optimiser with no awareness
+We took `stats4::mle()` — a generic R optimizer with no awareness
 of cryptography — and handed it a function that computes its
 argument through a three-party homomorphic-encryption protocol.
-The optimiser ran its normal BFGS loop, asked for the value of the
-negative log-likelihood at a handful of points in $\mathbb{R}^3$,
+The optimizer ran its normal BFGS loop, asked for the value of the
+negative log-likelihood at a handful of points in $\mathbb{R}^5$,
 and at each point our function performed a CKKS master/worker round
 across three hospital sites and returned a single decrypted scalar.
 
 `mle()` does not know — and does not need to know — that any of
 this happened. From its perspective it called a function and got
 a number. The result matches the aggregated `coxph()` fit at the
-precision the optimiser cares about.
+precision the optimizer cares about.
 
 ## A note on the comparison
 
@@ -244,12 +240,12 @@ precision the optimiser cares about.
 Hessian** of the Cox partial log-likelihood — a scheme-specific
 advantage. We use BFGS with **numerical finite-difference
 gradients**, which is the fair comparison given that we're driving
-a generic optimiser through an encrypted channel. CKKS itself
+a generic optimizer through an encrypted channel. CKKS itself
 introduces no measurable error at the parameter sizes we use.
 
 ## What this demonstrates
 
-1. **Existing R optimisers work over encrypted channels.**
+1. **Existing R optimizers work over encrypted channels.**
    Privacy-preserving distributed statistics does not require
    rewriting `mle`, `optim`, `nlm`, `glm`'s fitter, MCMC samplers,
    or any other established R machinery. As long as the routine
@@ -264,10 +260,10 @@ introduces no measurable error at the parameter sizes we use.
    value into integer and fractional parts and rationally
    approximate the fractional part with a denominator of $2^{256}$.
    With CKKS, the protocol becomes pure ciphertext arithmetic.
-4. **The actor surface is reusable.** The same exported `Site` /
-   `Master` classes and `run_master_worker()` runner drive both
-   this Cox vignette and the Poisson MLE vignette — only the
-   per-worker `local_fn` differs.
+4. **The master/worker classes are reusable.** The same exported
+   `Site` / `Master` classes and `run_master_worker()` runner
+   drive both this Cox vignette and the Poisson MLE vignette —
+   only the per-worker `local_fn` differs.
 
 ## Caveats and extensions
 
