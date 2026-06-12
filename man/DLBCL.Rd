@@ -11,7 +11,7 @@
 }
 \usage{data(DLBCL)}
 \format{
-  A data frame with 240 observations on the following 12 variables:
+  A data frame with 235 observations on the following 12 variables:
   \describe{
     \item{\code{ID}}{LYM patient identifier (integer).}
     \item{\code{Set}}{Original analysis set assignment, either
@@ -39,11 +39,13 @@
   Each row represents one patient. The five signature columns
   (\code{GCB_sig}, \code{LN_sig}, \code{Prolif_sig}, \code{BMP6},
   \code{MHC2_sig}) are standardized expression-signature scores
-  carried over from the published supplement. The cohort spans 240
-  patients with 138 deaths (event rate 57.5\%) over a median
-  follow-up of 2.8 years. The molecular-subgroup partition gives
-  three sites of unequal size: GCB (n=115, 54 deaths), ABC (n=73,
-  51 deaths), and Type III (n=52, 33 deaths).
+  carried over from the published supplement. Following Bayle, Fan
+  and Lou (2025), the five patients with zero follow-up time are
+  excluded, so the cohort spans 235 patients with 133 deaths (event
+  rate 56.6\%) over a median follow-up of 2.8 years. The
+  molecular-subgroup partition gives three sites of unequal size:
+  GCB (n=115, 54 deaths), ABC (n=71, 49 deaths), and Type III
+  (n=49, 30 deaths).
 
   Splitting by \code{Subgroup} for distributed Cox estimation is
   biologically meaningful: GCB, ABC, and Type III tumors arise
@@ -67,6 +69,10 @@
   Distributed Estimation and Inference for Cox's Model.
   \emph{Journal of the American Statistical Association}.
   \doi{10.1080/01621459.2025.2516820}
+}
+\seealso{
+  \code{\link{DLBCL_gex}} for the full Lymphochip gene-expression
+  matrix (235 x 6416) on the same cohort.
 }
 \examples{
 data(DLBCL)

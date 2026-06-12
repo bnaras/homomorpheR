@@ -12,5 +12,6 @@
 ^NOTES\.md$
 ^CRAN-RELEASE$
 ^inst/stuff
+^data-raw$
 ^\.github$
 ^\.git$
