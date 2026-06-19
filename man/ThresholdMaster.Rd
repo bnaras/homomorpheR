@@ -17,7 +17,7 @@ ThresholdMaster(
 
 \item{state}{an environment for mutable bookkeeping.}
 
-\item{crypto_context}{an \code{openfhe} \code{CryptoContext} with the
+\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} with the
 \code{MULTIPARTY} feature enabled.}
 
 \item{joint_pubkey}{the joint public key produced by chaining
@@ -27,7 +27,7 @@ ThresholdMaster(
 (the first is the lead site whose \code{sk} started the chain).}
 }
 \description{
-A \link{Master} that drives the protocol over \code{openfhe}'s CKKS with
+A \link{Master} that drives the protocol over \code{openfhe.R}'s CKKS with
 threshold key generation. There is no single secret key: each
 site holds a secret share \code{sk_i}, and the joint public key
 \verb{pk_\{1..n\}} is built by chaining \code{multiparty_key_gen()} across

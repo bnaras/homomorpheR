@@ -24,11 +24,11 @@ separate methods.
 \section{Return semantics}{
 The two cases differ deliberately:
 \itemize{
-\item \link{PaillierCiphertext} (integer) -> a \link[gmp:biginteger]{gmp::bigz} in \verb{[0, n)}. This
+\item \link{PaillierCiphertext} (integer) -> a \link[gmp:bigz]{gmp::bigz} in \verb{[0, n)}. This
 preserves raw mod-\code{n} arithmetic; callers wanting signed
-integers should re-centre themselves (\code{if (m > n/2) m - n}).
+integers should re-center themselves (\code{if (m > n/2) m - n}).
 \item \link{PaillierEncryptedReal} -> a \code{numeric} in \verb{(-n/2, n/2)}. The
-method re-centres the raw mod-\code{n} residues so that negative
+method re-centers the raw mod-\code{n} residues so that negative
 real numbers and running totals that cross zero round-trip
 correctly. See \link{PaillierEncryptedReal} for the full convention.
 }

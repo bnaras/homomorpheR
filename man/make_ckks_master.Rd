@@ -9,10 +9,10 @@ make_ckks_master(name, crypto_context, keypair)
 \arguments{
 \item{name}{short identifier shown in printed output.}
 
-\item{crypto_context}{an \code{openfhe} \code{CryptoContext} configured for
+\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} configured for
 CKKS.}
 
-\item{keypair}{an \code{openfhe} \code{KeyPair}.}
+\item{keypair}{an \code{openfhe.R} \code{KeyPair}.}
 }
 \value{
 a \link{CKKSMaster}.

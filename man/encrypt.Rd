@@ -10,7 +10,7 @@ encrypt(public_key, ...)
 \item{public_key}{a \link{PaillierPublicKey}.}
 
 \item{...}{method-specific arguments. The Paillier method takes a
-single cleartext value \code{x} (integer or \link[gmp:biginteger]{gmp::bigz}).}
+single cleartext value \code{x} (integer or \link[gmp:bigz]{gmp::bigz}).}
 }
 \value{
 a \link{PaillierCiphertext}.

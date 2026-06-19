@@ -35,7 +35,7 @@ coordinator running the aggregation.
 
 This is the same pattern the Paillier vignette
 `vignette("QueryNCP")` demonstrates with non-cooperating parties.
-Here we use OpenFHE's **BFV** scheme via the `openfhe` package.
+Here we use OpenFHE's **BFV** scheme via the `openfhe.R` package.
 BFV operates on *integer vectors* with both addition and
 multiplication — well-suited to counting and other exact
 integer-valued aggregates.
@@ -48,7 +48,7 @@ real-valued sufficient statistics CKKS is the right choice.
 ## Setup
 
 ```{r}
-library(openfhe)
+library(openfhe.R)
 
 set.seed(42)
 site_data <- lapply(c(1000, 500, 1500), function(n) {
@@ -141,7 +141,7 @@ saw any patient-level data. The total is exact.
 ## Serialising for a real distributed protocol
 
 In a real deployment each site needs the coordinator's context
-and public key. `openfhe` provides serialisation:
+and public key. `openfhe.R` provides serialisation:
 
 ```{r}
 tdir <- tempdir()
@@ -166,7 +166,7 @@ get_packed_value(result)[1]
 The legacy Paillier vignettes (`vignette("QueryNCP")` in
 particular) achieve the same kind of count aggregation using
 Paillier encryption, which supports only additive homomorphism.
-With `openfhe`'s BFV:
+With `openfhe.R`'s BFV:
 
 - **Multiplication** is available — encrypted products,
   variances, more complex integer-valued aggregates.
@@ -181,7 +181,7 @@ With `openfhe`'s BFV:
   master/worker analogue under CKKS.)
 
 ```{r echo=FALSE}
-## Detach openfhe so its `encrypt`/`decrypt` generics do not bleed
+## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
 ## into other vignettes built later in the same R session.
-detach("package:openfhe", unload = FALSE, force = TRUE)
+detach("package:openfhe.R", unload = FALSE, force = TRUE)
 ```

@@ -25,12 +25,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this vignette exists
-
+## Introduction
 This vignette is a **demonstration**, not a recommendation.
 `vignette("cvxr-consensus-admm")` shows the lossless consensus-ADMM
 protocol over the threshold-FHE channel: bit-identical to the
-centralised CVXR fit, no single decrypter, residuals drive
+centralized CVXR fit, no single decrypter, residuals drive
 convergence. The aggregator sees the full trajectory $\{z^k\}$ as
 plaintext after each iteration's threshold fusion.
 
@@ -40,7 +39,7 @@ trajectory leakage formally. The answer in this simulation is: yes,
 the cryptographic protocol composes cleanly and the implementation
 is one extra `rnorm()` call per site per iteration, but the
 accuracy/privacy trade-off does not produce a usable point at
-small $\varepsilon$ given the optimiser structure here. This
+small $\varepsilon$ given the optimizer structure here. This
 vignette runs that trade-off end-to-end.
 
 `feedback_he_not_dp` in the package's notes records the framing
@@ -70,7 +69,7 @@ key, the $1/N$ scaling contracts the variance back to $\sigma^2$
 per coordinate, and the recovered $z$ has noise
 $\mathcal{N}(0, \sigma^2 I)$.
 
-Distributing the noise across sites (rather than centralising it
+Distributing the noise across sites (rather than centralizing it
 at the aggregator) means:
 
 1. No single point ever holds the noiseless value. Even if the
@@ -222,12 +221,12 @@ iterations regardless of residuals.
 ## Threshold-FHE setup
 
 ```{r}
-cc <- openfhe::fhe_context("CKKS",
+cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
                            first_mod_size       = 60L,
                            batch_size           = 8L,
-                           features             = c(openfhe::Feature$MULTIPARTY))
+                           features             = c(openfhe.R::Feature$MULTIPARTY))
 ```
 
 The DP version of the consensus step. The only change from the
@@ -279,7 +278,7 @@ run_dp_admm <- function(sigma, T_iter = T_fixed, seed = NULL) {
 }
 ```
 
-## Centralised CVXR oracle
+## Centralized CVXR fit
 
 ```{r}
 X_pooled  <- do.call(rbind, lapply(site_data, `[[`, "X"))
@@ -291,8 +290,8 @@ suppressMessages(suppressWarnings(
     psolve(Problem(Minimize(sum(logistic(margins_p)) +
                             (lam / 2) * sum_squares(beta_var))),
            solver = "CLARABEL")))
-beta_oracle <- as.numeric(value(beta_var))
-names(beta_oracle) <- names(beta_true)
+beta_central <- as.numeric(value(beta_var))
+names(beta_central) <- names(beta_true)
 ```
 
 ## The $\sigma$ sweep
@@ -312,10 +311,10 @@ names(sweep_results) <- sprintf("sigma=%.0e", sigma_grid)
 ## $\sigma = 0$ sanity check
 
 ```{r}
-clean_dev <- max(abs(sweep_results[[1]]$z - beta_oracle))
+clean_dev <- max(abs(sweep_results[[1]]$z - beta_central))
 agree_tol <- 10 * tol
 if (clean_dev > agree_tol)
-    stop("DP-ADMM at sigma = 0 disagrees with the centralised oracle.")
+    stop("DP-ADMM at sigma = 0 disagrees with the centralized fit.")
 cat(sprintf("Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n",
             clean_dev, agree_tol))
 ```
@@ -330,21 +329,21 @@ summary_df <- do.call(rbind, lapply(seq_along(sigma_grid), function(j) {
                age       = z[2],
                bmi       = z[3],
                sex       = z[4],
-               max_dev   = max(abs(z - beta_oracle)))
+               max_dev   = max(abs(z - beta_central)))
 }))
-oracle_row <- data.frame(sigma = NA, intercept = beta_oracle[1],
-                         age = beta_oracle[2], bmi = beta_oracle[3],
-                         sex = beta_oracle[4], max_dev = 0)
-summary_table <- rbind(summary_df, oracle_row)
-rownames(summary_table) <- c(sprintf("sigma=%g", sigma_grid), "oracle")
+central_row <- data.frame(sigma = NA, intercept = beta_central[1],
+                         age = beta_central[2], bmi = beta_central[3],
+                         sex = beta_central[4], max_dev = 0)
+summary_table <- rbind(summary_df, central_row)
+rownames(summary_table) <- c(sprintf("sigma=%g", sigma_grid), "centralized")
 knitr::kable(summary_table, digits = 6,
-             caption = "DP-ADMM coefficients vs centralised CVXR")
+             caption = "DP-ADMM coefficients vs centralized CVXR")
 ```
 
 The deviation grows roughly linearly with $\sigma$ in the
 small-$\sigma$ regime and then leaves the linear band — at
 $\sigma = 1$ the recovered coefficients drift far from the
-centralised oracle. The protocol is faithfully running the same
+centralized fit. The protocol is faithfully running the same
 algorithm at every $\sigma$; the deterioration is what the noise
 mechanism does to the optimization, not what the cryptographic
 channel does.
@@ -380,15 +379,14 @@ use-case decision; we report the numbers and stop.
 2. **The accuracy/privacy trade-off is reported end-to-end.** Six
    $\sigma$ values, one fixed-$T$ DP-ADMM run each, summary table
    showing the recovered coefficients and the deviation from the
-   centralised oracle.
-3. **At noise scales the optimiser tolerates, $\varepsilon$ is
+   centralized fit.
+3. **At noise scales the optimizer tolerates, $\varepsilon$ is
    large.** zCDP composition over $T \cdot N$ Gaussian releases
    inflates the budget; tightening it requires either fewer
    iterations, tighter sensitivity, or subsampling amplification —
    all out of scope for this demonstration.
 
-## What this does not address
-
+## Limitations
 - **Tight sensitivity bounds** for the consensus update. $\Delta = 1$
   is a placeholder.
 - **Adaptive noise** schedules across iterations.
@@ -404,6 +402,6 @@ exposure that comes with it.
 
 - Bun & Steinke (2016). *Concentrated Differential Privacy.* TCC.
 - Cyffers, Bellet & Upadhyay (2023). *Muffliato:
-  Peer-to-Peer Privacy Amplification for Decentralised
+  Peer-to-Peer Privacy Amplification for Decentralized
   Optimisation and Averaging.* The DP-ADMM analytic companion to
   this empirical demonstration.

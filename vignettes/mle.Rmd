@@ -95,7 +95,7 @@ In words:
    $E(\ell) = E(\ell_1) \boxplus E(\ell_2) \boxplus E(\ell_3)
    = E(\ell_1 + \ell_2 + \ell_3)$.
 4. The master decrypts $E(\ell)$ to recover $\ell$.
-5. The master hands $\ell$ to the optimiser; the protocol repeats
+5. The master hands $\ell$ to the optimizer; the protocol repeats
    for each new guess of $\lambda$ until convergence.
 
 This is the realistic shape: each worker independently does its
@@ -126,9 +126,9 @@ CKKS also supports multiplication, which the Cox vignette will need.
 The actor surface — `Site` (worker), `Master`, the master/worker
 runner — is the same code as in any other distributed-stats
 vignette in this package; only the master's *backend* changes.
-`homomorpheR` exports `make_ckks_master()` that takes an `openfhe`
+`homomorpheR` exports `make_ckks_master()` that takes an `openfhe.R`
 `CryptoContext` and `KeyPair` and routes encryption/decryption
-through CKKS. The worker class and the `run_master_worker()` runner
+through CKKS. The worker class and the `master_aggregate()` runner
 are backend-agnostic.
 
 The per-site negative log-likelihood is the same plain R function it
@@ -144,17 +144,17 @@ local_nll <- function(data, lambda) {
 
 ### 1. Generate a CKKS key pair
 
-We use `openfhe` qualified rather than `library(openfhe)`: both
+We use `openfhe.R` qualified rather than `library(openfhe.R)`: both
 packages export `encrypt`/`decrypt` generics, and we want
 `homomorpheR`'s on the search path so the protocol code below reads
 naturally.
 
 ```{r}
-cc <- openfhe::fhe_context("CKKS",
+cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 50L,
                            batch_size           = 8L)
-keys <- openfhe::key_gen(cc)
+keys <- openfhe.R::key_gen(cc)
 ```
 
 ### 2. Build workers and master
@@ -170,7 +170,7 @@ set_workers(master, list(worker1, worker2, worker3))
 ### 3. Run `mle()` through the encrypted channel
 
 ```{r}
-fit1 <- mle(function(lambda) run_master_worker(master, lambda),
+fit1 <- mle(function(lambda) master_aggregate(master, lambda),
             start = list(lambda = 5))
 summary(fit1)
 logLik(fit1)

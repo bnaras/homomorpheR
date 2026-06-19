@@ -25,8 +25,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this vignette exists
-
+## Introduction
 This vignette is a **demonstration**, not a recommendation.
 `vignette("cox-threshold")` shows the lossless threshold-FHE
 protocol: bit-identical to `coxph()`, no single decrypter, and the
@@ -94,7 +93,7 @@ agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
                        Prolif_sig + BMP6 + MHC2_sig +
                        strata(Subgroup),
                    data = DLBCL)
-oracle_coef <- coef(agg_model)
+agg_coef <- coef(agg_model)
 
 cph_control <- replace(coxph.control(), "iter.max", 0)
 
@@ -119,12 +118,12 @@ local nLL before returning. The master/worker runner sees only the
 noisy local value and encrypts it as usual.
 
 ```{r}
-cc <- openfhe::fhe_context("CKKS",
+cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
                            first_mod_size       = 60L,
                            batch_size           = 8L,
-                           features             = c(openfhe::Feature$MULTIPARTY))
+                           features             = c(openfhe.R::Feature$MULTIPARTY))
 
 n_sites <- length(cox_data)
 
@@ -148,7 +147,7 @@ fit_at_sigma <- function(sigma, method = "BFGS", seed = 1L) {
                                     n_sites        = n_sites)
     set_workers(master, build_dp_workers(sigma))
     dp_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
-        run_master_worker(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
+        master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
     stats4::mle(dp_nLL,
                 start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
                                BMP6    = 0, MHC2_sig = 0),
@@ -166,10 +165,10 @@ threshold-CKKS precision.
 ```{r}
 fit_clean <- fit_at_sigma(0)
 clean_check <- data.frame(
-    coefficient = names(oracle_coef),
-    cleartext   = unname(oracle_coef),
-    protocol    = unname(coef(fit_clean)[names(oracle_coef)]),
-    abs_diff    = abs(unname(coef(fit_clean)[names(oracle_coef)] - oracle_coef))
+    coefficient = names(agg_coef),
+    cleartext   = unname(agg_coef),
+    protocol    = unname(coef(fit_clean)[names(agg_coef)]),
+    abs_diff    = abs(unname(coef(fit_clean)[names(agg_coef)] - agg_coef))
 )
 knitr::kable(clean_check, digits = 9,
              caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
@@ -200,7 +199,7 @@ bfgs_table <- data.frame(
     BMP6         = sapply(fits_bfgs, function(f) coef(f)[["BMP6"]]),
     MHC2_sig     = sapply(fits_bfgs, function(f) coef(f)[["MHC2_sig"]]),
     max_abs_diff = sapply(fits_bfgs, function(f)
-        max(abs(coef(f) - oracle_coef[names(coef(f))]))))
+        max(abs(coef(f) - agg_coef[names(coef(f))]))))
 knitr::kable(bfgs_table, digits = 6,
              caption = "BFGS over the threshold-DP nLL at five noise scales")
 ```
@@ -235,11 +234,11 @@ fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
 
 bfgs1 <- coef(fits_bfgs[["sigma_1"]])
 nm1   <- coef(fit_nm_1)
-coefs <- names(oracle_coef)
+coefs <- names(agg_coef)
 
 nm_compare <- data.frame(
     coefficient  = coefs,
-    coxph_oracle = unname(oracle_coef[coefs]),
+    coxph_agg = unname(agg_coef[coefs]),
     BFGS_sigma1  = unname(bfgs1[coefs]),
     NM_sigma1    = unname(nm1[coefs])
 )
@@ -251,7 +250,7 @@ knitr::kable(nm_compare, digits = 6,
 ```
 
 At $\sigma = 1$ BFGS is unusable: at least one signature lands at
-the wrong sign relative to the cleartext oracle. Nelder–Mead at
+the wrong sign relative to the aggregated cleartext fit. Nelder–Mead at
 the same $\sigma$ keeps every coefficient on the side of zero
 that the centralized fit puts it on. The price is more function
 evaluations, which feeds back into the privacy budget below.
@@ -323,8 +322,7 @@ package's main story is the lossless cox progression.
    queries. The cryptographic layer is not the limit — the
    optimizer is.
 
-## What this does not address
-
+## Limitations
 - **Tight Cox sensitivity.** $\Delta = 1$ is a placeholder.
 - **DP-SGD or stochastic gradient methods.** Standard alternative
   for tight DP budgets; out of scope here.

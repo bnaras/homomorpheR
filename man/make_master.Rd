@@ -11,7 +11,7 @@ make_master(name, keypair, den = gmp::as.bigq(2)^256)
 
 \item{keypair}{a \link{PaillierKeyPair}.}
 
-\item{den}{a \link[gmp:bigrational]{gmp::bigq} denominator used to scale fractional parts
+\item{den}{a \link[gmp:bigq]{gmp::bigq} denominator used to scale fractional parts
 when encrypting real numbers via \code{\link[=encrypt_real]{encrypt_real()}}.}
 }
 \value{

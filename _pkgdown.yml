@@ -1,4 +1,4 @@
-url: ~
+url: https://bnaras.github.io/homomorpheR
 template:
   bootstrap: 5
 
@@ -26,6 +26,8 @@ navbar:
       href: articles/cox-threshold.html
     - text: Federated Consensus ADMM (CVXR + Threshold CKKS)
       href: articles/cvxr-consensus-admm.html
+    - text: Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)
+      href: articles/cvxr-cox-lasso-dlbcl.html
     - text: Secure Model Inference (CKKS, two-party)
       href: articles/secure-inference.html
     - text: Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)

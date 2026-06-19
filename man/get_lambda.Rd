@@ -12,7 +12,7 @@ get_lambda(private_key, ...)
 \item{...}{unused.}
 }
 \value{
-a \link[gmp:biginteger]{gmp::bigz} value.
+a \link[gmp:bigz]{gmp::bigz} value.
 }
 \description{
 Return the secret lambda from a private key

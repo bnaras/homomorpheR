@@ -25,8 +25,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this vignette exists
-
+## Introduction
 A recurring problem in federated medical analytics is similarity
 search across silos. A clinician at one hospital sees an unusual
 case and wants to ask "do other hospitals in our network have
@@ -195,7 +194,7 @@ simplest setup that gives a meaningful retrieval ground truth.
 ```{r}
 suppressPackageStartupMessages({
   library(homomorpheR)
-  library(openfhe)
+  library(openfhe.R)
 })
 set.seed(20260428)
 
@@ -675,7 +674,7 @@ plaintext_top_k <- function(q, site_data, M_list, top_k) {
 
 plain_top <- plaintext_top_k(q_demo, db, M_hat, top_k)
 
-## Compare encrypted-domain top-k against the plaintext oracle
+## Compare encrypted-domain top-k against the plaintext reference
 ## by joining on (site_id, local_index).
 compare <- merge(top_result, plain_top,
                  by = c("site_id", "local_index"),
@@ -685,7 +684,7 @@ cat(sprintf("Top-%d encrypted vs plaintext score max error: %.2e\n",
             top_k, score_err))
 
 ## Whether the encrypted-domain top-k contains the same
-## (site_id, local_index) pairs as the plaintext oracle.
+## (site_id, local_index) pairs as the plaintext reference.
 enc_set   <- paste(top_result$site_id, top_result$local_index, sep = ":")
 plain_set <- paste(plain_top$site_id,  plain_top$local_index,  sep = ":")
 cat(sprintf("Top-%d set match: %d of %d\n",
@@ -825,8 +824,7 @@ legend("bottomleft",
 par(op)
 ```
 
-## What this delivers
-
+## Discussion
 - **Federated retrieval across heterogeneous fine-tuned
   models.** Each of $n$ sites holds its own privately
   fine-tuned variant of a public foundation model; the
@@ -858,7 +856,7 @@ par(op)
   Local patient indices stay plaintext at each site; only the
   similarity scores are encrypted, and the threshold ceremony
   reveals plaintext only for the released top-$k$. The
-  encrypted protocol's output agrees with its plaintext oracle
+  encrypted protocol's output agrees with its plaintext reference
   to $\sim 10^{-11}$.
 - **Recall invariant under orthogonal drift.** Across the
   full range of drift magnitudes simulated above, the
@@ -866,8 +864,7 @@ par(op)
   cosine retrieval in public space. Without alignment, recall
   collapses for moderate-to-heavy drift.
 
-## What this still does not deliver
-
+## Limitations
 - **Encrypted top-$k$ selection.** We sort plaintext-side
   after threshold decrypting the per-patient scores. Encrypted
   argmax / top-$k$ via polynomial sign approximation is
@@ -950,7 +947,7 @@ held privately at each site does not appear to have been
 studied as a unified pipeline.
 
 ```{r echo = FALSE}
-## Detach openfhe so its `encrypt`/`decrypt` generics do not
+## Detach openfhe.R so its `encrypt`/`decrypt` generics do not
 ## bleed into other vignettes built later in the same R session.
-detach("package:openfhe", unload = TRUE, character.only = TRUE)
+detach("package:openfhe.R", unload = TRUE, character.only = TRUE)
 ```

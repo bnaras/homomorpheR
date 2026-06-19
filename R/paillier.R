@@ -278,7 +278,7 @@ method(get_lambda, PaillierPrivateKey) <- function(private_key) private_key@lamb
 #
 # Registered in zzz.R via registerS3method("Ops", "homomorpheR::PaillierCiphertext", ...).
 # We use S3 (not S7's built-in Ops) because S7 evaluates both arguments
-# even for unary operators, which fails on `-x`. Same pattern as openfhe
+# even for unary operators, which fails on `-x`. Same pattern as openfhe.R
 # and CVXR.
 
 .homomorpheR_Ops_handler <- function(e1, e2) {

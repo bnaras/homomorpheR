@@ -6,7 +6,7 @@
 ## ----cvxr-libs, eval=RECOMPUTE------------------------------------------------
 library(survival)
 library(CVXR)
-library(openfhe)
+library(openfhe.R)
 library(homomorpheR)
 
 

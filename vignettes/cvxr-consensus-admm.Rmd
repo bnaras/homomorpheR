@@ -25,12 +25,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this vignette exists
-
+## Introduction
 The `cox` and `cox-threshold` vignettes show that *function-call*
-optimisers — `mle()`, `optim()`, `coxph`'s Newton-Raphson via
+optimizers — `mle()`, `optim()`, `coxph`'s Newton-Raphson via
 callback — compose with FHE: hand them a callback that performs an
-encrypted master/worker round, and the optimiser cannot tell.
+encrypted master/worker round, and the optimizer cannot tell.
 
 That pattern fits any objective with a sum-decomposable
 log-likelihood, but it does not generalize to arbitrary convex
@@ -55,14 +54,14 @@ This is the architectural complement to `cox-threshold.Rmd`:
 
 | | `cox-threshold` | `cvxr-consensus-admm` |
 |---|---|---|
-| Optimiser | `stats4::mle()` (BFGS) | Consensus ADMM (one outer loop) |
+| Optimizer | `stats4::mle()` (BFGS) | Consensus ADMM (one outer loop) |
 | Local solver | `coxph(iter.max = 0)` | `CVXR::psolve()` |
 | FHE call site | every BFGS function evaluation | every ADMM iteration |
 | Topology | master/worker fan-out + fan-in | peer-to-peer with threshold aggregator |
 | Threshold keys | yes (n-of-n) | yes (n-of-n) |
 
 Both compose existing R machinery with a threshold-FHE channel
-without rewriting the optimiser.
+without rewriting the optimizer.
 
 ## The global problem and its consensus split
 
@@ -206,12 +205,12 @@ threshold-decrypt the result; the partial-decrypt fan-in across
 sites is handled inside the master class.
 
 ```{r}
-cc <- openfhe::fhe_context("CKKS",
+cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
                            first_mod_size       = 60L,
                            batch_size           = 8L,
-                           features             = c(openfhe::Feature$MULTIPARTY))
+                           features             = c(openfhe.R::Feature$MULTIPARTY))
 ```
 
 ```{r}
@@ -260,20 +259,20 @@ X_all <- do.call(rbind, lapply(site_data, `[[`, "X"))
 y_all <- unlist(lapply(site_data, `[[`, "y"))
 ```
 
-## Centralised CVXR oracle
+## Centralized CVXR fit
 
 For the comparison at the end of the run, we fit the same problem
 centrally. This is the target the federated fit should match.
 
 ```{r}
-x_oracle <- Variable(p)
+x_central <- Variable(p)
 y_signs  <- 2 * y_all - 1
-margins  <- -y_signs * (X_all %*% x_oracle)
-oracle_prob <- Problem(Minimize(
-    sum(logistic(margins)) + (lam / 2) * sum_squares(x_oracle)
+margins  <- -y_signs * (X_all %*% x_central)
+central_prob <- Problem(Minimize(
+    sum(logistic(margins)) + (lam / 2) * sum_squares(x_central)
 ))
-psolve(oracle_prob, solver = "CLARABEL")
-beta_oracle <- as.numeric(value(x_oracle))
+psolve(central_prob, solver = "CLARABEL")
+beta_central <- as.numeric(value(x_central))
 ```
 
 ## Tuning $\rho$ before the loop
@@ -369,29 +368,28 @@ if (!converged)
 cat(sprintf("Encrypted ADMM converged in %d iterations.\n", length(trajectory)))
 ```
 
-## Comparison with the centralised oracle
+## Comparison with the centralized fit
 
 ```{r}
 comparison <- data.frame(
     coefficient            = paste0("beta_", seq_len(p)),
     threshold_distributed  = z_curr,
-    centralised_cvxr       = beta_oracle,
-    abs_diff               = abs(z_curr - beta_oracle)
+    centralized_cvxr       = beta_central,
+    abs_diff               = abs(z_curr - beta_central)
 )
 knitr::kable(comparison, digits = 6,
-             caption = "Threshold-FHE consensus ADMM vs. centralised CVXR")
+             caption = "Threshold-FHE consensus ADMM vs. centralized CVXR")
 
-max_diff <- max(abs(z_curr - beta_oracle))
-cat(sprintf("Max absolute coefficient difference vs. centralised oracle: %.2e\n",
+max_diff <- max(abs(z_curr - beta_central))
+cat(sprintf("Max absolute coefficient difference vs. centralized fit: %.2e\n",
             max_diff))
 
 if (max_diff > 10 * reltol)
-    stop("Encrypted ADMM agreement with cleartext oracle is too loose; ",
+    stop("Encrypted ADMM agreement with the aggregated cleartext fit is too loose; ",
          "investigate before publishing this run.")
 ```
 
-## What this delivers
-
+## Discussion
 1. **CVXR symbolic problems compose with threshold FHE.** The
    local CVXR solve runs cleartext at each site; only the
    cross-site consensus update goes through the encrypted
@@ -408,17 +406,16 @@ if (max_diff > 10 * reltol)
    parameter values. Without DPP, the canonicalization would
    re-run every iteration and the vignette would be infeasible.
 
-## What this still does not deliver
-
+## Limitations
 - **Honest-but-curious trust.** A site that misreports its local
   $x_i + u_i$ can corrupt the consensus. Detecting this requires
   commitments / zero-knowledge proofs that this vignette does
   not implement.
 - **The aggregator sees the trajectory $\{z^k\}$.** Per-iteration
   consensus values are revealed in plaintext (after fusion) so
-  the optimiser can decide convergence. A subpoena to the
+  the optimizer can decide convergence. A subpoena to the
   aggregator yields this trajectory.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the
-  same coefficient vector as the centralised fit. Output-level
+  same coefficient vector as the centralized fit. Output-level
   attacks are out of scope here; the companion DP vignettes (not
   yet ported) demonstrate output DP composition.

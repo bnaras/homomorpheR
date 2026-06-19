@@ -9,7 +9,7 @@ make_threshold_master(name, crypto_context, n_sites)
 \arguments{
 \item{name}{short identifier.}
 
-\item{crypto_context}{an \code{openfhe} \code{CryptoContext} configured for
+\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} configured for
 CKKS \emph{with} the \code{MULTIPARTY} feature enabled. Pass
 \code{features = c(Feature$MULTIPARTY)} to \code{fhe_context()}.}
 

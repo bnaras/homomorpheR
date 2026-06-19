@@ -70,7 +70,7 @@ polynomial. We use depth 8 and enable `Feature$ADVANCEDSHE` for
 the polynomial-evaluation primitives.
 
 ```{r}
-library(openfhe)
+library(openfhe.R)
 
 cc <- fhe_context("CKKS",
                   multiplicative_depth = 8L,
@@ -101,7 +101,7 @@ ct_eta <- ct_eta + beta[1]
 
 ## Step 4: apply the sigmoid (encrypted)
 
-`openfhe` exposes Chebyshev approximations of common transcendental
+`openfhe.R` exposes Chebyshev approximations of common transcendental
 functions, including the logistic sigmoid. The interval $[a, b]$
 must cover the realisable range of $\eta$; degree 16 gives good
 precision with depth modest enough to fit the budget we declared
@@ -150,7 +150,7 @@ encryption. That approach requires:
   aggregates,
 - careful real-number encoding via integer / fractional split.
 
-With CKKS via `openfhe`:
+With CKKS via `openfhe.R`:
 
 - real numbers are encrypted directly — no manual scaling,
 - multiplication works — enabling polynomial and sigmoid
@@ -176,7 +176,7 @@ With CKKS via `openfhe`:
   threshold FHE) on top of the FHE transport.
 
 ```{r echo=FALSE}
-## Detach openfhe so its `encrypt`/`decrypt` generics do not bleed
+## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
 ## into other vignettes built later in the same R session.
-detach("package:openfhe", unload = FALSE, force = TRUE)
+detach("package:openfhe.R", unload = FALSE, force = TRUE)
 ```

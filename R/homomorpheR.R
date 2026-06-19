@@ -4,7 +4,7 @@
 #' privacy-preserving distributed computations: applications of the
 #' sort implemented in package `distcomp`. The Paillier cryptosystem
 #' is implemented natively in R via the `gmp` package; CKKS, BFV, BGV,
-#' and FHEW/TFHE schemes are available through the `openfhe` package.
+#' and FHEW/TFHE schemes are available through the `openfhe.R` package.
 #'
 #' Encrypted values are wrapped in [PaillierCiphertext] objects so that
 #' R's arithmetic operators dispatch to the homomorphism. Use

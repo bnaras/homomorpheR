@@ -48,7 +48,7 @@ master/worker pattern (`vignette("mle")`, `vignette("cox")`).
 Unlike those, there is no aggregator and no consensus: one
 client (hospital) holds the secret key and queries one server
 (lab) which holds the model coefficients in cleartext. The
-homomorphic primitives all come from the `openfhe` package.
+homomorphic primitives all come from the `openfhe.R` package.
 
 ## Scenario: weighted biomarker score
 
@@ -62,7 +62,7 @@ coefficients.
 ## Setup: hospital's context and patient data
 
 ```{r}
-library(openfhe)
+library(openfhe.R)
 
 cc <- fhe_context("CKKS",
                   multiplicative_depth = 2L,
@@ -236,7 +236,7 @@ has to layer defences *on top of* the FHE transport:
   decryption requires cooperation from the other key-holders.
 - **Non-linear scoring structure.** A linear model is the
   trivial extraction case. Non-linear scorers
-  (`openfhe::eval_logistic`, polynomial compositions) resist
+  (`openfhe.R::eval_logistic`, polynomial compositions) resist
   closed-form basis-vector attacks, though approximation attacks
   from the model-extraction literature still apply.
 
@@ -276,7 +276,7 @@ get_real_packed_value(result)[1:8]
 ```
 
 ```{r echo=FALSE}
-## Detach openfhe so its `encrypt`/`decrypt` generics do not bleed
+## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
 ## into other vignettes built later in the same R session.
-detach("package:openfhe", unload = FALSE, force = TRUE)
+detach("package:openfhe.R", unload = FALSE, force = TRUE)
 ```

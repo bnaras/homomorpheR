@@ -16,13 +16,13 @@ CKKSMaster(
 
 \item{state}{an environment for mutable bookkeeping.}
 
-\item{crypto_context}{an \code{openfhe} \code{CryptoContext} configured for
+\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} configured for
 CKKS.}
 
-\item{keypair}{an \code{openfhe} \code{KeyPair}.}
+\item{keypair}{an \code{openfhe.R} \code{KeyPair}.}
 }
 \description{
-A \link{Master} that drives the protocol over \code{openfhe}'s CKKS encryption.
+A \link{Master} that drives the protocol over \code{openfhe.R}'s CKKS encryption.
 CKKS handles real-valued arithmetic natively, so no \code{den}
 denominator is needed. Constructed by \code{\link[=make_ckks_master]{make_ckks_master()}}.
 }

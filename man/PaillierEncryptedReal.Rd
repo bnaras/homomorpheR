@@ -15,7 +15,7 @@ PaillierEncryptedReal(
 
 \item{frac}{the \link{PaillierCiphertext} holding the scaled fractional part.}
 
-\item{den}{the denominator used to scale the fractional part (a \link[gmp:bigrational]{gmp::bigq}).}
+\item{den}{the denominator used to scale the fractional part (a \link[gmp:bigq]{gmp::bigq}).}
 }
 \description{
 A pair of Paillier ciphertexts representing the integer and
@@ -29,7 +29,7 @@ Paillier's plaintext space is \code{Z_n} (a residue class modulo \code{n},
 the modulus carried by the public key). Negative real numbers and
 running totals that cross zero are stored in their mod-\code{n}
 representation, which lives in the upper half of \verb{[0, n)}. The
-\code{\link[=decrypt]{decrypt()}} method for \code{PaillierEncryptedReal} re-centres the raw
+\code{\link[=decrypt]{decrypt()}} method for \code{PaillierEncryptedReal} re-centers the raw
 decrypted residues into the interval \verb{(-n/2, n/2)} so that signed
 values round-trip correctly. This means a \code{PaillierEncryptedReal}
 is \emph{correct for signed real arithmetic} as long as the true
@@ -38,6 +38,6 @@ is \verb{> 10^307}, well beyond any plausible statistical workload.
 
 This convention applies only to \code{PaillierEncryptedReal}. The
 integer-only \link{PaillierCiphertext} decrypt method preserves raw
-mod-\code{n} semantics and does not centre.
+mod-\code{n} semantics and does not center.
 }
 

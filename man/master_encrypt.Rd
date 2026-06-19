@@ -14,7 +14,7 @@ real-valued \code{value}.}
 }
 \value{
 the encrypted value (a \link{PaillierEncryptedReal} for
-\link{PaillierMaster}; an \code{openfhe} \code{Ciphertext} for \link{CKKSMaster}).
+\link{PaillierMaster}; an \code{openfhe.R} \code{Ciphertext} for \link{CKKSMaster}).
 }
 \description{
 Dispatches on the master's class so the same protocol body works

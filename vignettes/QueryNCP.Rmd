@@ -126,7 +126,7 @@ now decrypt the result and obtain $c$!
 
 This is pictorially shown below.
 
-![](assets/nc-query-masters-v1.png)
+![Communication topology in which the master talks directly to each site and to both non-cooperating parties: every site sends its encrypted count obfuscated as E(c_i + r_i) to NCP1 and as E(c_i - r_i) to NCP2, and the master retrieves the two encrypted sums and adds them to recover E(2c).](assets/nc-query-masters-v1.png)
 
 The red arrows show the master proposing a value $\beta$ to each of
 the sites, which reply back to NCP1 and NCP2. The master then

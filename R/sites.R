@@ -1,7 +1,7 @@
 #' @importFrom S7 new_class new_generic new_object method method<- class_any class_character class_integer S7_object S7_inherits
 #' @importFrom stats runif
-#' @importFrom openfhe make_ckks_packed_plaintext get_real_packed_value
-#' @importFrom openfhe multiparty_key_gen multiparty_decrypt_lead multiparty_decrypt_main multiparty_decrypt_fusion
+#' @importFrom openfhe.R make_ckks_packed_plaintext get_real_packed_value
+#' @importFrom openfhe.R multiparty_key_gen multiparty_decrypt_lead multiparty_decrypt_main multiparty_decrypt_fusion
 NULL
 
 ## Site / Master / NCParty actor classes.
@@ -90,14 +90,14 @@ PaillierMaster <- new_class(
 
 #' CKKS-backed master
 #'
-#' A [Master] that drives the protocol over `openfhe`'s CKKS encryption.
+#' A [Master] that drives the protocol over `openfhe.R`'s CKKS encryption.
 #' CKKS handles real-valued arithmetic natively, so no `den`
 #' denominator is needed. Constructed by [make_ckks_master()].
 #'
 #' @param name short identifier shown in printed output.
-#' @param crypto_context an `openfhe` `CryptoContext` configured for
+#' @param crypto_context an `openfhe.R` `CryptoContext` configured for
 #'   CKKS.
-#' @param keypair an `openfhe` `KeyPair`.
+#' @param keypair an `openfhe.R` `KeyPair`.
 #' @param state an environment for mutable bookkeeping.
 #' @export
 CKKSMaster <- new_class(
@@ -112,7 +112,7 @@ CKKSMaster <- new_class(
 
 #' Threshold-CKKS master (n-of-n key generation)
 #'
-#' A [Master] that drives the protocol over `openfhe`'s CKKS with
+#' A [Master] that drives the protocol over `openfhe.R`'s CKKS with
 #' threshold key generation. There is no single secret key: each
 #' site holds a secret share `sk_i`, and the joint public key
 #' `pk_{1..n}` is built by chaining `multiparty_key_gen()` across
@@ -123,7 +123,7 @@ CKKSMaster <- new_class(
 #' Constructed by [make_threshold_master()].
 #'
 #' @param name short identifier.
-#' @param crypto_context an `openfhe` `CryptoContext` with the
+#' @param crypto_context an `openfhe.R` `CryptoContext` with the
 #'   `MULTIPARTY` feature enabled.
 #' @param joint_pubkey the joint public key produced by chaining
 #'   `multiparty_key_gen()` across the sites.
@@ -220,7 +220,7 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #' inside [master_decrypt()] when called on a `ThresholdMaster`.
 #'
 #' @param name short identifier.
-#' @param crypto_context an `openfhe` `CryptoContext` configured for
+#' @param crypto_context an `openfhe.R` `CryptoContext` configured for
 #'   CKKS *with* the `MULTIPARTY` feature enabled. Pass
 #'   `features = c(Feature$MULTIPARTY)` to `fhe_context()`.
 #' @param n_sites number of participating sites (>= 2).
@@ -233,12 +233,12 @@ make_threshold_master <- function(name, crypto_context, n_sites) {
     sks <- vector("list", n_sites)
     pks <- vector("list", n_sites)
 
-    kp1 <- openfhe::key_gen(crypto_context)
+    kp1 <- openfhe.R::key_gen(crypto_context)
     sks[[1]] <- kp1@secret
     pks[[1]] <- kp1@public
 
     for (i in 2:n_sites) {
-        kpi <- openfhe::multiparty_key_gen(crypto_context, pks[[i - 1]])
+        kpi <- openfhe.R::multiparty_key_gen(crypto_context, pks[[i - 1]])
         sks[[i]] <- kpi@secret
         pks[[i]] <- kpi@public
     }
@@ -305,7 +305,7 @@ add_local_and_forward <- new_generic("add_local_and_forward", "obj")
 #' @param ... method-specific arguments. Both backends take a single
 #'   real-valued `value`.
 #' @return the encrypted value (a [PaillierEncryptedReal] for
-#'   [PaillierMaster]; an `openfhe` `Ciphertext` for [CKKSMaster]).
+#'   [PaillierMaster]; an `openfhe.R` `Ciphertext` for [CKKSMaster]).
 #' @export
 master_encrypt <- new_generic("master_encrypt", "master")
 
@@ -370,21 +370,21 @@ method(master_decrypt, PaillierMaster) <- function(master, ciphertext) {
 
 method(master_encrypt, CKKSMaster) <- function(master, value) {
     cc <- master@crypto_context
-    pt <- openfhe::make_ckks_packed_plaintext(cc, value)
-    openfhe::encrypt(master@keypair@public, pt, cc = cc)
+    pt <- openfhe.R::make_ckks_packed_plaintext(cc, value)
+    openfhe.R::encrypt(master@keypair@public, pt, cc = cc)
 }
 method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
     cc <- master@crypto_context
-    pt <- openfhe::decrypt(ciphertext, master@keypair@secret, cc = cc)
-    openfhe::set_length(pt, as.integer(len))
-    vals <- openfhe::get_real_packed_value(pt)
+    pt <- openfhe.R::decrypt(ciphertext, master@keypair@secret, cc = cc)
+    openfhe.R::set_length(pt, as.integer(len))
+    vals <- openfhe.R::get_real_packed_value(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
 method(master_encrypt, ThresholdMaster) <- function(master, value) {
     cc <- master@crypto_context
-    pt <- openfhe::make_ckks_packed_plaintext(cc, value)
-    openfhe::encrypt(master@joint_pubkey, pt, cc = cc)
+    pt <- openfhe.R::make_ckks_packed_plaintext(cc, value)
+    openfhe.R::encrypt(master@joint_pubkey, pt, cc = cc)
 }
 method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L) {
     cc  <- master@crypto_context
@@ -395,16 +395,16 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
     ## real deployment the partials travel from sites to the master
     ## over the network; here they are ordinary R objects.
     partials      <- vector("list", n)
-    partials[[1]] <- openfhe::multiparty_decrypt_lead(cc, sks[[1]], ciphertext)
+    partials[[1]] <- openfhe.R::multiparty_decrypt_lead(cc, sks[[1]], ciphertext)
     for (i in 2:n) {
-        partials[[i]] <- openfhe::multiparty_decrypt_main(cc, sks[[i]], ciphertext)
+        partials[[i]] <- openfhe.R::multiparty_decrypt_main(cc, sks[[i]], ciphertext)
     }
 
     ## Fuse to recover the plaintext sum. n-of-n: any subset of the
     ## partials would not suffice.
-    pt <- do.call(openfhe::multiparty_decrypt_fusion, c(list(cc), partials))
-    openfhe::set_length(pt, as.integer(len))
-    vals <- openfhe::get_real_packed_value(pt)
+    pt <- do.call(openfhe.R::multiparty_decrypt_fusion, c(list(cc), partials))
+    openfhe.R::set_length(pt, as.integer(len))
+    vals <- openfhe.R::get_real_packed_value(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
@@ -448,7 +448,7 @@ make_worker <- function(name, data, local_fn) make_site(name, data, local_fn)
 #'
 #' Stashes the workers in the master's state and broadcasts the
 #' master's public key to each worker. After this call,
-#' [run_master_worker()] can drive an iteration of the protocol.
+#' [master_aggregate()] can drive an iteration of the protocol.
 #'
 #' Use this for the realistic master/worker (star) topology that
 #' distcomp- and DataSHIELD-style federated analyses follow. For the
@@ -494,7 +494,7 @@ set_workers <- function(master, workers) {
 #'   worker's `local_fn`).
 #' @return the aggregated value, or `NA_real_` on failure.
 #' @export
-run_master_worker <- function(master, theta) {
+master_aggregate <- function(master, theta) {
     workers <- master@state$workers
     if (is.null(workers) || length(workers) == 0)
         cli_abort("Master has no workers; call {.fun set_workers} first.")

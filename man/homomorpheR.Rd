@@ -10,7 +10,7 @@
 privacy-preserving distributed computations: applications of the
 sort implemented in package \code{distcomp}. The Paillier cryptosystem
 is implemented natively in R via the \code{gmp} package; CKKS, BFV, BGV,
-and FHEW/TFHE schemes are available through the \code{openfhe} package.
+and FHEW/TFHE schemes are available through the \code{openfhe.R} package.
 }
 \details{
 Encrypted values are wrapped in \link{PaillierCiphertext} objects so that
@@ -44,5 +44,10 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU}
+
+Authors:
+\itemize{
+  \item Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU}
+}
 
 }

@@ -17,7 +17,7 @@ the master, invisibly.
 \description{
 Stashes the workers in the master's state and broadcasts the
 master's public key to each worker. After this call,
-\code{\link[=run_master_worker]{run_master_worker()}} can drive an iteration of the protocol.
+\code{\link[=master_aggregate]{master_aggregate()}} can drive an iteration of the protocol.
 }
 \details{
 Use this for the realistic master/worker (star) topology that

@@ -25,8 +25,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this vignette exists
-
+## Introduction
 The companion `cox` vignette fits a stratified Cox model across three
 sites under CKKS via master/worker. The master holds the secret key
 and decrypts the encrypted partial likelihood at every iteration of
@@ -115,7 +114,7 @@ agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
 `homomorpheR` exports a `make_threshold_master()` constructor that
 runs the chained key generation in one call and returns a
 [ThresholdMaster] holding the joint public key plus the per-site
-secret shares. The same `set_workers()` and `run_master_worker()`
+secret shares. The same `set_workers()` and `master_aggregate()`
 helpers used by the single-decrypter `cox.Rmd` work unchanged here:
 the threshold-specific encrypt/partial-decrypt/fuse logic lives
 inside `master_encrypt()` and `master_decrypt()` methods on
@@ -143,12 +142,12 @@ The CKKS context needs the `MULTIPARTY` feature enabled so the
 chained `multiparty_key_gen()` calls work:
 
 ```{r}
-cc <- openfhe::fhe_context("CKKS",
+cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
                            first_mod_size       = 60L,
                            batch_size           = 8L,
-                           features             = c(openfhe::Feature$MULTIPARTY))
+                           features             = c(openfhe.R::Feature$MULTIPARTY))
 ```
 
 `make_threshold_master(name, cc, n_sites)` runs the chained key
@@ -172,14 +171,14 @@ set_workers(master, list(worker_gcb, worker_abc, worker_t3))
 ## Iterative MLE through the threshold protocol
 
 The optimizer-facing code is *identical* to `cox.Rmd`. Same
-`run_master_worker()` runner, same `mle()` driver — only the
+`master_aggregate()` runner, same `mle()` driver — only the
 underlying master class changed.
 
 ```{r}
 library(stats4)
 
 encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
-    run_master_worker(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
+    master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
 }
 
 fit <- mle(encrypted_nLL,
@@ -214,8 +213,7 @@ knitr::kable(comparison, digits = 9,
              caption = "Threshold-distributed BFGS vs. aggregated-cleartext coxph()")
 ```
 
-## What this delivers
-
+## Discussion
 1. **No single party holds the decryption key.** `make_threshold_master()`
    distributes the secret across three sites; the master holds
    only the joint public key. Encrypted intermediate values are
@@ -229,8 +227,7 @@ knitr::kable(comparison, digits = 9,
    constructor (`make_threshold_master()` instead of
    `make_ckks_master()`). The optimizer sees nothing different.
 
-## What this still does not deliver
-
+## Limitations
 - **The aggregator sees $\ell(\beta)$ at every iteration.** That is
   the optimizer's *function value* — what `mle()` is asking for.
   The information leak is "the value of the joint partial

@@ -11,7 +11,7 @@ random.bigz(nBits)
 checked, for efficiency).}
 }
 \value{
-a \link[gmp:biginteger]{gmp::bigz} value.
+a \link[gmp:bigz]{gmp::bigz} value.
 }
 \description{
 Returns a random big integer using the cryptographically secure

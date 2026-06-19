@@ -21,13 +21,15 @@ Imports:
     S7,
     cli,
     gmp,
-    openfhe,
+    openfhe.R,
     sodium
 Description: Homomorphic computations in R for privacy-preserving applications.
              Provides the Paillier additive scheme natively; companion
              schemes (CKKS, BFV, BGV, FHEW/TFHE) are available through the
-             'openfhe' package.
+             'openfhe.R' package.
 License: MIT + file LICENSE
+LazyData: true
+LazyDataCompression: xz
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Encoding: UTF-8
+Config/roxygen2/version: 8.0.0
