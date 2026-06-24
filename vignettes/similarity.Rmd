@@ -44,25 +44,29 @@ efficiently.
 
 The wrinkle is that hospitals do not all use the *same* model.
 Each hospital starts from a public foundation model and
-fine-tunes it on its own data, producing a privately fine-tuned
-variant whose embeddings differ from the public baseline by an
-unknown rotation of the embedding geometry. A query in the
-public-model space is no longer directly comparable to a
-database vector in a hospital's private space.
+fine-tunes it on its own data for its own purposes — it does not
+constrain the result to be an isometry of the public model. The
+fine-tuned embeddings therefore differ from the public baseline
+by a generically *non-isometric* transformation of the geometry,
+and a query in the public-model space is no longer directly
+comparable to a database vector in a hospital's private space.
 
-This vignette implements a protocol that handles the gap. Each
-site fits a private orthogonal *translation map* on a public
-anchor cohort, applies it homomorphically to encrypted queries,
-and computes encrypted inner products against its private
-database. Threshold decryption returns the top-`k` matches to
-the querier, with no party able to decrypt intermediate
-ciphertexts unilaterally.
+This vignette closes the gap with a per-site *compatibility
+adapter* $A_k$, fit post hoc on a public anchor cohort. The
+adapter lives on a one-parameter family indexed by a
+near-isometry penalty $\mu$: orthogonal Procrustes at one end
+($\mu\to\infty$), unconstrained least squares at the other
+($\mu = 0$), near-orthogonal maps in between. It is deployed in
+either of two ways — applied to the encrypted query (the
+homomorphic matrix–vector multiply, valid as a cosine near the
+orthogonal end), or folded into the database offline so the
+encrypted query reduces to a plain inner product. Threshold
+decryption returns the top-`k` matches, with no party able to
+decrypt intermediate ciphertexts unilaterally.
 
 The accompanying `similarity-sideexp.md` document describes a
-deferred experiment that validates the orthogonal-alignment
-assumption empirically on a real fine-tuned model. The vignette
-itself uses synthetic data so that it renders quickly during
-package build.
+deferred experiment on a real fine-tuned model. The vignette
+uses synthetic data so it renders quickly during package build.
 
 ## The setup
 
@@ -86,18 +90,19 @@ query, returned as a list of $(\text{site\_id},
 
 The friction is that $q$ lives in the public-model geometry
 while each site's database lives in the site's private-model
-geometry. We close the gap with a per-site *orthogonal
-translation map* $M_k$ fit on a public anchor cohort. $M_k$ is
-held privately by site $k$ and never leaves; it is applied to
-encrypted queries to translate them into site $k$'s private
-geometry before the inner-product step.
+geometry. We close the gap with a per-site *compatibility
+adapter* $A_k$ fit on a public anchor cohort. $A_k$ is held
+privately by site $k$ and never leaves; it is applied to
+encrypted queries to bring them into agreement with site $k$'s
+geometry before the inner-product step (or, equivalently, folded
+into the site's database offline).
 
 ## Threat model
 
 Three sites and one untrusted aggregator (the master):
 
 - **Sites $S_1, S_2, S_3$** each hold private patient
-  embeddings, a private translation map $M_k$, and a secret-key
+  embeddings, a private compatibility adapter $A_k$, and a secret-key
   share $\mathit{sk}_k$. They are honest-but-curious among
   themselves and toward the master. Each site sees the master's
   encrypted query but cannot decrypt it; each site sees its own
@@ -127,11 +132,12 @@ Step 4 is the only plaintext the master ever holds, and only
 for the top-$k$ scores released to the querier — not for any
 intermediate quantity.
 
-The site-private translation maps $\{M_k\}$ never leave their
-sites. They are applied to ciphertexts as plaintext-matrix ×
-ciphertext-vector multiplications inside the homomorphic
-evaluation, so the translation never appears in the clear at
-any party other than its owner.
+The site-private compatibility adapters $\{A_k\}$ never leave
+their sites. They are applied to ciphertexts as plaintext-matrix
+× ciphertext-vector multiplications inside the homomorphic
+evaluation (or folded into the site's database offline), so the
+adapter never appears in the clear at any party other than its
+owner.
 
 ## The protocol
 
@@ -147,11 +153,13 @@ offline; the query phase and result phase run for each query.
 2. A public anchor cohort of patients with public-model
    embeddings is published.
 3. Each site embeds the anchor cohort with its private
-   fine-tuned model and solves orthogonal Procrustes to produce
-   a private $p \times p$ orthogonal matrix $M_k$ that maps
-   public-model space into the site's private-model space.
+   fine-tuned model and fits its $p \times p$ compatibility
+   adapter $A_k$ along the $\mu$ family (orthogonal Procrustes
+   at $\mu\to\infty$, least squares at $\mu = 0$).
 4. Each site stores its local cohort, embedded with the
-   private model and normalized to unit length.
+   private model and normalized to unit length — and, for the
+   fold (Design 1) deployment, the public-compatible images of
+   those vectors.
 
 **Query phase.** The querier embeds their candidate patient
 with the public model, normalizes to unit length, encrypts
@@ -161,11 +169,13 @@ and broadcasts the ciphertext to the master.
 For each site $k$:
 
 5. The site receives the encrypted query $\mathit{ct}_q$.
-6. The site applies its private $M_k$ to the ciphertext via
+6. The site applies its private $A_k$ to the ciphertext via
    diagonal-encoded matrix–vector multiplication, producing
-   $\mathit{ct}_{M_k q}$ — the query in the site's private
-   geometry, still encrypted, still unit-norm by orthogonality
-   of $M_k$.
+   $\mathit{ct}_{A_k q}$ (Design 2). Near the orthogonal end of
+   the family the result is unit-norm, so the score is a genuine
+   cosine; alternatively the site skips this step and scores the
+   query directly against its folded public-compatible database
+   (Design 1).
 7. The site computes inner products against each of its local
    embeddings $v_{k,i}$ via slot-wise multiplication followed
    by log-$p$ rotation-and-add slot summation, producing one
@@ -225,32 +235,38 @@ embed_public <- function(n) {
 }
 ```
 
-The site-private model is simulated as a per-site orthogonal
-rotation $M_k$ of the public-model geometry. Light, moderate,
-and heavy fine-tuning regimes correspond to three drift
-magnitudes; the vignette will report retrieval recall as the
-drift varies.
+A site fine-tunes for its own purposes; it does not constrain
+the result to be an isometry of the public model. We therefore
+model the per-site drift as a *non-isometric* linear map
+$B_k = Q_k D_k$ — a random rotation $Q_k$ composed with a
+diagonal stretch $D_k = \mathrm{diag}(e^{\beta g})$, $g$
+standard normal. The parameter $\beta$ is the non-isometry
+magnitude: $\beta = 0$ recovers an exactly orthogonal drift
+(the special case where the geometry is merely rotated), and
+$\beta > 0$ stretches the embedding directions anisotropically,
+as a freely fine-tuned model generically would. The site's
+embeddings are unit-normalized after the map, so the drift acts
+on the sphere.
 
 ```{r}
-random_orthogonal_drift <- function(p, alpha) {
-  ## Cayley transform of a random skew-symmetric matrix gives
-  ## an exactly orthogonal M without needing matrix exponentials.
-  Z <- matrix(rnorm(p * p), p, p)
-  S <- (Z - t(Z)) / 2                    # skew-symmetric
-  half <- (alpha / 2) * S
-  ## (I - half)^{-1} (I + half) is orthogonal whenever S is
-  ## skew-symmetric. Closed form, base R only.
-  Ip <- diag(p)
-  solve(Ip - half) %*% (Ip + half)
+random_drift <- function(p, beta) {
+  ## Free fine-tuning, simulated as B = Q D: a random rotation Q
+  ## composed with an anisotropic stretch D = diag(exp(beta g)).
+  ## beta = 0 gives an exactly orthogonal (isometric) drift;
+  ## beta > 0 is non-isometric, the generic fine-tuned case.
+  Q <- qr.Q(qr(matrix(rnorm(p * p), p, p)))
+  if (beta == 0) return(Q)
+  Q %*% diag(exp(beta * rnorm(p)))
 }
 
-embed_private <- function(z_public, M_k) {
+embed_private <- function(z_public, B_k) {
   ## Site k's fine-tuned model in column-vector convention:
-  ## f_k(x) = M_k · f(x). For a matrix z_public of n row-stacked
-  ## unit vectors, the private embeddings are
-  ## (M_k %*% t(z_public))^T == z_public %*% t(M_k).
-  v <- z_public %*% t(M_k)
-  v / sqrt(rowSums(v^2))                 # unit norm preserved by orthogonality
+  ## f_k(x) = B_k · f(x). For a matrix z_public of n row-stacked
+  ## vectors, the private embeddings are z_public %*% t(B_k),
+  ## then unit-normalized (the drift acts on the sphere; under a
+  ## non-isometric B the normalization is a genuine nonlinearity).
+  v <- z_public %*% t(B_k)
+  v / sqrt(rowSums(v^2))
 }
 ```
 
@@ -258,23 +274,74 @@ The public anchor cohort is a small, publicly-available set
 of patient examples. Each site embeds the anchors twice — once
 with the public model (giving $Z_{\text{pub}}$, identical at
 every site by construction) and once with its own private
-fine-tuned model (giving $Z_{\text{priv},k}$). The pair drives
-the orthogonal Procrustes fit.
+fine-tuned model (giving $Z_{\text{priv},k}$). The pair drives a
+post-hoc *compatibility adapter* $A_k$ that maps the site's
+private geometry back to the public protocol, fit by
+
+$$
+\min_{A}\ \lVert Z_{\text{priv},k}\,A - Z_{\text{pub}}\rVert_F^2
+        \;+\; \mu\,\lVert A^\top A - I\rVert_F^2 .
+$$
+
+The penalty parameter $\mu$ traces a one-parameter family. At
+$\mu \to \infty$ the adapter is forced orthogonal and the fit is
+the classical orthogonal Procrustes problem, solved in closed
+form by the singular value decomposition — this is the rigid
+endpoint, exact only when the drift is itself isometric. At
+$\mu = 0$ the adapter is an unconstrained least-squares map, the
+best public-space fit but generically non-isometric. Intermediate
+$\mu$ interpolates: a *near-orthogonal* map. We deploy $A_k$ by
+applying it to the encrypted query, $\langle A_k q,\, v\rangle$,
+which recovers the public-space cosine $\langle q, u\rangle$ when
+the adapter inverts the drift (exactly, in the orthogonal limit).
 
 ```{r}
-fit_procrustes <- function(Z_pub, Z_priv) {
-  ## Orthogonal Procrustes in the column-vector convention:
-  ## return M such that M · z_pub ≈ z_priv (z's treated as column
-  ## vectors). Closed form: M = U V^T where SVD(Z_priv^T Z_pub) = U Σ V^T.
-  sv <- svd(crossprod(Z_priv, Z_pub))
-  sv$u %*% t(sv$v)
+fit_adapter <- function(Z_priv, Z_pub, mu) {
+  ## Compatibility adapter A (private -> public): Z_priv A ~ Z_pub,
+  ## with a near-isometry penalty mu * ||A^T A - I||^2.
+  p <- ncol(Z_priv)
+  if (is.infinite(mu)) {                       # orthogonal Procrustes
+    sv <- svd(crossprod(Z_priv, Z_pub))
+    return(sv$u %*% t(sv$v))
+  }
+  A_ls <- solve(crossprod(Z_priv) + 1e-6 * diag(p), crossprod(Z_priv, Z_pub))
+  if (mu == 0) return(A_ls)                     # least squares
+  fn <- function(par) { A <- matrix(par, p, p)  # near-orthogonal
+    sum((Z_priv %*% A - Z_pub)^2) + mu * sum((crossprod(A) - diag(p))^2) }
+  gr <- function(par) { A <- matrix(par, p, p)
+    as.vector(2 * crossprod(Z_priv, Z_priv %*% A - Z_pub) +
+              4 * mu * (A %*% (crossprod(A) - diag(p)))) }
+  matrix(optim(as.vector(A_ls), fn, gr, method = "L-BFGS-B",
+               control = list(maxit = 400))$par, p, p)
 }
 ```
 
-Three drift regimes for the per-site fine-tuning:
+A convex alternative one might reach for is *Gram / metric
+learning* (§10.4 of the companion exploration): fit a
+positive-semidefinite $M$ matching the public Gram matrix,
+$\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
+Z_{\text{pub}}Z_{\text{pub}}^\top\rVert_F^2$. Its minimizer is
+analytic — $M = A_{\text{LS}}A_{\text{LS}}^\top$ — and we deploy
+its symmetric square root. We include it only to show, below,
+that it is the *wrong* tool here.
 
 ```{r}
-drift_alpha <- c(light = 0.05, moderate = 0.20, heavy = 0.50)
+fit_gram <- function(Z_priv, Z_pub) {
+  M <- tcrossprod(solve(crossprod(Z_priv) + 1e-6 * diag(ncol(Z_priv)),
+                        crossprod(Z_priv, Z_pub)))
+  e <- eigen(M, symmetric = TRUE)
+  e$vectors %*% (sqrt(pmax(e$values, 0)) * t(e$vectors))   # symmetric M^{1/2}
+}
+
+unit_rows <- function(Z) Z / sqrt(rowSums(Z^2))            # for Design-1 folding
+```
+
+A moderate non-isometry magnitude drives the protocol
+walk-through; the sweeps later vary it:
+
+```{r}
+beta_demo <- 0.6
+mu_demo   <- Inf      # orthogonal endpoint for the encrypted walk-through
 ```
 
 The site cohorts and anchor cohort are sampled from the same
@@ -289,9 +356,10 @@ public_query  <- embed_public(1L)        # one query for the protocol walk-throu
 site_cohorts <- lapply(cohort_sizes, embed_public)
 ```
 
-We will later fit one $M_k$ per site per drift regime, embed
-the cohorts under each regime's private model, and report
-retrieval recall as a function of drift.
+We later fit one adapter $A_k$ per site, build both the
+raw-private and folded public-compatible databases, and report
+retrieval recall as the non-isometry $\beta$ and the penalty
+$\mu$ vary.
 
 ## Threshold key generation
 
@@ -399,44 +467,52 @@ cat("rotation round-trip max error:",
     sprintf("%.2e\n", max(abs(recovered - expected))))
 ```
 
-## Per-site Procrustes fit and database setup
+## Per-site adapter fit and database setup
 
-For the protocol walk-through we use the **moderate** drift
-regime; the recall-vs-drift figure later in the vignette
-re-runs everything across all three regimes. Each site's
-private fine-tuned model is simulated as a left-multiplication
-by a private orthogonal matrix; the same matrix is recovered by
-orthogonal Procrustes on the public anchor cohort.
+For the encrypted walk-through we fit the adapter at the
+orthogonal endpoint ($\mu = \infty$), so the map applied to the
+query is exactly norm-preserving and the matrix–vector multiply
+below produces a unit-norm result — the regime in which the
+raw-private-database matvec (Design 2) is a valid cosine. The
+recall sweeps later vary $\mu$ and the drift. Each site's
+fine-tuned model is the non-isometric $B_k$; the adapter $A_k$
+is fit post hoc on the public anchor cohort.
 
 ```{r}
-alpha_demo <- drift_alpha["moderate"]
-M <- lapply(seq_len(n_sites),
-            function(k) random_orthogonal_drift(p, alpha_demo))
+B <- lapply(seq_len(n_sites), function(k) random_drift(p, beta_demo))
 
 ## Each site's private database, embedded under that site's
-## fine-tuned model (already unit-norm because M_k is orthogonal).
+## fine-tuned model and unit-normalized on the sphere.
 db <- lapply(seq_len(n_sites), function(k) {
   cohort <- site_cohorts[[k]]
-  list(z = embed_private(cohort$z, M[[k]]),
+  list(z = embed_private(cohort$z, B[[k]]),
        label = cohort$label)
 })
 
-## Each site fits orthogonal Procrustes on the anchor cohort.
-## In our synthetic setup the recovery is exact to machine
-## precision because the data-generating model is itself
-## orthogonal — the recall-vs-drift figure below isolates the
-## protocol-mechanics contribution from this estimation.
-M_hat <- lapply(seq_len(n_sites), function(k) {
+## Each site fits its compatibility adapter on the anchor cohort.
+A_hat <- lapply(seq_len(n_sites), function(k) {
   Z_pub  <- public_anchor$z
-  Z_priv <- embed_private(Z_pub, M[[k]])
-  fit_procrustes(Z_pub, Z_priv)
+  Z_priv <- embed_private(Z_pub, B[[k]])
+  fit_adapter(Z_priv, Z_pub, mu_demo)
 })
 
-## Held-out anchor reconstruction error per site (a diagnostic
-## the master would receive at protocol setup time).
-cat("Procrustes recovery |M_hat - M|_F per site:\n")
+## Design-1 deployment: the adapter folded into the database
+## offline, giving unit-norm public-compatible vectors that an
+## encrypted public-model query scores directly. (At mu = Inf the
+## adapter is orthogonal, so folding is norm-preserving and
+## Design 1 and Design 2 coincide; they part company at finite mu.)
+db_fold <- lapply(seq_len(n_sites), function(k)
+  list(z = unit_rows(db[[k]]$z %*% A_hat[[k]]), label = db[[k]]$label))
+
+## Setup diagnostics the master would receive: anchor-reconstruction
+## error and the adapter's departure from isometry.
+cat("Per-site adapter diagnostics (beta =", beta_demo, ", mu = Inf):\n")
 for (k in seq_len(n_sites)) {
-  cat(sprintf("  site %d: %.2e\n", k, norm(M_hat[[k]] - M[[k]], "F")))
+  Zr <- embed_private(public_anchor$z, B[[k]])
+  recon <- norm(Zr %*% A_hat[[k]] - public_anchor$z, "F")
+  aniso <- norm(crossprod(A_hat[[k]]) - diag(p), "F")
+  cat(sprintf("  site %d: anchor recon %.2e,  ||A^T A - I||_F %.2e\n",
+              k, recon, aniso))
 }
 ```
 
@@ -491,28 +567,29 @@ encrypted_matvec <- function(ct_q, M, cc, p) {
 ```
 
 A round-trip smoke test on a known query vector confirms the
-matvec recovers $M_1 \cdot q$ to floating-point precision:
+matvec recovers $A_1 \cdot q$ to floating-point precision:
 
 ```{r}
 q_demo <- public_query$z[1, ]
 ct_q  <- master_encrypt(master, q_demo)
-ct_Mq <- encrypted_matvec(ct_q, M_hat[[1]], cc, p)
-Mq_recovered <- master_decrypt(master, ct_Mq, len = p)
-Mq_expected  <- as.numeric(M_hat[[1]] %*% q_demo)
+ct_Aq <- encrypted_matvec(ct_q, A_hat[[1]], cc, p)
+Aq_recovered <- master_decrypt(master, ct_Aq, len = p)
+Aq_expected  <- as.numeric(A_hat[[1]] %*% q_demo)
 cat(sprintf("matvec max error (site 1): %.2e\n",
-            max(abs(Mq_recovered - Mq_expected))))
+            max(abs(Aq_recovered - Aq_expected))))
 ```
 
 ## Inner product against the local database
 
-After the matvec, the encrypted query lives in site $k$'s
-private geometry as a unit-norm vector. The cosine similarity
-against a private-database vector $v$ (also unit-norm and held
-in plaintext at the site) is just
+After the matvec, the encrypted query has been mapped by the
+adapter into site $k$'s private geometry (unit-norm at the
+orthogonal endpoint used here). The cosine similarity against a
+private-database vector $v$ (also unit-norm and held in
+plaintext at the site) is just
 
 $$
-\cos(M_k q,\, v) \;=\; \langle M_k q,\, v \rangle
-\;=\; \sum_{j=1}^{p} (M_k q)_j \cdot v_j.
+\cos(A_k q,\, v) \;=\; \langle A_k q,\, v \rangle
+\;=\; \sum_{j=1}^{p} (A_k q)_j \cdot v_j.
 $$
 
 In CKKS this is a slot-wise multiply of the matvec output by the
@@ -545,27 +622,44 @@ inner product matches its plaintext counterpart at slot 0:
 
 ```{r}
 v_test <- db[[1]]$z[1, ]
-ct_score <- encrypted_inner_product(ct_Mq, v_test, cc, p)
+ct_score <- encrypted_inner_product(ct_Aq, v_test, cc, p)
 score_recovered <- master_decrypt(master, ct_score, len = 1L)
-score_expected  <- sum(Mq_expected * v_test)
+score_expected  <- sum(Aq_expected * v_test)
 cat(sprintf("inner-product error (site 1, patient 1): %.2e\n",
             abs(score_recovered - score_expected)))
 ```
 
-## Site `local_fn`: full per-site protocol step
-
-The site-side computation closes over the site's private
-$M_k$ and database $D_k$, takes the encrypted query
-ciphertext as input, and returns a list of encrypted scores
-plus plaintext local indices.
+The same `encrypted_inner_product` serves the **Design 1**
+deployment without any matvec: the encrypted *public-model*
+query is scored directly against the folded, public-compatible
+database vectors. At the orthogonal endpoint this matches the
+matvec route exactly; for a non-isometric adapter it is the
+route that stays a valid cosine.
 
 ```{r}
-make_similarity_site_fn <- function(M_k, db_k, cc, p) {
+ct_score_fold <- encrypted_inner_product(ct_q, db_fold[[1]]$z[1, ], cc, p)
+fold_recovered <- master_decrypt(master, ct_score_fold, len = 1L)
+fold_expected  <- sum(q_demo * db_fold[[1]]$z[1, ])
+cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
+            abs(fold_recovered - fold_expected)))
+```
+
+## Site `local_fn`: full per-site protocol step
+
+The site-side computation closes over the site's adapter
+$A_k$ and database $D_k$, takes the encrypted query
+ciphertext as input, and returns a list of encrypted scores
+plus plaintext local indices. This is the **Design 2** branch:
+the adapter is applied to the encrypted query (the matvec), and
+scoring runs against the site's raw private database.
+
+```{r}
+make_similarity_site_fn <- function(A_k, db_k, cc, p) {
   function(ct_q) {
-    ct_Mq <- encrypted_matvec(ct_q, M_k, cc, p)
+    ct_Aq <- encrypted_matvec(ct_q, A_k, cc, p)
     n_local <- nrow(db_k$z)
     ct_scores <- lapply(seq_len(n_local), function(i) {
-      encrypted_inner_product(ct_Mq, db_k$z[i, ], cc, p)
+      encrypted_inner_product(ct_Aq, db_k$z[i, ], cc, p)
     })
     list(scores = ct_scores,
          local_index = seq_len(n_local),
@@ -574,7 +668,7 @@ make_similarity_site_fn <- function(M_k, db_k, cc, p) {
 }
 
 site_fns <- lapply(seq_len(n_sites), function(k) {
-  make_similarity_site_fn(M_hat[[k]], db[[k]], cc, p)
+  make_similarity_site_fn(A_hat[[k]], db[[k]], cc, p)
 })
 ```
 
@@ -649,16 +743,16 @@ print(top_result, row.names = FALSE)
 The protocol output is meaningful only if the encrypted-domain
 inner products agree with their plaintext-domain counterparts
 to within CKKS noise. The reference computation runs the same
-$M_k \cdot q$ translation and inner-product reduction in
+$A_k \cdot q$ adapter application and inner-product reduction in
 plaintext on each site's database:
 
 ```{r}
-plaintext_top_k <- function(q, site_data, M_list, top_k) {
+plaintext_top_k <- function(q, site_data, A_list, top_k) {
   rows <- list()
   for (k in seq_along(site_data)) {
-    Mq  <- as.numeric(M_list[[k]] %*% q)
+    Aq  <- as.numeric(A_list[[k]] %*% q)
     s_k <- site_data[[k]]
-    scores <- as.numeric(s_k$z %*% Mq)
+    scores <- as.numeric(s_k$z %*% Aq)
     for (i in seq_along(scores)) {
       rows[[length(rows) + 1L]] <- data.frame(
         site_id     = k,
@@ -672,7 +766,7 @@ plaintext_top_k <- function(q, site_data, M_list, top_k) {
   head(scored, top_k)
 }
 
-plain_top <- plaintext_top_k(q_demo, db, M_hat, top_k)
+plain_top <- plaintext_top_k(q_demo, db, A_hat, top_k)
 
 ## Compare encrypted-domain top-k against the plaintext reference
 ## by joining on (site_id, local_index).
@@ -691,136 +785,203 @@ cat(sprintf("Top-%d set match: %d of %d\n",
             top_k, length(intersect(enc_set, plain_set)), top_k))
 ```
 
-## Why the alignment step matters: recall vs drift
+## What the adapter buys: fidelity, posture, and a sweet spot
 
-The protocol's mechanics work to floating-point precision under
-threshold CKKS, demonstrated above. The remaining question is
-*pedagogical*: does the per-site Procrustes alignment $M_k$
-actually buy anything in the federated retrieval? Or could a
-simpler protocol — broadcast the public-model query, score it
-directly against each site's private-model database — work
-just as well?
+The encrypted mechanics work to floating-point precision, as the
+smoke tests and reference comparison above confirm (max error
+$\sim 10^{-11}$). The substantive questions are statistical, and
+because the encrypted and plaintext scores agree to within CKKS
+noise we answer them in plaintext — fast enough to average over
+many queries and trace stable curves. Three questions:
 
-The next sweep answers that empirically. We compare two
-retrieval strategies across the three drift regimes (light,
-moderate, heavy):
+1. **Fidelity.** When the drift is genuinely non-isometric, does
+   a near-orthogonal or least-squares adapter recover retrieval
+   that the rigid orthogonal Procrustes endpoint ($\mu\to\infty$)
+   cannot?
+2. **Posture.** Where do the two deployments agree — Design 1
+   (fold the adapter into the database offline) and Design 2
+   (apply it to the encrypted query, the matvec) — and where must
+   we prefer one? They coincide only when the adapter is
+   orthogonal, so the per-vector norms it produces are all one.
+3. **Sweet spot.** Does an intermediate $\mu$ ever beat both
+   endpoints, and when?
 
-- **With alignment**: the protocol implemented above. Each
-  site's private translation $M_k$ is fit on the public anchor
-  cohort and applied (homomorphically, in deployment) to the
-  encrypted query.
-- **Without alignment**: the encrypted query's slots are
-  scored directly against each site's private-model database,
-  ignoring drift. Equivalent to setting $M_k = I$ at every
-  site.
-
-Because step 4 confirmed the encrypted protocol agrees with
-its plaintext counterpart to $\sim 10^{-11}$, the recall sweep
-runs in plaintext — fast enough to average over many queries
-per regime and produce a stable curve. The encrypted protocol
-would produce the same recall numbers within CKKS noise.
+The sweeps use a less-forgiving cluster configuration than the
+walk-through (unit-norm phenotype centers, so noise competes with
+separation), letting alignment quality rather than trivial
+separability drive recall.
 
 ```{r}
-recall_at_k <- function(query_label, top_rows, k = top_k) {
-  matched <- sum(top_rows$label == query_label)
-  matched / k
+centers_u <- phenotype_centers / sqrt(rowSums(phenotype_centers^2))
+embed_cfg <- function(n, sep = 0.85, sd = 0.40) {
+  labels <- sample.int(n_phenotypes, n, replace = TRUE)
+  z <- sep * centers_u[labels, , drop = FALSE] +
+       matrix(rnorm(n * p, sd = sd), n, p)
+  list(z = unit_rows(z), label = labels)
 }
 
-run_one_query <- function(q_pub, db_list, M_list, align = TRUE) {
-  rows <- list()
-  for (k_site in seq_along(db_list)) {
-    Mq  <- if (align) as.numeric(M_list[[k_site]] %*% q_pub) else q_pub
-    s_k <- db_list[[k_site]]
-    scores <- as.numeric(s_k$z %*% Mq)
-    for (i in seq_along(scores)) {
-      rows[[length(rows) + 1L]] <- data.frame(
-        site_id     = k_site,
-        local_index = i,
-        label       = s_k$label[i],
-        score       = scores[i])
-    }
-  }
-  scored <- do.call(rbind, rows)
-  scored <- scored[order(-scored$score), ]
-  head(scored, top_k)
+recall_at_k <- function(query_label, top_rows, k = top_k)
+  sum(top_rows$label == query_label) / k
+
+## Federated recall of a query population under one deployment.
+## design 1: fold A into the db (unit) and score <q, z>;
+## design 2: apply A to the query and score <Aq, h> against raw db.
+fed_recall <- function(q_pop, db_list, A_list, design) {
+  mean(vapply(seq_len(nrow(q_pop$z)), function(qi) {
+    q <- q_pop$z[qi, ]
+    parts <- lapply(seq_along(db_list), function(k) {
+      s <- db_list[[k]]
+      sc <- if (design == 1L) as.numeric(unit_rows(s$z %*% A_list[[k]]) %*% q)
+            else              as.numeric(s$z %*% as.numeric(A_list[[k]] %*% q))
+      data.frame(label = s$label, score = sc)
+    })
+    scored <- do.call(rbind, parts)
+    recall_at_k(q_pop$label[qi],
+                head(scored[order(-scored$score), ], top_k))
+  }, numeric(1)))
 }
 
-n_queries  <- 50L
-sweep_grid <- c(0.00, 0.05, 0.10, 0.20, 0.35, 0.50, 0.75, 1.00)
-sweep <- vector("list", length(sweep_grid) * 2L)
-idx <- 0L
-for (alpha_k in sweep_grid) {
-  ## Refit per-site M and rebuild private databases at this drift.
-  M_regime <- lapply(seq_len(n_sites),
-                     function(k) random_orthogonal_drift(p, alpha_k))
-  db_regime <- lapply(seq_len(n_sites), function(k) {
-    cohort <- site_cohorts[[k]]
-    list(z = embed_private(cohort$z, M_regime[[k]]),
-         label = cohort$label)
-  })
-  M_hat_regime <- lapply(seq_len(n_sites), function(k) {
-    Z_pub  <- public_anchor$z
-    Z_priv <- embed_private(Z_pub, M_regime[[k]])
-    fit_procrustes(Z_pub, Z_priv)
-  })
-  query_pop <- embed_public(n_queries)
-  for (cond in c("with_alignment", "without_alignment")) {
-    align <- cond == "with_alignment"
-    rec <- numeric(n_queries)
-    for (q in seq_len(n_queries)) {
-      top_rows <- run_one_query(query_pop$z[q, ],
-                                db_regime, M_hat_regime, align = align)
-      rec[q] <- recall_at_k(query_pop$label[q], top_rows)
-    }
-    idx <- idx + 1L
-    sweep[[idx]] <- data.frame(
-      alpha       = alpha_k,
-      condition   = cond,
-      mean_recall = mean(rec),
-      se_recall   = sd(rec) / sqrt(n_queries))
-  }
+## A world at non-isometry beta with an anchor cohort of size na.
+make_world <- function(beta, na) {
+  anchor  <- embed_cfg(na)
+  cohorts <- lapply(cohort_sizes, embed_cfg)
+  Bs <- lapply(seq_len(n_sites), function(k) random_drift(p, beta))
+  list(anchor  = anchor,
+       pub_db  = cohorts,                          # public embeddings (ideal ref)
+       priv_db = lapply(seq_len(n_sites), function(k)
+         list(z = embed_private(cohorts[[k]]$z, Bs[[k]]),
+              label = cohorts[[k]]$label)),
+       Hanchor = lapply(seq_len(n_sites), function(k)
+         embed_private(anchor$z, Bs[[k]])))
 }
-sweep_df <- do.call(rbind, sweep)
-print(sweep_df, row.names = FALSE)
+
+I_list  <- replicate(n_sites, diag(p), simplify = FALSE)
+n_rep   <- 3L
+n_q     <- 40L
+mu_grid <- c(0, 0.1, 1, 10, Inf)
+
+## --- mu sweep at fixed beta, ample anchor: fidelity + posture + Gram ---
+mu_sweep <- function(beta, na) {
+  tab <- 0; ideal <- 0; unaligned <- 0; gram <- 0
+  for (r in seq_len(n_rep)) {
+    w  <- make_world(beta, na)
+    qp <- embed_cfg(n_q)
+    ideal     <- ideal     + fed_recall(qp, w$pub_db,  I_list, 2L)
+    unaligned <- unaligned + fed_recall(qp, w$priv_db, I_list, 2L)
+    Ag   <- lapply(seq_len(n_sites), function(k) fit_gram(w$Hanchor[[k]], w$anchor$z))
+    gram <- gram + fed_recall(qp, w$priv_db, Ag, 1L)
+    rows <- lapply(mu_grid, function(mu) {
+      A <- lapply(seq_len(n_sites), function(k)
+        fit_adapter(w$Hanchor[[k]], w$anchor$z, mu))
+      data.frame(mu = mu,
+                 d1 = fed_recall(qp, w$priv_db, A, 1L),
+                 d2 = fed_recall(qp, w$priv_db, A, 2L),
+                 aniso = mean(vapply(A, function(Ak)
+                   norm(crossprod(Ak) - diag(p), "F"), numeric(1))))
+    })
+    tab <- tab + do.call(rbind, rows)
+  }
+  tab <- tab / n_rep
+  tab$mu <- mu_grid
+  list(tab = tab, ideal = ideal / n_rep,
+       unaligned = unaligned / n_rep, gram = gram / n_rep)
+}
+
+mu_main   <- mu_sweep(beta = 0.6, na = 100L)   # ample calibration
+mu_scarce <- mu_sweep(beta = 0.6, na = 24L)    # anchor < p = 32
+
+## --- beta sweep, ample anchor: Procrustes vs near-orthogonal vs LS ---
+beta_grid <- c(0, 0.3, 0.6, 1.0)
+beta_tab <- do.call(rbind, lapply(beta_grid, function(b) {
+  r3 <- replicate(n_rep, {
+    w  <- make_world(b, 100L); qp <- embed_cfg(n_q)
+    fits <- lapply(c(0, 1, Inf), function(mu) {
+      A <- lapply(seq_len(n_sites), function(k)
+        fit_adapter(w$Hanchor[[k]], w$anchor$z, mu))
+      fed_recall(qp, w$priv_db, A, if (is.infinite(mu)) 2L else 1L)
+    })
+    c(LS = fits[[1]], near = fits[[2]], Proc = fits[[3]],
+      ideal = fed_recall(qp, w$pub_db, I_list, 2L))
+  })
+  data.frame(beta = b, t(rowMeans(r3)))
+}))
+
+cat("mu sweep (beta=0.6, anchor=100):  ideal=",
+    sprintf("%.3f", mu_main$ideal), " unaligned=",
+    sprintf("%.3f", mu_main$unaligned), " Gram=",
+    sprintf("%.3f\n", mu_main$gram), sep = "")
+print(round(mu_main$tab, 3), row.names = FALSE)
+cat("\nbeta sweep (anchor=100):\n"); print(round(beta_tab, 3), row.names = FALSE)
+cat("\nmu sweep at scarce anchor=24:\n")
+print(round(mu_scarce$tab[c("mu", "d1", "d2")], 3), row.names = FALSE)
 ```
 
-The contrast between the two conditions is the headline of the
-figure. With alignment, recall stays high across all three drift
-magnitudes because $M_k$ recovers the same orthogonal map that
-generated the data — the inner product reduces to its
-public-space form $\langle q, \text{cohort}\rangle$. Without
-alignment, recall degrades as drift increases: the inner
-product becomes $\langle q, M_k \cdot \text{cohort}\rangle$,
-which drifts away from the public-space inner product as $M_k$
-moves away from the identity.
+Three readings come out of the sweeps. **Fidelity** (β panel):
+at $\beta = 0$ the drift is isometric and Procrustes, the
+near-orthogonal map, and least squares all match the no-drift
+ideal; as the drift bends, Procrustes falls away while the
+relaxed adapters track the ideal — the richer map earns its keep
+exactly when fine-tuning is non-isometric. **Posture** (μ panel):
+Design 1 and Design 2 coincide at $\mu \to \infty$ (where the
+adapter is orthogonal and the per-vector norms are all one) and
+separate as $\mu$ shrinks, so the raw-database matvec is a valid
+cosine only near the orthogonal endpoint; the departure-from-
+isometry panel quantifies the budget. **Sweet spot** (scarce-
+anchor panel): when the calibration cohort is smaller than the
+embedding dimension, an intermediate $\mu$ regularizes the
+adapter and can beat both endpoints — a secondary effect that
+appears only under scarce calibration. The Gram-PSD reference
+sits near the unaligned floor: its rotation invariance loses the
+public-frame orientation, so it is the wrong tool for a
+public-query retrieval (see the discussion).
 
-```{r recall-figure, fig.width=6, fig.height=4, fig.align="center"}
-op <- par(mar = c(4.5, 4.5, 1.5, 1.0))
-ymin <- min(sweep_df$mean_recall - sweep_df$se_recall) - 0.05
-ymax <- 1.0
-plot(NA, NA,
-     xlim = c(0, max(sweep_grid) * 1.05),
-     ylim = c(ymin, ymax),
-     xlab = expression(paste("Drift magnitude  ", alpha)),
-     ylab = sprintf("Recall@%d (averaged over %d queries)", top_k, n_queries),
-     bty = "L")
-abline(h = 1, lty = 3, col = "grey60")
-for (cond in c("with_alignment", "without_alignment")) {
-  d <- sweep_df[sweep_df$condition == cond, ]
-  d <- d[order(d$alpha), ]
-  col_cond <- if (cond == "with_alignment") "black" else "firebrick"
-  lty_cond <- if (cond == "with_alignment") 1 else 2
-  pch_cond <- if (cond == "with_alignment") 19 else 17
-  arrows(d$alpha, d$mean_recall - d$se_recall,
-         d$alpha, d$mean_recall + d$se_recall,
-         angle = 90, code = 3, length = 0.04, col = col_cond)
-  lines(d$alpha, d$mean_recall, lty = lty_cond, col = col_cond)
-  points(d$alpha, d$mean_recall, pch = pch_cond, col = col_cond)
-}
-legend("bottomleft",
-       legend = c("with Procrustes alignment", "no alignment"),
-       col = c("black", "firebrick"),
-       lty = c(1, 2), pch = c(19, 17), bty = "n")
+```{r recall-figure, fig.width=9, fig.height=7, fig.align="center"}
+op <- par(mfrow = c(2, 2), mar = c(4.2, 4.2, 2.4, 1.0))
+xi <- seq_along(mu_grid)
+mulab <- function(m) ifelse(is.infinite(m), "Inf", formatC(m, format = "g"))
+
+## (1) recall vs mu: Design 1 vs Design 2, with Gram / ideal / floor
+plot(xi, mu_main$tab$d1, type = "b", pch = 19, ylim = c(0, 1), xaxt = "n",
+     xlab = expression(mu ~ "(0 = LS    ->    Inf = Procrustes)"),
+     ylab = sprintf("recall@%d", top_k), main = "Recall vs mu (beta = 0.6)")
+axis(1, xi, mulab(mu_grid))
+lines(xi, mu_main$tab$d2, type = "b", pch = 1, lty = 2, col = "firebrick")
+abline(h = mu_main$ideal, lty = 3, col = "darkgreen")
+abline(h = mu_main$unaligned, lty = 3, col = "grey60")
+abline(h = mu_main$gram, lty = 4, lwd = 2, col = "orange")
+legend("right", bty = "n", cex = 0.75,
+       legend = c("Design 1 (fold)", "Design 2 (matvec)", "Gram-PSD",
+                  "ideal", "unaligned"),
+       col = c("black", "firebrick", "orange", "darkgreen", "grey60"),
+       lty = c(1, 2, 4, 3, 3), pch = c(19, 1, NA, NA, NA))
+
+## (2) recall vs beta: Procrustes vs near-orthogonal vs LS
+plot(beta_tab$beta, beta_tab$Proc, type = "b", pch = 19, ylim = c(0, 1),
+     xlab = expression(beta ~ "(non-isometry)"), ylab = sprintf("recall@%d", top_k),
+     main = "Procrustes vs relaxed adapters")
+lines(beta_tab$beta, beta_tab$near, type = "b", pch = 1, lty = 2, col = "blue")
+lines(beta_tab$beta, beta_tab$LS, type = "b", pch = 2, lty = 3, col = "firebrick")
+lines(beta_tab$beta, beta_tab$ideal, lty = 3, col = "darkgreen")
+legend("bottomleft", bty = "n", cex = 0.75,
+       legend = c("Procrustes (mu=Inf)", "near-orth (mu=1)", "LS (mu=0)", "ideal"),
+       col = c("black", "blue", "firebrick", "darkgreen"),
+       lty = c(1, 2, 3, 3), pch = c(19, 1, 2, NA))
+
+## (3) recall vs mu at scarce anchor (< p): the regularization sweet spot
+plot(xi, mu_scarce$tab$d1, type = "b", pch = 19, ylim = c(0, 1), xaxt = "n",
+     xlab = expression(mu), ylab = sprintf("recall@%d (Design 1)", top_k),
+     main = "Scarce anchor (n = 24 < p = 32)")
+axis(1, xi, mulab(mu_grid))
+lines(xi, mu_scarce$tab$d2, type = "b", pch = 1, lty = 2, col = "firebrick")
+legend("bottomleft", bty = "n", cex = 0.75,
+       legend = c("Design 1 (fold)", "Design 2 (matvec)"),
+       col = c("black", "firebrick"), lty = c(1, 2), pch = c(19, 1))
+
+## (4) departure from isometry vs mu (the Design-2 / matvec budget)
+plot(xi, mu_main$tab$aniso + 1e-12, type = "b", pch = 19, log = "y", xaxt = "n",
+     xlab = expression(mu), ylab = expression("||" * A^T * A - I * "||"[F]),
+     main = "Departure from isometry")
+axis(1, xi, mulab(mu_grid))
 par(op)
 ```
 
@@ -831,12 +992,19 @@ par(op)
   protocol returns the top-$k$ patients across all sites
   whose private-model embeddings are most cosine-similar to a
   public-model query.
-- **Site-private orthogonal alignment.** Each site fits an
-  orthogonal Procrustes map $M_k$ on a public anchor cohort
-  and applies it homomorphically to the encrypted query so
-  that scoring happens in the site's private geometry. The
-  matrix $M_k$ never leaves the site and never appears in the
-  clear at the master.
+- **Site-private compatibility adapter on the $\mu$ axis.** Each
+  site fits an adapter $A_k$ on a public anchor cohort along the
+  family $\min_A \lVert Z_{\text{priv}}A - Z_{\text{pub}}\rVert^2
+  + \mu\lVert A^\top A - I\rVert^2$ — orthogonal Procrustes at
+  $\mu\to\infty$, least squares at $\mu = 0$. The adapter never
+  leaves the site and never appears in the clear at the master.
+- **Two deployments, one axis.** The adapter is either applied
+  to the encrypted query (Design 2, the matvec) or folded into
+  the database offline (Design 1, a plain encrypted inner
+  product). The two coincide exactly at the orthogonal endpoint
+  (where every per-vector norm is one) and part company as $\mu$
+  relaxes; Design 1 then gives correct cosines while Design 2
+  does not. The matvec is thus the large-$\mu$ branch.
 - **Threshold key generation, $n$-of-$n$.** The CKKS secret
   key is split across all sites. The master holds no usable
   secret material. Any subset short of the full $n$ cannot
@@ -858,11 +1026,23 @@ par(op)
   reveals plaintext only for the released top-$k$. The
   encrypted protocol's output agrees with its plaintext reference
   to $\sim 10^{-11}$.
-- **Recall invariant under orthogonal drift.** Across the
-  full range of drift magnitudes simulated above, the
-  Procrustes-aligned protocol returns the same top-$k$ as
-  cosine retrieval in public space. Without alignment, recall
-  collapses for moderate-to-heavy drift.
+- **Fidelity under non-isometric drift.** When fine-tuning is a
+  genuine non-isometry, the rigid orthogonal endpoint leaves
+  recall on the table while a relaxed (least-squares or
+  near-orthogonal) adapter tracks the no-drift ideal. At the
+  isometric special case the two coincide — that special case is
+  the orthogonal protocol of the earlier design.
+- **Why not metric learning?** The convex Gram / Mahalanobis fit
+  ($\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
+  Z_{\text{pub}}Z_{\text{pub}}^\top\rVert^2$) is tempting, but its
+  minimizer is exactly $A_{\text{LS}}A_{\text{LS}}^\top$ and its
+  symmetric-root deployment carries the adapter's orthogonal
+  polar factor — an unrecoverable rotation against a public-frame
+  query. Its recall collapses to the unaligned floor in the sweep
+  above. Gram matching is the right tool for private↔private
+  retrieval (where the rotation cancels), not for a public query
+  against a private database; pointwise alignment, the $\mu$
+  family, is what pins the frame.
 
 ## Limitations
 - **Encrypted top-$k$ selection.** We sort plaintext-side
@@ -872,38 +1052,34 @@ par(op)
   to this vignette's pedagogical aim. With encrypted top-$k$,
   the master would never see the full score distribution —
   only the top-$k$ release.
-- **Server-side normalization, and why orthogonality is not
-  optional here.** The orthogonality constraint on $M_k$ is
-  doing two jobs at once: $\|M_k q\| = \|q\| = 1$ removes the
-  homomorphic inverse-square-root (the depth-dominating Newton
-  iteration of Qu & Xu 2023 / Prantl et al. *De Bello
-  Homomorphico* 2023), *and*
-  every per-site score $\langle M_k q, v\rangle$ is a cosine in
-  $[-1,1]$ in site $k$'s private geometry on the same scale
-  across sites so that the federation-wide top-$k$ is a single
-  comparable ranking. Replacing $M_k$ with a non-isometric head
-  — a learned affine, an MLP, any per-site non-linearity tacked
-  onto the public foundation model — loses both properties
-  simultaneously: it forces encrypted re-normalization *and*
-  leaves per-site scores on different scales, requiring a
-  published or homomorphically-computed calibration that has
-  its own privacy story. The orthogonal-alignment design is
-  therefore the head class compatible with cheap circuit and
-  comparable scores at the same time, not just a convenient
-  simplification.
+- **Normalization, and what the $\mu$ knob trades.** The
+  near-isometry of the adapter controls the per-vector norms
+  $\lVert A_k^\top v\rVert$. At the orthogonal end they are all
+  one, which buys two things at once: the homomorphic
+  inverse-square-root (the depth-dominating Newton iteration of
+  Qu & Xu 2023 / Prantl et al. *De Bello Homomorphico* 2023) is
+  avoided, *and* every per-site score is a cosine in $[-1,1]$ on
+  the same scale across sites, so the raw-database matvec
+  (Design 2) is directly comparable. As $\mu$ relaxes for better
+  fidelity, those norms spread; the cure is to fold the adapter
+  into the database offline and unit-normalize there (Design 1),
+  which restores comparable cosines at the cost of materializing
+  public-compatible embeddings and re-folding them on a
+  public-model upgrade. So $\mu$ trades fidelity against the
+  raw-database-matvec posture, with offline folding as the
+  release valve — not a single forced choice.
 - **Slot-tiling for production scale.** The vignette runs at
   $p = 32$ with one ciphertext per database vector. Production
   at $p = 512$ would pack many database vectors per ciphertext
   via slot tiling, amortizing the matvec and inner-product
   cost across patients within a site.
-- **Real-model validation.** The synthetic data above is
-  generated by an exactly-orthogonal $M_k$, which the
-  Procrustes fit recovers to machine precision. Real
-  fine-tuned foundation models (BiomedCLIP fine-tuned per
-  site, PubMedBERT, etc.) are unlikely to drift along an
-  isometry exactly. The deferred side experiment in
-  `similarity-sideexp.md` validates the orthogonal-alignment
-  assumption empirically on a real fine-tuned model.
+- **Real-model validation.** The synthetic data above drifts by
+  a parameterized non-isometric $B_k = Q_k D_k$, a controllable
+  stand-in for free fine-tuning. Real fine-tuned foundation
+  models (BiomedCLIP fine-tuned per site, PubMedBERT, etc.) drift
+  in ways no parameterized family captures exactly. The deferred
+  side experiment in `similarity-sideexp.md` examines the
+  alignment question empirically on a real fine-tuned model.
 - **Adaptive-query leakage.** Repeated adaptive queries by
   the querier (or a coalition with the querier) leak
   structural information about the cohort — the same
@@ -935,16 +1111,17 @@ distrusting parties but assumes a shared embedding model;
 FedE4RAG (arXiv:2504.19101) federates *training* of RAG
 retrievers under CKKS-on-gradients, with each client running
 its own fine-tuned model, but does the cross-client alignment
-through knowledge distillation rather than orthogonal
-Procrustes; the AMPPERE three-party setup for PPER
+through knowledge distillation rather than a fitted
+compatibility adapter; the AMPPERE three-party setup for PPER
 (arXiv:2405.18430) uses CKKS for entity resolution but
 assumes homogeneous models and tokenization-based alignment.
 The composition of (a) site-private fine-tuned models, (b)
-private per-site orthogonal alignment fit on a public anchor
-cohort, (c) threshold CKKS with $n$-of-$n$ decryption, and
-(d) encrypted query application with the alignment matrix
-held privately at each site does not appear to have been
-studied as a unified pipeline.
+a private per-site compatibility adapter on the near-isometry
+($\mu$) family, fit on a public anchor cohort, (c) threshold
+CKKS with $n$-of-$n$ decryption, and (d) two interchangeable
+deployments (encrypted-query matvec or offline fold) with the
+adapter held privately at each site does not appear to have
+been studied as a unified pipeline.
 
 ```{r echo = FALSE}
 ## Detach openfhe.R so its `encrypt`/`decrypt` generics do not
