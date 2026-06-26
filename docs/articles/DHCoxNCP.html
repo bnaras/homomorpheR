@@ -6,9 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Distributed Stratified Cox Regression using Non-Cooperating Parties • homomorpheR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Distributed Stratified Cox Regression using Non-Cooperating Parties">
 </head>
@@ -20,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +39,19 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
     <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
@@ -59,12 +75,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Distributed Stratified Cox Regression using Non-Cooperating Parties</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Distributed Stratified Cox Regression using Non-Cooperating Parties</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2025-04-09</h4>
+            <h4 data-toc-skip class="date">2026-06-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/DHCoxNCP.Rmd" class="external-link"><code>vignettes/DHCoxNCP.Rmd</code></a></small>
       <div class="d-none name"><code>DHCoxNCP.Rmd</code></div>
@@ -83,7 +98,7 @@ example using Cox regression.</p>
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="st"><a href="https://github.com/therneau/survival" class="external-link">"survival"</a></span><span class="op">)</span> <span class="op">||</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"digest"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"this vignette requires both the survival &amp; digest package"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR" class="external-link">homomorpheR</a></span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR/">homomorpheR</a></span><span class="op">)</span></span></code></pre></div>
 <p>We generate some simulated data for the purpose of this example. We
 will have three sites each with patient data (sizes 1000, 500 and 1500)
 respectively, containing</p>
@@ -108,7 +123,7 @@ M. Therneau and Patricia M. Grambsch 2000)</span> by Therneau and
 Grambsch for details. So our model for each site
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
 is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>,</mo><mi>a</mi><mi>g</mi><mi>e</mi><mo>,</mo><mi>s</mi><mi>e</mi><mi>x</mi><mo>,</mo><mi>b</mi><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">[</mo><msubsup><mi>S</mi><mn>0</mn><mi>i</mi></msubsup><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><msup><mo stretchy="false" form="postfix">]</mo><mrow><mi>exp</mi><mo>⁡</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>β</mi><mn>1</mn></msub><mi>a</mi><mi>g</mi><mi>e</mi><mo>+</mo><msub><mi>β</mi><mn>2</mn></msub><mi>s</mi><mi>e</mi><mi>x</mi><mo>+</mo><msub><mi>β</mi><mn>3</mn></msub><mi>b</mi><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>,</mo><mi>a</mi><mi>g</mi><mi>e</mi><mo>,</mo><mi>s</mi><mi>e</mi><mi>x</mi><mo>,</mo><mi>b</mi><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">[</mo><msubsup><mi>S</mi><mn>0</mn><mi>i</mi></msubsup><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><msup><mo stretchy="false" form="postfix">]</mo><mrow><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>β</mi><mn>1</mn></msub><mi>a</mi><mi>g</mi><mi>e</mi><mo>+</mo><msub><mi>β</mi><mn>2</mn></msub><mi>s</mi><mi>e</mi><mi>x</mi><mo>+</mo><msub><mi>β</mi><mn>3</mn></msub><mi>b</mi><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">
 S(t, age, sex, bm) =
 [S_0^i(t)]^{\exp(\beta_1 age + \beta_2 sex + \beta_3 bm)}
 </annotation></semantics></math></p>
@@ -280,7 +295,7 @@ The master can now decrypt the result and obtain
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mi>l</mi></mrow><annotation encoding="application/x-tex">2l</annotation></semantics></math>!</p>
 <p>This is pictorially shown below.</p>
 <div class="float">
-<img src="assets%2Fmpc.png" alt="Multipart Computation"><div class="figcaption">Multipart Computation</div>
+<img src="assets/mpc.png" alt="Multipart Computation"><div class="figcaption">Multipart Computation</div>
 </div>
 <p>The red arrows show the master proposing a value
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
@@ -306,7 +321,7 @@ values have be funneled to the sites through NCP1 and NCP2 and that can
 be easily accomplished. The picture below shows this configuration and
 looks more complicated than it actually is.</p>
 <div class="float">
-<img src="assets%2Fmpc2.png" alt="Multiparty Computation w/o master communicating to sites"><div class="figcaption">Multiparty Computation w/o master communicating
+<img src="assets/mpc2.png" alt="Multiparty Computation w/o master communicating to sites"><div class="figcaption">Multiparty Computation w/o master communicating
 to sites</div>
 </div>
 <p>To summarize, the modified scheme has several characteristics:</p>
@@ -367,83 +382,78 @@ and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>l</mi><mi>i</mi></msub><mo>+</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(l_i + r_i)</annotation></semantics></math>
 to the two non-cooperating parties.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Site</span> <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"Site"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## local data</span></span>
-<span>                data <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Control variable for cox regression</span></span>
-<span>                cph.control <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                beta_cache <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                local_nll <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="co">## Check if value is cached</span></span>
-<span>                    <span class="va">beta_hash</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="va">beta</span>, algo <span class="op">=</span> <span class="st">"xxhash64"</span><span class="op">)</span><span class="op">)</span></span>
-<span>                    <span class="va">result</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">beta_cache</span><span class="op">[[</span><span class="va">beta_hash</span><span class="op">]</span><span class="op">]</span></span>
-<span>                    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="co">## We're worker, so compute local negative log likelihood</span></span>
-<span>                        <span class="va">nllValue</span>  <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>                            <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">age</span> <span class="op">+</span> <span class="va">bm</span>,</span>
-<span>                                       data <span class="op">=</span> <span class="va">private</span><span class="op">$</span><span class="va">data</span>,</span>
-<span>                                       init <span class="op">=</span> <span class="va">beta</span>,</span>
-<span>                                       control <span class="op">=</span> <span class="va">private</span><span class="op">$</span><span class="va">cph.control</span><span class="op">)</span></span>
-<span>                            <span class="op">-</span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">loglik</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">NA</span><span class="op">)</span></span>
-<span>                        <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">nllValue</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                            <span class="co">## Generate random offset for int and frac parts</span></span>
-<span>                            <span class="va">offset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span>,</span>
-<span>                                           frac <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span><span class="op">)</span></span>
-<span>                            <span class="co">## 2. Add to neg log likelihood</span></span>
-<span>                            <span class="va">result.int</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="va">nllValue</span><span class="op">)</span></span>
-<span>                            <span class="va">result.frac</span> <span class="op">&lt;-</span> <span class="va">nllValue</span> <span class="op">-</span> <span class="va">result.int</span></span>
-<span>                            <span class="co">## Approximate fractional part by a rational</span></span>
-<span>                            <span class="va">result.fracnum</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">numerator</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="va">result.frac</span><span class="op">)</span> <span class="op">*</span> <span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span><span class="op">)</span></span>
-<span>                            <span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                                int1 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.int</span> <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
-<span>                                frac1 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.fracnum</span> <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span>,</span>
-<span>                                int2 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.int</span> <span class="op">+</span> <span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
-<span>                                frac2 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.fracnum</span> <span class="op">+</span> <span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span></span>
-<span>                            <span class="op">)</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">beta_cache</span><span class="op">[[</span><span class="va">beta_hash</span><span class="op">]</span><span class="op">]</span>  <span class="op">&lt;-</span> <span class="va">result</span></span>
-<span>                        <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>                            <span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int1 <span class="op">=</span> <span class="cn">NA</span>, frac1 <span class="op">=</span> <span class="cn">NA</span>, int2 <span class="op">=</span> <span class="cn">NA</span>, frac2 <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
-<span>                        <span class="op">}</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                    <span class="va">result</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                count <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Common denominator for approximate real arithmetic</span></span>
-<span>                den <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The master's public key; everyone has this</span></span>
-<span>                pubkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">data</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">cph.control</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/replace.html" class="external-link">replace</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.control.html" class="external-link">coxph.control</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"iter.max"</span>, <span class="fl">0</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setPublicKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setDenominator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">=</span> <span class="va">den</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## neg log lik,</span></span>
-<span>                nll <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">beta</span>, <span class="va">party</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">result</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="fu">local_nll</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span></span>
-<span>                    <span class="kw">if</span> <span class="op">(</span><span class="va">party</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">int1</span>, frac <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">frac1</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">int2</span>, frac <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">frac2</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Site</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Site"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name        <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        data        <span class="op">=</span> <span class="va">class_any</span>,</span>
+<span>        den         <span class="op">=</span> <span class="va">class_any</span>,</span>
+<span>        cph_control <span class="op">=</span> <span class="va">class_any</span>,</span>
+<span>        state       <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name        <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            data        <span class="op">=</span> <span class="va">data</span>,</span>
+<span>            den         <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>            cph_control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/replace.html" class="external-link">replace</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.control.html" class="external-link">coxph.control</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"iter.max"</span>, <span class="fl">0</span><span class="op">)</span>,</span>
+<span>            state       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">set_public_key</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_public_key"</span>,  <span class="st">"obj"</span><span class="op">)</span></span>
+<span><span class="va">set_denominator</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_denominator"</span>, <span class="st">"obj"</span><span class="op">)</span></span>
+<span><span class="va">nll</span>             <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"nll"</span>,             <span class="st">"obj"</span><span class="op">)</span></span>
+<span><span class="va">add_site</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"add_site"</span>,        <span class="st">"ncp"</span><span class="op">)</span></span>
+<span><span class="va">set_ncparty_1</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_ncparty_1"</span>,   <span class="st">"master"</span><span class="op">)</span></span>
+<span><span class="va">set_ncparty_2</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_ncparty_2"</span>,   <span class="st">"master"</span><span class="op">)</span></span>
+<span><span class="va">master_nll</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"master_nll"</span>,      <span class="st">"master"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_public_key</span>, <span class="va">Site</span><span class="op">)</span>  <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span>; <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_denominator</span>, <span class="va">Site</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co">## Properties are immutable; we cache den in state for the run.</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="va">den</span>; <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">nll</span>, <span class="va">Site</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">beta</span>, <span class="va">party</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">beta_hash</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"b"</span>, <span class="fu">digest</span><span class="fu">::</span><span class="fu"><a href="https://eddelbuettel.github.io/digest/man/digest.html" class="external-link">digest</a></span><span class="op">(</span><span class="va">beta</span>, algo <span class="op">=</span> <span class="st">"xxhash64"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">result</span>    <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">beta_cache</span><span class="op">[[</span><span class="va">beta_hash</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">nll_value</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>            <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span>formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">age</span> <span class="op">+</span> <span class="va">bm</span>,</span>
+<span>                       data    <span class="op">=</span> <span class="va">obj</span><span class="op">@</span><span class="va">data</span>,</span>
+<span>                       init    <span class="op">=</span> <span class="va">beta</span>,</span>
+<span>                       control <span class="op">=</span> <span class="va">obj</span><span class="op">@</span><span class="va">cph_control</span><span class="op">)</span></span>
+<span>            <span class="op">-</span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">loglik</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span>        <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span>        <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">nll_value</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>            <span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span></span>
+<span>            <span class="va">den</span>    <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span></span>
+<span>            <span class="va">offset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int  <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span>,</span>
+<span>                           frac <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span><span class="op">)</span></span>
+<span>            <span class="va">res_int</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="va">nll_value</span><span class="op">)</span></span>
+<span>            <span class="va">res_frac</span>    <span class="op">&lt;-</span> <span class="va">nll_value</span> <span class="op">-</span> <span class="va">res_int</span></span>
+<span>            <span class="va">res_fracnum</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">numerator</a></span><span class="op">(</span></span>
+<span>                <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="va">res_frac</span><span class="op">)</span> <span class="op">*</span> <span class="va">den</span><span class="op">)</span><span class="op">)</span></span>
+<span>            <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>                int1  <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">res_int</span>      <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
+<span>                frac1 <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">res_fracnum</span>  <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span>,</span>
+<span>                int2  <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">res_int</span>      <span class="op">+</span> <span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
+<span>                frac2 <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">res_fracnum</span>  <span class="op">+</span> <span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span></span>
 <span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<span>            <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">beta_cache</span><span class="op">[[</span><span class="va">beta_hash</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">result</span></span>
+<span>        <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>            <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int1 <span class="op">=</span> <span class="cn">NA</span>, frac1 <span class="op">=</span> <span class="cn">NA</span>, int2 <span class="op">=</span> <span class="cn">NA</span>, frac2 <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span>        <span class="op">}</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">party</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">int1</span>, frac <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">frac1</span><span class="op">)</span></span>
+<span>    <span class="kw">else</span>            <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">int2</span>, frac <span class="op">=</span> <span class="va">result</span><span class="op">$</span><span class="va">frac2</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="the-non-cooperating-parties-class">The Non-cooperating Parties Class<a class="anchor" aria-label="anchor" href="#the-non-cooperating-parties-class"></a>
@@ -455,114 +465,102 @@ to compute the result and adds them up before sending it on to the
 master, so that the master has no idea of the individual
 contributions.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">NCParty</span> <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"NCParty"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## NC party number</span></span>
-<span>                number <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The master</span></span>
-<span>                master <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The sites</span></span>
-<span>                sites <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## The master's public key; everyone has this</span></span>
-<span>                pubkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The denoinator for rational arithmetic</span></span>
-<span>                den <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">number</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">number</span>  <span class="op">&lt;-</span> <span class="va">number</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setPublicKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
-<span>                    <span class="co">## Propagate to sites</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">site</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">site</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setDenominator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="va">den</span></span>
-<span>                    <span class="co">## Propagate to sites</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">site</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">site</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">den</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                addSite <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">sites</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">sites</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## neg log lik</span></span>
-<span>                nll <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">pubkey</span>  <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                    <span class="va">results</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="fu">nll</span><span class="op">(</span><span class="va">beta</span>, <span class="va">private</span><span class="op">$</span><span class="va">number</span><span class="op">)</span><span class="op">)</span></span>
-<span>                    <span class="co">## Accumulate the integer and fractional parts</span></span>
-<span>                    <span class="va">n</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
-<span>                    <span class="va">sumInt</span>  <span class="op">&lt;-</span> <span class="va">results</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">int</span></span>
-<span>                    <span class="va">sumFrac</span> <span class="op">&lt;-</span> <span class="va">results</span><span class="op">[[</span><span class="fl">1L</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">frac</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">2</span><span class="op">:</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">sumInt</span>  <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">sumInt</span>, <span class="va">results</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">int</span><span class="op">)</span></span>
-<span>                        <span class="va">sumFrac</span>  <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">sumFrac</span>, <span class="va">results</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">sumInt</span>, frac <span class="op">=</span> <span class="va">sumFrac</span><span class="op">)</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">NCParty</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"NCParty"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name   <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        number <span class="op">=</span> <span class="va">class_integer</span>,</span>
+<span>        state  <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">number</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name   <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            number <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">number</span><span class="op">)</span>,</span>
+<span>            state  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">`%||%`</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span><span class="op">)</span> <span class="va">b</span> <span class="kw">else</span> <span class="va">a</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_public_key</span>, <span class="va">NCParty</span><span class="op">)</span>  <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_denominator</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="va">den</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="fu">set_denominator</span><span class="op">(</span><span class="va">s</span>, <span class="va">den</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">add_site</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">ncp</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">ncp</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">ncp</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">nll</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">sites</span>   <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span></span>
+<span>    <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu">nll</span><span class="op">(</span><span class="va">s</span>, <span class="va">beta</span>, <span class="va">obj</span><span class="op">@</span><span class="va">number</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">int</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="cn">NA</span>, frac <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="va">sum_int</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">results</span>, <span class="va">`[[`</span>, <span class="st">"int"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">sum_frac</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">results</span>, <span class="va">`[[`</span>, <span class="st">"frac"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">sum_int</span>, frac <span class="op">=</span> <span class="va">sum_frac</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="the-master-class">The Master Class<a class="anchor" aria-label="anchor" href="#the-master-class"></a>
 </h4>
-<p>The master process</p>
+<p>The master process generates the keys and orchestrates the two
+non-cooperating parties.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Master</span>  <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"Master"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Private and public keys</span></span>
-<span>                keys <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Non cooperating party 1</span></span>
-<span>                nc_party_1 <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Non cooperating party 2</span></span>
-<span>                nc_party_2 <span class="op">=</span> <span class="cn">NA</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## Denominator for rational arithmetic</span></span>
-<span>                den  <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="va"><a href="../reference/PaillierKeyPair.html">PaillierKeyPair</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span> <span class="co">## Generate new public and private key.</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">^</span><span class="fl">256</span>  <span class="co">#Our denominator for rational approximations</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setNCParty1  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span> <span class="op">&lt;-</span> <span class="va">site</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setNCParty2  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span> <span class="op">&lt;-</span> <span class="va">site</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## neg log lik</span></span>
-<span>                nLL <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">pubkey</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                    <span class="va">privkey</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="fu">getPrivateKey</span><span class="op">(</span><span class="op">)</span></span>
-<span>                    <span class="va">result1</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">nll</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span></span>
-<span>                    <span class="va">result2</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">nll</span><span class="op">(</span><span class="va">beta</span><span class="op">)</span></span>
-<span>                    <span class="co">## Accumulate the integer and fractional parts</span></span>
-<span>                    <span class="va">sumInt</span>  <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">int</span>, <span class="va">result2</span><span class="op">$</span><span class="va">int</span><span class="op">)</span></span>
-<span>                    <span class="va">sumFrac</span>  <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">frac</span>, <span class="va">result2</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span></span>
-<span>                    <span class="va">intResult</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">privkey</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">sumInt</span><span class="op">)</span><span class="op">)</span></span>
-<span>                    <span class="va">fracResult</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="va">privkey</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">sumFrac</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
-<span>                    <span class="co">## Since we 2L, we divide by 2.</span></span>
-<span>                    <span class="op">(</span><span class="va">intResult</span> <span class="op">+</span> <span class="va">fracResult</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2.0</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">Master</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Master"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name  <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        state <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">st</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">st</span><span class="op">$</span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/paillier_keypair.html">paillier_keypair</a></span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span></span>
+<span>        <span class="va">st</span><span class="op">$</span><span class="va">den</span>  <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">^</span><span class="fl">256</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name  <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            state <span class="op">=</span> <span class="va">st</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_ncparty_1</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_1</span> <span class="op">&lt;-</span> <span class="va">ncp</span></span>
+<span>    <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">ncp</span>,  <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">@</span><span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu">set_denominator</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_ncparty_2</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_2</span> <span class="op">&lt;-</span> <span class="va">ncp</span></span>
+<span>    <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">ncp</span>,  <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">@</span><span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu">set_denominator</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">master_nll</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">privkey</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_private_key.html">get_private_key</a></span><span class="op">(</span><span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">)</span></span>
+<span>    <span class="va">result1</span>  <span class="op">&lt;-</span> <span class="fu">nll</span><span class="op">(</span><span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_1</span>, <span class="va">beta</span><span class="op">)</span></span>
+<span>    <span class="va">result2</span>  <span class="op">&lt;-</span> <span class="fu">nll</span><span class="op">(</span><span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_2</span>, <span class="va">beta</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">int</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">int</span><span class="op">)</span><span class="op">)</span> <span class="op">||</span></span>
+<span>        <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">result2</span><span class="op">$</span><span class="va">int</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">result2</span><span class="op">$</span><span class="va">int</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_real_</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="va">sum_int</span>  <span class="op">&lt;-</span> <span class="va">result1</span><span class="op">$</span><span class="va">int</span>  <span class="op">+</span> <span class="va">result2</span><span class="op">$</span><span class="va">int</span></span>
+<span>    <span class="va">sum_frac</span> <span class="op">&lt;-</span> <span class="va">result1</span><span class="op">$</span><span class="va">frac</span> <span class="op">+</span> <span class="va">result2</span><span class="op">$</span><span class="va">frac</span></span>
+<span>    <span class="va">int_result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">privkey</span>, <span class="va">sum_int</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">frac_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span></span>
+<span>        <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">privkey</span>, <span class="va">sum_frac</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
+<span>    <span class="op">(</span><span class="va">int_result</span> <span class="op">+</span> <span class="va">frac_result</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2.0</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -573,34 +571,34 @@ contributions.</p>
 <h4 id="create-sites">1. Create sites<a class="anchor" aria-label="anchor" href="#create-sites"></a>
 </h4>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">site1</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">site2</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">site3</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">site1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">site2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">site3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">coxData</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">sites</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>site1 <span class="op">=</span> <span class="va">site1</span>, site2 <span class="op">=</span> <span class="va">site2</span>, site3 <span class="op">=</span> <span class="va">site3</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>site1 <span class="op">=</span> <span class="va">site1</span>, site2 <span class="op">=</span> <span class="va">site2</span>, site3 <span class="op">=</span> <span class="va">site3</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="create-non-cooperating-parties">2. Create Non-cooperating parties<a class="anchor" aria-label="anchor" href="#create-non-cooperating-parties"></a>
 </h4>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ncp1</span>  <span class="op">&lt;-</span> <span class="va">NCParty</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">ncp2</span>  <span class="op">&lt;-</span> <span class="va">NCParty</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ncp1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NCParty.html">NCParty</a></span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">ncp2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NCParty.html">NCParty</a></span><span class="op">(</span><span class="st">"NCP2"</span>, <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>We add sites to the non-cooperating parties.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">ncp1</span><span class="op">$</span><span class="fu">addSite</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
-<span>    <span class="va">ncp2</span><span class="op">$</span><span class="fu">addSite</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/add_site.html">add_site</a></span><span class="op">(</span><span class="va">ncp1</span>, <span class="va">s</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/add_site.html">add_site</a></span><span class="op">(</span><span class="va">ncp2</span>, <span class="va">s</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="create-the-master-process">3. Create the master process<a class="anchor" aria-label="anchor" href="#create-the-master-process"></a>
 </h4>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span>  <span class="op">&lt;-</span> <span class="va">Master</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="st">"Master"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Master.html">Master</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Master"</span><span class="op">)</span></span></code></pre></div>
 <p>We next connect the master to the non-cooperating parties.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span><span class="op">$</span><span class="fu">setNCParty1</span><span class="op">(</span><span class="va">ncp1</span><span class="op">)</span></span>
-<span><span class="va">master</span><span class="op">$</span><span class="fu">setNCParty2</span><span class="op">(</span><span class="va">ncp2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">set_ncparty_1</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp1</span><span class="op">)</span></span>
+<span><span class="fu">set_ncparty_2</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp2</span><span class="op">)</span></span></code></pre></div>
 <p>At this point the communication graph has been defined between the
 master and non-cooperating parties and the non-cooperating parties and
 the sites.</p>
@@ -610,8 +608,8 @@ the sites.</p>
 </h4>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stats4</span><span class="op">)</span></span>
-<span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">bm</span><span class="op">)</span> <span class="va">master</span><span class="op">$</span><span class="fu">nLL</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">bm</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="va">nll</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>age <span class="op">=</span> <span class="fl">0</span>, sex <span class="op">=</span> <span class="fl">0</span>, bm <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">nll_fn</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">bm</span><span class="op">)</span> <span class="fu">master_nll</span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age</span>, <span class="va">sex</span>, <span class="va">bm</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="va">nll_fn</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>age <span class="op">=</span> <span class="fl">0</span>, sex <span class="op">=</span> <span class="fl">0</span>, bm <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="compare-the-results">5. Compare the results<a class="anchor" aria-label="anchor" href="#compare-the-results"></a>
@@ -622,7 +620,7 @@ the sites.</p>
 <pre><code><span><span class="co">## Maximum likelihood estimation</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Call:</span></span>
-<span><span class="co">## mle(minuslogl = nll, start = list(age = 0, sex = 0, bm = 0))</span></span>
+<span><span class="co">## mle(minuslogl = nll_fn, start = list(age = 0, sex = 0, bm = 0))</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Coefficients:</span></span>
 <span><span class="co">##         Estimate  Std. Error</span></span>
@@ -667,11 +665,10 @@ matches that of the model on aggregated data:</p>
 <div class="section level3">
 <h3 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h3>
-<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-survival-book" class="csl-entry">
 Terry M. Therneau, and Patricia M. Grambsch. 2000. <em>Modeling Survival
-Data: Extending the <span>C</span>ox Model</em>. New York:
-Springer-Verlag.
+Data: Extending the <span>C</span>ox Model</em>. Springer-Verlag.
 </div>
 </div>
 </div>
@@ -687,7 +684,7 @@ Springer-Verlag.
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

@@ -6,9 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Introduction to Homomorphic Computation in R • homomorpheR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Introduction to Homomorphic Computation in R">
 </head>
@@ -20,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +39,19 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
     <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
@@ -59,12 +75,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Introduction to Homomorphic Computation in R</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Introduction to Homomorphic Computation in R</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2025-04-09</h4>
+            <h4 data-toc-skip class="date">2026-06-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="d-none name"><code>introduction.Rmd</code></div>
@@ -125,7 +140,7 @@ Thus, entities need exchange only encrypted values throughout. This is
 pictorially shown in the figure (source: Jeremy Kun) below:</p>
 <div style="text-align:center" markdown="1">
 <div class="float">
-<img src="assets%2Fhomo.jpeg" alt="Homomorphic Computation"><div class="figcaption">Homomorphic Computation</div>
+<img src="assets/homo.jpeg" alt="Homomorphic Computation"><div class="figcaption">Homomorphic Computation</div>
 </div>
 </div>
 </div>
@@ -139,33 +154,31 @@ needed; <code>homomorpheR</code> makes use of the R package
 generators) in addition to <code>gmp</code> for arbitrary precision
 arithmetic.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR" class="external-link">homomorpheR</a></span><span class="op">)</span></span>
-<span><span class="va">keyPair</span> <span class="op">&lt;-</span> <span class="va"><a href="../reference/PaillierKeyPair.html">PaillierKeyPair</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>modulusBits <span class="op">=</span> <span class="fl">1024</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR/">homomorpheR</a></span><span class="op">)</span></span>
+<span><span class="va">keyPair</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/paillier_keypair.html">paillier_keypair</a></span><span class="op">(</span>modulus_bits <span class="op">=</span> <span class="fl">1024</span><span class="op">)</span></span></code></pre></div>
 <p>Examine the <code>keyPair</code> object:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">keyPair</span></span></code></pre></div>
 <pre><code><span><span class="co">## &lt;PaillierKeyPair&gt;</span></span>
-<span><span class="co">##   Public:</span></span>
-<span><span class="co">##     clone: function (deep = FALSE) </span></span>
-<span><span class="co">##     getPrivateKey: function () </span></span>
-<span><span class="co">##     initialize: function (modulusBits) </span></span>
-<span><span class="co">##     pubkey: PaillierPublicKey, R6</span></span>
-<span><span class="co">##   Private:</span></span>
-<span><span class="co">##     privkey: PaillierPrivateKey, R6</span></span></code></pre>
-<p>The <code>pubkey</code> field can be distributed all interested
-parties but the private key, obtainable by <code>getPrivateKey()</code>
-should be kept secret for decryption.</p>
-<p>The main functions are the <code>encrypt</code> function for the
-public key, and the <code>decrypt</code> function for the private
-key.</p>
+<span><span class="co">##   bits: 1024</span></span></code></pre>
+<p>The <code>pubkey</code> slot can be distributed to all interested
+parties, but the private key, obtainable via
+<code><a href="../reference/get_private_key.html">get_private_key()</a></code>, should be kept secret for
+decryption.</p>
+<p>The main generics are <code><a href="../reference/encrypt.html">encrypt()</a></code> for the public key and
+<code><a href="../reference/decrypt.html">decrypt()</a></code> for the private key. Encrypted values are wrapped
+in <code>PaillierCiphertext</code> objects so that R’s <code>+</code>,
+<code>-</code>, and <code>*</code> operators dispatch to the homomorphic
+operations directly.</p>
 </div>
 <div class="section level2">
 <h2 id="some-tests">Some tests<a class="anchor" aria-label="anchor" href="#some-tests"></a>
 </h2>
-<p>We can now perform some simple tests. But before that a simple
-function that encrypts and decrypts.</p>
+<p>We can now perform some simple tests. First a small helper that
+encrypts and immediately decrypts:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">encryptAndDecrypt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">keyPair</span><span class="op">$</span><span class="fu">getPrivateKey</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">keyPair</span><span class="op">$</span><span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">encryptAndDecrypt</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="fu"><a href="../reference/get_private_key.html">get_private_key</a></span><span class="op">(</span><span class="va">keyPair</span><span class="op">)</span>, <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keyPair</span><span class="op">@</span><span class="va">pubkey</span>, <span class="va">x</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Now we can encrypt and decrypt some numbers.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">1273849</span><span class="op">)</span></span>
@@ -178,29 +191,43 @@ function that encrypts and decrypts.</p>
 <span><span class="va">md</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">encryptAndDecrypt</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">m</span>, <span class="va">md</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] TRUE</span></span></code></pre>
+<p>We can also do arithmetic directly on encrypted values. The result
+decrypts to the same value we would have obtained on the cleartext:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ct_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keyPair</span><span class="op">@</span><span class="va">pubkey</span>, <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ct_b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keyPair</span><span class="op">@</span><span class="va">pubkey</span>, <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">456</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">priv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_private_key.html">get_private_key</a></span><span class="op">(</span><span class="va">keyPair</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">123</span> <span class="op">+</span> <span class="fl">456</span><span class="op">)</span>,     <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">priv</span>, <span class="va">ct_a</span> <span class="op">+</span> <span class="va">ct_b</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] TRUE</span></span></code></pre>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">123</span> <span class="op">-</span> <span class="fl">456</span><span class="op">)</span>,     <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">priv</span>, <span class="va">ct_a</span> <span class="op">-</span> <span class="va">ct_b</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] FALSE</span></span></code></pre>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">123</span> <span class="op">*</span> <span class="fl">5</span><span class="op">)</span>,       <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">priv</span>, <span class="va">ct_a</span> <span class="op">*</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">as.bigz</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] TRUE</span></span></code></pre>
 </div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-choinyaambu2009" class="csl-entry">
-Choinyammbu, Sansar. 2009. <span>“Homomorphic Tallying with Paillier
-Cryptosystem.”</span>
+Choinyammbu, Sansar. 2009. <em>Homomorphic Tallying with Paillier
+Cryptosystem</em>.
 </div>
 <div id="ref-okeefe2008" class="csl-entry">
-O’Keefe, Michael. 2008. <span>“The Paillier Cryptosystem: A Look into
-the Cryptosystem and Its Potential Application.”</span>
+O’Keefe, Michael. 2008. <em>The Paillier Cryptosystem: A Look into the
+Cryptosystem and Its Potential Application</em>.
 </div>
 <div id="ref-Paillier99" class="csl-entry">
 Paillier, Pascal. 1999. <span>“Public-Key Cryptosystems Based on
-Composite Degree Residuosity Classes.”</span> In <em>Advances in
-Cryptology - <span>EUROCRYPT</span> ’99, International Conference on the
-Theory and Application of Cryptographic Techniques, Prague, Czech
-Republic, May 2-6, 1999, Proceeding</em>, 223–38. <a href="https://doi.org/10.1007/3-540-48910-X_16" class="external-link">https://doi.org/10.1007/3-540-48910-X_16</a>.
+Composite Degree Residuosity Classes.”</span> <em>Advances in Cryptology
+- <span>EUROCRYPT</span> ’99, International Conference on the Theory and
+Application of Cryptographic Techniques, Prague, Czech Republic, May
+2-6, 1999, Proceeding</em>, 223–38. <a href="https://doi.org/10.1007/3-540-48910-X_16" class="external-link">https://doi.org/10.1007/3-540-48910-X_16</a>.
 </div>
 <div id="ref-volkhausen2006" class="csl-entry">
-Volkhausen, Tobias. 2006. <span>“Paillier Cryptosystem: A Mathematical
-Introduction.”</span>
+Volkhausen, Tobias. 2006. <em>Paillier Cryptosystem: A Mathematical
+Introduction</em>.
 </div>
 </div>
 </div>
@@ -215,7 +242,7 @@ Introduction.”</span>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

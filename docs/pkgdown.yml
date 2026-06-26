@@ -1,10 +1,24 @@
-pandoc: 3.6.4
-pkgdown: 2.1.1
+pandoc: '3.10'
+pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
+  cox-threshold-dp: cox-threshold-dp.html
+  cox-threshold: cox-threshold.html
+  cox: cox.html
+  cvxr-consensus-admm-dp: cvxr-consensus-admm-dp.html
+  cvxr-consensus-admm: cvxr-consensus-admm.html
+  cvxr-cox-lasso-dlbcl: cvxr-cox-lasso-dlbcl.html
   DHCox: DHCox.html
   DHCoxNCP: DHCoxNCP.html
+  encrypted-regression: encrypted-regression.html
   homomorphing: homomorphing.html
   introduction: introduction.html
+  mle: mle.html
+  privacy-preserving-aggregation: privacy-preserving-aggregation.html
   QueryNCP: QueryNCP.html
-last_built: 2025-04-09T16:21Z
+  secure-inference: secure-inference.html
+  similarity: similarity.html
+last_built: 2026-06-26T17:10Z
+urls:
+  reference: https://bnaras.github.io/homomorpheR/reference
+  article: https://bnaras.github.io/homomorpheR/articles

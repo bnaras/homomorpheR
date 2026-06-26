@@ -1,0 +1,50 @@
+# Threshold-CKKS master (n-of-n key generation)
+
+A [Master](https://bnaras.github.io/homomorpheR/reference/Master.md)
+that drives the protocol over `openfhe.R`'s CKKS with threshold key
+generation. There is no single secret key: each site holds a secret
+share `sk_i`, and the joint public key `pk_{1..n}` is built by chaining
+`multiparty_key_gen()` across sites. Encryption goes under
+`joint_pubkey`. Decryption requires all `n` sites to contribute partial
+decryptions, which the master then fuses.
+
+## Usage
+
+``` r
+ThresholdMaster(
+  name = character(0),
+  state = NULL,
+  crypto_context = NULL,
+  joint_pubkey = NULL,
+  secret_keys = NULL
+)
+```
+
+## Arguments
+
+- name:
+
+  short identifier.
+
+- state:
+
+  an environment for mutable bookkeeping.
+
+- crypto_context:
+
+  an `openfhe.R` `CryptoContext` with the `MULTIPARTY` feature enabled.
+
+- joint_pubkey:
+
+  the joint public key produced by chaining `multiparty_key_gen()`
+  across the sites.
+
+- secret_keys:
+
+  a list of per-site secret keys, in site order (the first is the lead
+  site whose `sk` started the chain).
+
+## Details
+
+Constructed by
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md).

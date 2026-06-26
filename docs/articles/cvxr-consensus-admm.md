@@ -1,0 +1,448 @@
+# Federated Consensus ADMM with CVXR over Threshold CKKS
+
+## Introduction
+
+The `cox` and `cox-threshold` vignettes show that *function-call*
+optimizers — [`mle()`](https://rdrr.io/r/stats4/mle.html),
+[`optim()`](https://rdrr.io/r/stats/optim.html), `coxph`’s
+Newton-Raphson via callback — compose with FHE: hand them a callback
+that performs an encrypted master/worker round, and the optimizer cannot
+tell.
+
+That pattern fits any objective with a sum-decomposable log-likelihood,
+but it does not generalize to arbitrary convex programs. The richer R
+toolkit for convex optimization — CVXR — operates on a *symbolic*
+problem, not a callback. We cannot hand CVXR a function that secretly
+does FHE on every call, because CVXR does not call our function: it
+canonicalizes the problem once and ships the canonical form to a
+numerical solver.
+
+The replacement is **federated consensus ADMM**. We split the global
+problem into per-site local subproblems each handled by CVXR in
+cleartext, and use the threshold-FHE channel only to compute the
+cross-site **consensus update**. The local CVXR solves exploit DPP
+(disciplined parametric programming) and stay fast because their
+Parameter values change but the problem structure does not. The
+encrypted channel earns its keep on the consensus aggregation, where the
+per-site $`(x_i + u_i)`$ vectors are summed and averaged under
+encryption and the result is recovered via threshold decryption.
+
+This is the architectural complement to `cox-threshold.Rmd`:
+
+|  | `cox-threshold` | `cvxr-consensus-admm` |
+|----|----|----|
+| Optimizer | [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html) (BFGS) | Consensus ADMM (one outer loop) |
+| Local solver | `coxph(iter.max = 0)` | [`CVXR::psolve()`](https://www.cvxgrp.org/CVXR/reference/psolve.html) |
+| FHE call site | every BFGS function evaluation | every ADMM iteration |
+| Topology | master/worker fan-out + fan-in | peer-to-peer with threshold aggregator |
+| Threshold keys | yes (n-of-n) | yes (n-of-n) |
+
+Both compose existing R machinery with a threshold-FHE channel without
+rewriting the optimizer.
+
+## The global problem and its consensus split
+
+We pick L2-regularised logistic regression. With $`N`$ sites, local data
+$`(X_i, y_i)`$ at site $`i`$, a shared coefficient
+$`x \in \mathbb{R}^p`$, the global problem is
+
+``` math
+\min_{x \in \mathbb{R}^p}
+\sum_{i=1}^{N} \ell_i(x; X_i, y_i)
++ \frac{\lambda}{2}\, \lVert x \rVert_2^2
+```
+
+where $`\ell_i`$ is the logistic loss on site $`i`$. The standard
+consensus split (Boyd, Parikh, Chu, Peleato, Eckstein, 2011) introduces
+local copies $`x_i \in \mathbb{R}^p`$ and a single global consensus
+$`z \in \mathbb{R}^p`$:
+
+``` math
+\min_{\{x_i\}, z}
+\sum_i \ell_i(x_i; X_i, y_i) + \frac{\lambda}{2}\, \lVert z \rVert_2^2
+\quad \text{s.t.}\quad x_i = z, \ \forall i.
+```
+
+The augmented-Lagrangian iteration is:
+
+``` math
+\begin{aligned}
+x_i^{k+1} &= \arg\min_{x_i}\, \ell_i(x_i) + \frac{\lambda}{2N}\lVert x_i\rVert_2^2 + \frac{\rho}{2}\lVert x_i - z^k + u_i^k\rVert_2^2, \\
+z^{k+1} &= \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k), \\
+u_i^{k+1} &= u_i^k + (x_i^{k+1} - z^{k+1}).
+\end{aligned}
+```
+
+The $`x`$-update is local at each site; the $`z`$-update is the
+consensus average that has to traverse the encrypted channel; the
+$`u`$-update is local again. Only the $`z`$-update needs cryptography.
+
+## The local CVXR subproblem
+
+``` r
+
+library(homomorpheR)
+suppressPackageStartupMessages(library(CVXR))
+
+N   <- 3L
+p   <- 4L
+lam <- 1
+```
+
+We build the local problem so that DPP can engage: $`z`$ and $`u`$ are
+`Parameter`s (so canonicalization is shared across iterations); $`X_i`$,
+$`y_i`$, and $`\rho`$ are *constants* baked in at construction time (so
+the augmented Lagrangian term enters affinely in the parameters and the
+DPP fast path is not broken).
+
+``` r
+
+build_local_problem <- function(X_i, y_i, rho_val) {
+    n_i <- nrow(X_i)
+    p_i <- ncol(X_i)
+
+    x  <- Variable(p_i)
+    zp <- Parameter(p_i)
+    up <- Parameter(p_i)
+
+    y_signs <- 2 * y_i - 1
+    margins <- -y_signs * (X_i %*% x)
+
+    local_loss <- sum(logistic(margins)) +
+                  (lam / (2 * N)) * sum_squares(x)
+    augmented  <- (rho_val / 2) * sum_squares(x - zp + up)
+
+    prob <- Problem(Minimize(local_loss + augmented))
+
+    value(zp) <- rep(0, p_i)
+    value(up) <- rep(0, p_i)
+
+    list(prob = prob, x = x, zp = zp, up = up)
+}
+```
+
+A vignette-local site class wraps the local CVXR problem plus the ADMM
+state. The exported `Site` from this package is shaped for the
+master/worker pattern; ADMM is peer-to-peer and needs its own per-site
+state, so we define `ConsensusSite` inline.
+
+``` r
+
+library(S7)
+
+ConsensusSite <- new_class("ConsensusSite",
+    properties = list(
+        name  = class_character,
+        n     = class_integer,
+        state = class_any
+    )
+)
+
+make_consensus_site <- function(name, X_i, y_i, rho_val) {
+    st        <- new.env(parent = emptyenv())
+    st$X      <- X_i
+    st$y      <- y_i
+    built     <- build_local_problem(X_i, y_i, rho_val)
+    st$prob   <- built$prob
+    st$x_var  <- built$x
+    st$zp     <- built$zp
+    st$up     <- built$up
+    st$x_curr <- rep(0, ncol(X_i))
+    st$u_curr <- rep(0, ncol(X_i))
+    ConsensusSite(name = name, n = nrow(X_i), state = st)
+}
+
+local_update <- function(site, z_curr) {
+    st <- site@state
+    value(st$zp) <- z_curr
+    value(st$up) <- st$u_curr
+    psolve(st$prob, solver = "CLARABEL")
+    if (!status(st$prob) %in% c("optimal", "optimal_inaccurate"))
+        stop("Local solve at ", site@name, " did not reach optimal status.")
+    st$x_curr <- as.numeric(value(st$x_var))
+    invisible(st$x_curr)
+}
+```
+
+## The threshold-FHE consensus aggregation
+
+The consensus update needs to compute
+$`z^{k+1} = \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k)`$. This is a
+length-$`p`$ vector average: pack each site’s $`x_i + u_i`$ into a
+length-$`p`$ packed plaintext, encrypt under the joint public key, sum
+the ciphertexts, multiply by the plaintext constant $`1/N`$ (one
+ciphertext-plaintext multiplication, depth 1), and threshold-decrypt the
+result.
+
+We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
+context with `Feature$MULTIPARTY` enabled and
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md),
+which runs the chained `multiparty_key_gen()` setup automatically. The
+consensus function calls
+[`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
+to encrypt each site’s contribution under the joint public key and
+[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+to threshold-decrypt the result; the partial-decrypt fan-in across sites
+is handled inside the master class.
+
+``` r
+
+cc <- openfhe.R::fhe_context("CKKS",
+                           multiplicative_depth = 1L,
+                           scaling_mod_size     = 59L,
+                           first_mod_size       = 60L,
+                           batch_size           = 8L,
+                           features             = c(openfhe.R::Feature$MULTIPARTY))
+```
+
+``` r
+
+encrypted_consensus <- function(threshold_master, sites) {
+    cts <- vector("list", length(sites))
+    for (i in seq_along(sites)) {
+        st  <- sites[[i]]@state
+        val <- st$x_curr + st$u_curr
+        cts[[i]] <- master_encrypt(threshold_master, val)
+    }
+    ct_sum <- Reduce(`+`, cts)
+    ct_avg <- ct_sum * (1 / length(sites))
+    master_decrypt(threshold_master, ct_avg, len = p)
+}
+```
+
+What this protocol hides and reveals: every ADMM iteration the
+aggregator recovers the *new consensus* $`z^k`$ exactly. The per-site
+$`(x_i + u_i)`$ vectors never appear in plaintext anywhere — additions
+and the scalar multiply happen under encryption, and the decryption is
+n-of-n. A subpoena to the aggregator yields the trajectory $`\{z^k\}`$
+but no individual site’s contribution. A subpoena to any one site yields
+that site’s local $`X_i, y_i`$ and its own secret share, but no other
+site’s contribution and no decryption power.
+
+## Simulated cohort
+
+Three sites with deliberately uneven sample sizes; same true
+coefficients across sites.
+
+``` r
+
+set.seed(98765)
+
+beta_true <- c(0.5, -1.0, 0.3, 0.8)
+n_per     <- c(400, 250, 350)
+
+site_data <- lapply(seq_len(N), function(i) {
+    X <- matrix(rnorm(n_per[i] * p), nrow = n_per[i], ncol = p)
+    eta <- X %*% beta_true
+    y <- rbinom(n_per[i], size = 1, prob = 1 / (1 + exp(-eta)))
+    list(X = X, y = y)
+})
+
+X_all <- do.call(rbind, lapply(site_data, `[[`, "X"))
+y_all <- unlist(lapply(site_data, `[[`, "y"))
+```
+
+## Centralized CVXR fit
+
+For the comparison at the end of the run, we fit the same problem
+centrally. This is the target the federated fit should match.
+
+``` r
+
+x_central <- Variable(p)
+y_signs  <- 2 * y_all - 1
+margins  <- -y_signs * (X_all %*% x_central)
+central_prob <- Problem(Minimize(
+    sum(logistic(margins)) + (lam / 2) * sum_squares(x_central)
+))
+psolve(central_prob, solver = "CLARABEL")
+```
+
+    ## [1] 552.3928
+
+``` r
+
+beta_central <- as.numeric(value(x_central))
+```
+
+## Tuning $`\rho`$ before the loop
+
+ADMM convergence depends on $`\rho`$. We sweep three candidate values
+against a *cleartext* copy of the protocol (no FHE) and pick the one
+that converges fastest. The chosen value is fixed for the encrypted run.
+
+``` r
+
+rho_grid    <- c(10, 50, 200)
+sweep_iters <- integer(length(rho_grid))
+
+for (g in seq_along(rho_grid)) {
+    rho_val <- rho_grid[g]
+    sites <- lapply(seq_len(N), function(i)
+        make_consensus_site(paste0("Site ", i),
+                            site_data[[i]]$X, site_data[[i]]$y,
+                            rho_val = rho_val))
+    z_curr <- rep(0, p)
+    converged <- FALSE
+    for (k in seq_len(40)) {
+        for (s in sites) local_update(s, z_curr)
+        means_xu <- Reduce(`+`,
+            lapply(sites, function(s) s@state$x_curr + s@state$u_curr)) / N
+        z_new <- means_xu
+        for (s in sites) {
+            s@state$u_curr <- s@state$u_curr + (s@state$x_curr - z_new)
+        }
+        primal_res <- sqrt(mean(unlist(lapply(sites, function(s)
+            sum((s@state$x_curr - z_new)^2)))))
+        dual_res <- sqrt(N) * rho_val * sqrt(sum((z_new - z_curr)^2))
+        z_curr <- z_new
+        if (primal_res < 1e-3 && dual_res < 1e-3) {
+            converged <- TRUE
+            sweep_iters[g] <- k
+            break
+        }
+    }
+    if (!converged) sweep_iters[g] <- NA_integer_
+}
+
+sweep_table <- data.frame(rho = rho_grid, iters = sweep_iters)
+knitr::kable(sweep_table, caption = "Cleartext ADMM iterations to convergence")
+```
+
+| rho | iters |
+|----:|------:|
+|  10 |    32 |
+|  50 |    19 |
+| 200 |    NA |
+
+Cleartext ADMM iterations to convergence {.table}
+
+``` r
+
+rho_chosen <- rho_grid[which.min(sweep_iters)]
+cat(sprintf("Selected rho = %g (converged in %d iterations).\n",
+            rho_chosen, min(sweep_iters, na.rm = TRUE)))
+```
+
+    ## Selected rho = 50 (converged in 19 iterations).
+
+## The encrypted ADMM loop
+
+Threshold key generation, sites built with the chosen $`\rho`$, then the
+main loop:
+
+``` r
+
+master <- make_threshold_master("Aggregator",
+                                crypto_context = cc,
+                                n_sites        = N)
+
+sites <- lapply(seq_len(N), function(i)
+    make_consensus_site(paste0("Site ", i),
+                        site_data[[i]]$X, site_data[[i]]$y,
+                        rho_val = rho_chosen))
+
+z_curr    <- rep(0, p)
+max_iter  <- 40
+reltol    <- 1e-3
+converged <- FALSE
+trajectory <- vector("list", max_iter)
+
+for (k in seq_len(max_iter)) {
+    for (s in sites) local_update(s, z_curr)
+    z_new <- encrypted_consensus(master, sites)
+    for (s in sites) {
+        s@state$u_curr <- s@state$u_curr + (s@state$x_curr - z_new)
+    }
+    primal_res <- sqrt(mean(unlist(lapply(sites, function(s)
+        sum((s@state$x_curr - z_new)^2)))))
+    dual_res <- sqrt(N) * rho_chosen * sqrt(sum((z_new - z_curr)^2))
+    trajectory[[k]] <- z_new
+    z_curr <- z_new
+    if (primal_res < reltol && dual_res < reltol) {
+        converged <- TRUE
+        trajectory <- trajectory[seq_len(k)]
+        break
+    }
+}
+
+if (!converged)
+    stop("Encrypted ADMM did not converge within max_iter; rerun the rho sweep.")
+
+cat(sprintf("Encrypted ADMM converged in %d iterations.\n", length(trajectory)))
+```
+
+    ## Encrypted ADMM converged in 19 iterations.
+
+## Comparison with the centralized fit
+
+``` r
+
+comparison <- data.frame(
+    coefficient            = paste0("beta_", seq_len(p)),
+    threshold_distributed  = z_curr,
+    centralized_cvxr       = beta_central,
+    abs_diff               = abs(z_curr - beta_central)
+)
+knitr::kable(comparison, digits = 6,
+             caption = "Threshold-FHE consensus ADMM vs. centralized CVXR")
+```
+
+| coefficient | threshold_distributed | centralized_cvxr | abs_diff |
+|:------------|----------------------:|-----------------:|---------:|
+| beta_1      |              0.419682 |         0.419687 |    5e-06 |
+| beta_2      |             -0.939203 |        -0.939209 |    5e-06 |
+| beta_3      |              0.384038 |         0.384041 |    4e-06 |
+| beta_4      |              0.659835 |         0.659840 |    5e-06 |
+
+Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
+
+``` r
+
+max_diff <- max(abs(z_curr - beta_central))
+cat(sprintf("Max absolute coefficient difference vs. centralized fit: %.2e\n",
+            max_diff))
+```
+
+    ## Max absolute coefficient difference vs. centralized fit: 5.37e-06
+
+``` r
+
+if (max_diff > 10 * reltol)
+    stop("Encrypted ADMM agreement with the aggregated cleartext fit is too loose; ",
+         "investigate before publishing this run.")
+```
+
+## Discussion
+
+1.  **CVXR symbolic problems compose with threshold FHE.** The local
+    CVXR solve runs cleartext at each site; only the cross-site
+    consensus update goes through the encrypted channel. The reader does
+    not have to rewrite their CVXR model for an encrypted setting — the
+    same `Problem(Minimize(...))` they would write for cleartext data is
+    used here verbatim.
+2.  **No single party holds the secret key.**
+    [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
+    distributes the secret across all sites; the aggregator holds only
+    the joint public key. Encrypted intermediates are undecryptable by
+    any single party, and the consensus result appears only after the
+    n-of-n partial-decryption fusion.
+3.  **DPP keeps the inner loop fast.** Each site’s CVXR problem is built
+    once at setup; ADMM iterations only update the parameter values.
+    Without DPP, the canonicalization would re-run every iteration and
+    the vignette would be infeasible.
+
+## Limitations
+
+- **Honest-but-curious trust.** A site that misreports its local
+  $`x_i + u_i`$ can corrupt the consensus. Detecting this requires
+  commitments / zero-knowledge proofs that this vignette does not
+  implement.
+- **The aggregator sees the trajectory $`\{z^k\}`$.** Per-iteration
+  consensus values are revealed in plaintext (after fusion) so the
+  optimizer can decide convergence. A subpoena to the aggregator yields
+  this trajectory.
+- **No output privacy.** The released $`\hat\beta = z^\star`$ is the
+  same coefficient vector as the centralized fit. Output-level attacks
+  are out of scope here; the companion DP vignettes (not yet ported)
+  demonstrate output DP composition.

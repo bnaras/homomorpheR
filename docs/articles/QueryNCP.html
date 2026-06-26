@@ -6,9 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Distributed Query Count using Non-Cooperating Parties • homomorpheR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Distributed Query Count using Non-Cooperating Parties">
 </head>
@@ -20,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +39,19 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
     <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
@@ -59,12 +75,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Distributed Query Count using Non-Cooperating Parties</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Distributed Query Count using Non-Cooperating Parties</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2025-04-09</h4>
+            <h4 data-toc-skip class="date">2026-06-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/QueryNCP.Rmd" class="external-link"><code>vignettes/QueryNCP.Rmd</code></a></small>
       <div class="d-none name"><code>QueryNCP.Rmd</code></div>
@@ -145,9 +160,8 @@ query it. Let us run a sample query on this aggregated data set for the
 condition
 <code>age &lt; 50 &amp; sex == 'F' &amp; bm &lt; 0.2</code></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">query_data</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&lt;</span> <span class="fl">50</span> <span class="op">&amp;</span> <span class="va">sex</span> <span class="op">==</span> <span class="st">'F'</span> <span class="op">&amp;</span> <span class="va">bm</span> <span class="op">&lt;</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">query_data</span><span class="op">)</span>,</span>
+<span>            <span class="va">age</span> <span class="op">&lt;</span> <span class="fl">50</span> <span class="op">&amp;</span> <span class="va">sex</span> <span class="op">==</span> <span class="st">"F"</span> <span class="op">&amp;</span> <span class="va">bm</span> <span class="op">&lt;</span> <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 11</span></span></code></pre>
 </div>
 <div class="section level2">
@@ -207,7 +221,13 @@ is the grant total count. The master can now decrypt the result and
 obtain
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>!</p>
 <p>This is pictorially shown below.</p>
-<p><img src="assets%2Fnc-query-masters-v1.png"></p>
+<div class="float">
+<img src="assets/nc-query-masters-v1.png" alt="Communication topology in which the master talks directly to each site and to both non-cooperating parties: every site sends its encrypted count obfuscated as E(c_i + r_i) to NCP1 and as E(c_i - r_i) to NCP2, and the master retrieves the two encrypted sums and adds them to recover E(2c)."><div class="figcaption">Communication topology in which the master talks
+directly to each site and to both non-cooperating parties: every site
+sends its encrypted count obfuscated as E(c_i + r_i) to NCP1 and as
+E(c_i - r_i) to NCP2, and the master retrieves the two encrypted sums
+and adds them to recover E(2c).</div>
+</div>
 <p>The red arrows show the master proposing a value
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
 to each of the sites, which reply back to NCP1 and NCP2. The master then
@@ -231,7 +251,7 @@ advantage of hiding the number of sites, which could even be 1!</p>
 values have be funneled to the sites through NCP1 and NCP2 and that can
 be easily accomplished. The picture below shows this configuration and
 looks more complicated than it actually is.</p>
-<p><img src="assets%2Fnon_cooperating_query_masters.png"></p>
+<p><img src="assets/non_cooperating_query_masters.png"></p>
 <p>To summarize, the modified scheme has several characteristics:</p>
 <ul>
 <li>The master only communicates with NCP1 and NCP2</li>
@@ -274,65 +294,52 @@ and a master process.</p>
 </h3>
 <p>Our site class will compute the count on site data.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Site</span> <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"Site"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## local data</span></span>
-<span>                data <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                result_cache <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>                filterCondition <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                local_query_count <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="co">## Check if value is cached</span></span>
-<span>                    <span class="va">result</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">result_cache</span></span>
-<span>                    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="co">## We need to run the query</span></span>
-<span>                        <span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                        <span class="co">## Generate random offset for int and frac parts</span></span>
-<span>                        <span class="va">offset.int</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span></span>
-<span>                        <span class="co">## 2. Add to count</span></span>
-<span>                        <span class="va">data</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">data</span></span>
-<span>                        <span class="va">filter_expr</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">eval</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/parse.html" class="external-link">parse</a></span><span class="op">(</span>text <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"rlang::expr("</span>, <span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span>, <span class="st">")"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>                        <span class="va">data</span> <span class="op">%&gt;%</span></span>
-<span>                            <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="op">!</span> <span class="va">filter_expr</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
-<span>                            <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-&gt;</span></span>
-<span>                            <span class="va">result.int</span></span>
-<span>                        <span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                            int1 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.int</span> <span class="op">-</span> <span class="va">offset.int</span><span class="op">)</span>,</span>
-<span>                            int2 <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.int</span> <span class="op">+</span> <span class="va">offset.int</span><span class="op">)</span></span>
-<span>                        <span class="op">)</span></span>
-<span>                        <span class="va">private</span><span class="op">$</span><span class="va">result_cache</span>  <span class="op">&lt;-</span> <span class="va">result</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                    <span class="va">result</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## Common denominator for approximate real arithmetic</span></span>
-<span>                den <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The master's public key; everyone has this</span></span>
-<span>                pubkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">data</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setPublicKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setDenominator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">=</span> <span class="va">den</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setFilterCondition <span class="op">=</span> <span class="kw">function</span> <span class="op">(</span><span class="va">filterCondition</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span>  <span class="op">&lt;-</span> <span class="va">filterCondition</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## query count,</span></span>
-<span>                query_count <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">party</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">result</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="fu">local_query_count</span><span class="op">(</span><span class="op">)</span></span>
-<span>                    <span class="kw">if</span> <span class="op">(</span><span class="va">party</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="va">result</span><span class="op">$</span><span class="va">int1</span> <span class="kw">else</span> <span class="va">result</span><span class="op">$</span><span class="va">int2</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Site</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Site"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name  <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        data  <span class="op">=</span> <span class="va">class_any</span>,</span>
+<span>        state <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name  <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            data  <span class="op">=</span> <span class="va">data</span>,</span>
+<span>            state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">set_public_key</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_public_key"</span>,       <span class="st">"obj"</span><span class="op">)</span></span>
+<span><span class="va">set_filter_condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_filter_condition"</span>, <span class="st">"obj"</span><span class="op">)</span></span>
+<span><span class="va">query_count</span>          <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"query_count"</span>,          <span class="st">"obj"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_public_key</span>, <span class="va">Site</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span>; <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_filter_condition</span>, <span class="va">Site</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">filter_condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">filter_condition</span> <span class="op">&lt;-</span> <span class="va">filter_condition</span>; <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">query_count</span>, <span class="va">Site</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">party</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co">## Cache the split-and-encrypted local count under the site's</span></span>
+<span>    <span class="co">## current filter condition; both NCPs see the same site, but each</span></span>
+<span>    <span class="co">## gets a different additive share.</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">result_cache</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">pubkey</span>      <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span></span>
+<span>        <span class="va">offset_int</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span></span>
+<span>        <span class="va">filter_expr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/parse.html" class="external-link">parse</a></span><span class="op">(</span>text <span class="op">=</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">filter_condition</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span>        <span class="va">result_int</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">eval</a></span><span class="op">(</span><span class="va">filter_expr</span>, <span class="va">obj</span><span class="op">@</span><span class="va">data</span>, <span class="fu"><a href="https://rdrr.io/r/base/sys.parent.html" class="external-link">parent.frame</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, ,</span>
+<span>                                     drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span>
+<span>        <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">result_cache</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>            int1 <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">result_int</span> <span class="op">-</span> <span class="va">offset_int</span><span class="op">)</span>,</span>
+<span>            int2 <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="va">result_int</span> <span class="op">+</span> <span class="va">offset_int</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">party</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">result_cache</span><span class="op">$</span><span class="va">int1</span> <span class="kw">else</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">result_cache</span><span class="op">$</span><span class="va">int2</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="the-non-cooperating-parties-class">The Non-cooperating Parties Class<a class="anchor" aria-label="anchor" href="#the-non-cooperating-parties-class"></a>
@@ -344,124 +351,97 @@ each site to compute the result and adds them up before sending it on to
 the master, so that the master has no idea of the individual
 contributions.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">NCParty</span> <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"NCParty"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## NC party number</span></span>
-<span>                number <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## filter condition</span></span>
-<span>                filterCondition <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The master</span></span>
-<span>                master <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The sites</span></span>
-<span>                sites <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## The master's public key; everyone has this</span></span>
-<span>                pubkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## The denoinator for rational arithmetic</span></span>
-<span>                den <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">number</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">number</span>  <span class="op">&lt;-</span> <span class="va">number</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setPublicKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
-<span>                    <span class="co">## Propagate to sites</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">site</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">site</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setDenominator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="va">den</span></span>
-<span>                    <span class="co">## Propagate to sites</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">site</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">site</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">den</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setFilterCondition <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">filterCondition</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span>  <span class="op">&lt;-</span> <span class="va">filterCondition</span></span>
-<span>                    <span class="co">## Propagate to sites</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">site</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">site</span><span class="op">$</span><span class="fu">setFilterCondition</span><span class="op">(</span><span class="va">filterCondition</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                addSite <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">sites</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">sites</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## sum of all counts</span></span>
-<span>                query_count <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">pubkey</span>  <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                    <span class="va">results</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="fu">query_count</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">number</span><span class="op">)</span><span class="op">)</span></span>
-<span>                    <span class="co">## Accumulate the integer and fractional parts</span></span>
-<span>                    <span class="va">n</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
-<span>                    <span class="va">enc_sum</span> <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
-<span>                    <span class="kw">for</span> <span class="op">(</span><span class="va">result</span> <span class="kw">in</span> <span class="va">results</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                        <span class="va">enc_sum</span>  <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">enc_sum</span>, <span class="va">result</span><span class="op">)</span></span>
-<span>                    <span class="op">}</span></span>
-<span>                    <span class="va">enc_sum</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">NCParty</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"NCParty"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name   <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        number <span class="op">=</span> <span class="va">class_integer</span>,</span>
+<span>        state  <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">number</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name   <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            number <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">number</span><span class="op">)</span>,</span>
+<span>            state  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">add_site</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"add_site"</span>, <span class="st">"ncp"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_public_key</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_filter_condition</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span>, <span class="va">filter_condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">filter_condition</span> <span class="op">&lt;-</span> <span class="va">filter_condition</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="fu">set_filter_condition</span><span class="op">(</span><span class="va">s</span>, <span class="va">filter_condition</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">add_site</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">ncp</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">ncp</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">ncp</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">query_count</span>, <span class="va">NCParty</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">pubkey</span>  <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">pubkey</span></span>
+<span>    <span class="va">sites</span>   <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sites</span></span>
+<span>    <span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">query_count</span>, party <span class="op">=</span> <span class="va">obj</span><span class="op">@</span><span class="va">number</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">results</span>, init <span class="op">=</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pubkey</span>, <span class="fl">0L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">`%||%`</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span><span class="op">)</span> <span class="va">b</span> <span class="kw">else</span> <span class="va">a</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="the-master-class">The Master Class<a class="anchor" aria-label="anchor" href="#the-master-class"></a>
 </h3>
-<p>The master process</p>
+<p>The master process generates the keys, broadcasts the public key
+through both non-cooperating parties to all sites, and decrypts the
+combined result.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Master</span>  <span class="op">&lt;-</span></span>
-<span>    <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span></span>
-<span>            <span class="st">"Master"</span>,</span>
-<span>            private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## name of the site</span></span>
-<span>                name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Private and public keys</span></span>
-<span>                keys <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Non cooperating party 1</span></span>
-<span>                nc_party_1 <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## Non cooperating party 2</span></span>
-<span>                nc_party_2 <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                <span class="co">## filter condition</span></span>
-<span>                filterCondition <span class="op">=</span> <span class="cn">NA</span></span>
-<span>            <span class="op">)</span>,</span>
-<span>            public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                <span class="co">## Denominator for rational arithmetic</span></span>
-<span>                den  <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">filterCondition</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="va"><a href="../reference/PaillierKeyPair.html">PaillierKeyPair</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span> <span class="co">## Generate new public and private key.</span></span>
-<span>                    <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">^</span><span class="fl">256</span>  <span class="co">#Our denominator for rational approximations</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span>  <span class="op">&lt;-</span> <span class="va">filterCondition</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setNCParty1  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span> <span class="op">&lt;-</span> <span class="va">site</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">setFilterCondition</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                setNCParty2  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span> <span class="op">&lt;-</span> <span class="va">site</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">setDenominator</span><span class="op">(</span><span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span></span>
-<span>                    <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">setFilterCondition</span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">filterCondition</span><span class="op">)</span></span>
-<span>                <span class="op">}</span>,</span>
-<span>                <span class="co">## Query count</span></span>
-<span>                query_count <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                    <span class="va">pubkey</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                    <span class="va">privkey</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">keys</span><span class="op">$</span><span class="fu">getPrivateKey</span><span class="op">(</span><span class="op">)</span></span>
-<span>                    <span class="va">result1</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">$</span><span class="fu">query_count</span><span class="op">(</span><span class="op">)</span></span>
-<span>                    <span class="va">result2</span>  <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">$</span><span class="fu">query_count</span><span class="op">(</span><span class="op">)</span></span>
-<span>                    <span class="co">## Sum it</span></span>
-<span>                    <span class="va">enc_sum</span> <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">result1</span>, <span class="va">result2</span><span class="op">)</span></span>
-<span>                    <span class="va">final_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">privkey</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">enc_sum</span><span class="op">)</span><span class="op">)</span></span>
-<span>                    <span class="co">## Since we 2c, we divide by 2.</span></span>
-<span>                    <span class="va">final_result</span> <span class="op">/</span> <span class="fl">2</span></span>
-<span>                <span class="op">}</span></span>
-<span>            <span class="op">)</span></span>
-<span>        <span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">Master</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Master"</span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        name             <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        filter_condition <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>        state            <span class="op">=</span> <span class="va">class_any</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    constructor <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">filter_condition</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_object</a></span><span class="op">(</span></span>
+<span>            <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_object.html" class="external-link">S7_object</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            name             <span class="op">=</span> <span class="va">name</span>,</span>
+<span>            filter_condition <span class="op">=</span> <span class="va">filter_condition</span>,</span>
+<span>            state            <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">set_ncparty_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_ncparty_1"</span>, <span class="st">"master"</span><span class="op">)</span></span>
+<span><span class="va">set_ncparty_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"set_ncparty_2"</span>, <span class="st">"master"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_ncparty_1</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_1</span> <span class="op">&lt;-</span> <span class="va">ncp</span></span>
+<span>    <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">@</span><span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu">set_filter_condition</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">filter_condition</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">set_ncparty_2</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_2</span> <span class="op">&lt;-</span> <span class="va">ncp</span></span>
+<span>    <span class="fu"><a href="../reference/set_public_key.html">set_public_key</a></span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">@</span><span class="va">pubkey</span><span class="op">)</span></span>
+<span>    <span class="fu">set_filter_condition</span><span class="op">(</span><span class="va">ncp</span>, <span class="va">master</span><span class="op">@</span><span class="va">filter_condition</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">query_count</span>, <span class="va">Master</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">obj</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/paillier_keypair.html">paillier_keypair</a></span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span></span>
+<span>    <span class="va">privkey</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_private_key.html">get_private_key</a></span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span><span class="op">)</span></span>
+<span>    <span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu">query_count</span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_1</span><span class="op">)</span></span>
+<span>    <span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu">query_count</span><span class="op">(</span><span class="va">obj</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">nc_party_2</span><span class="op">)</span></span>
+<span>    <span class="va">enc_sum</span> <span class="op">&lt;-</span> <span class="va">result1</span> <span class="op">+</span> <span class="va">result2</span></span>
+<span>    <span class="va">final</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">privkey</span>, <span class="va">enc_sum</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">final</span> <span class="op">/</span> <span class="fl">2</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -472,35 +452,36 @@ contributions.</p>
 <h3 id="create-sites">1. Create sites<a class="anchor" aria-label="anchor" href="#create-sites"></a>
 </h3>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">site1</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">site2</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">site3</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">site1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">site2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">site3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Site.html">Site</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">query_data</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">sites</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>site1 <span class="op">=</span> <span class="va">site1</span>, site2 <span class="op">=</span> <span class="va">site2</span>, site3 <span class="op">=</span> <span class="va">site3</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>site1 <span class="op">=</span> <span class="va">site1</span>, site2 <span class="op">=</span> <span class="va">site2</span>, site3 <span class="op">=</span> <span class="va">site3</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="create-non-cooperating-parties">2. Create Non-cooperating parties<a class="anchor" aria-label="anchor" href="#create-non-cooperating-parties"></a>
 </h3>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ncp1</span>  <span class="op">&lt;-</span> <span class="va">NCParty</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">ncp2</span>  <span class="op">&lt;-</span> <span class="va">NCParty</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ncp1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NCParty.html">NCParty</a></span><span class="op">(</span><span class="st">"NCP1"</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">ncp2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NCParty.html">NCParty</a></span><span class="op">(</span><span class="st">"NCP2"</span>, <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>We add sites to the non-cooperating parties.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">ncp1</span><span class="op">$</span><span class="fu">addSite</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
-<span>    <span class="va">ncp2</span><span class="op">$</span><span class="fu">addSite</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/add_site.html">add_site</a></span><span class="op">(</span><span class="va">ncp1</span>, <span class="va">s</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/add_site.html">add_site</a></span><span class="op">(</span><span class="va">ncp2</span>, <span class="va">s</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="create-the-master-process">3. Create the master process<a class="anchor" aria-label="anchor" href="#create-the-master-process"></a>
 </h3>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span>  <span class="op">&lt;-</span> <span class="va">Master</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Master"</span>,</span>
-<span>                      filterCondition <span class="op">=</span> <span class="st">"age &lt; 50 &amp; sex == 'F' &amp; bm &lt; 0.2"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Master.html">Master</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Master"</span>,</span>
+<span>                 filter_condition <span class="op">=</span> <span class="st">"age &lt; 50 &amp; sex == 'F' &amp; bm &lt; 0.2"</span><span class="op">)</span></span>
+<span><span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/paillier_keypair.html">paillier_keypair</a></span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span></span></code></pre></div>
 <p>We next connect the master to the non-cooperating parties.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span><span class="op">$</span><span class="fu">setNCParty1</span><span class="op">(</span><span class="va">ncp1</span><span class="op">)</span></span>
-<span><span class="va">master</span><span class="op">$</span><span class="fu">setNCParty2</span><span class="op">(</span><span class="va">ncp2</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">set_ncparty_1</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp1</span><span class="op">)</span></span>
+<span><span class="fu">set_ncparty_2</span><span class="op">(</span><span class="va">master</span>, <span class="va">ncp2</span><span class="op">)</span></span></code></pre></div>
 <p>At this point the communication graph has been defined between the
 master and non-cooperating parties and the non-cooperating parties and
 the sites.</p>
@@ -509,7 +490,7 @@ the sites.</p>
 <h3 id="perform-the-query">4. Perform the Query<a class="anchor" aria-label="anchor" href="#perform-the-query"></a>
 </h3>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Query Count is %d\n"</span>, <span class="va">master</span><span class="op">$</span><span class="fu">query_count</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Query Count is %d\n"</span>, <span class="fu">query_count</span><span class="op">(</span><span class="va">master</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Query Count is 11</span></span></code></pre>
 </div>
 </div>
@@ -528,7 +509,7 @@ the sites.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

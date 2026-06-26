@@ -6,9 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Maximum Likelihood Computation using Homomorphic Computation • homomorpheR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Maximum Likelihood Computation using Homomorphic Computation">
 </head>
@@ -20,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +39,19 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
     <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
@@ -59,12 +75,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Maximum Likelihood Computation using Homomorphic Computation</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Maximum Likelihood Computation using Homomorphic Computation</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2025-04-09</h4>
+            <h4 data-toc-skip class="date">2026-06-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/homomorphing.Rmd" class="external-link"><code>vignettes/homomorphing.Rmd</code></a></small>
       <div class="d-none name"><code>homomorphing.Rmd</code></div>
@@ -205,7 +220,7 @@ computational cost.</li>
 </ol>
 <p>This is pictorially shown below.</p>
 <div class="float">
-<img src="assets%2Fround_robin.png" alt="Round robin scheme"><div class="figcaption">Round robin scheme</div>
+<img src="assets/round_robin.png" alt="Round robin scheme"><div class="figcaption">Round robin scheme</div>
 </div>
 </div>
 <div class="section level2">
@@ -222,170 +237,61 @@ implementation.</p>
 <p>Also, since we are only using homomorphic additive properties, a
 partial homomorphic scheme such as the Paillier Encryption system will
 be sufficient for our computations.</p>
-<p>We define a class to encapsulate our sites that will compute the
-Poisson likelihood on site data given a parameter
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>.
-Note how the <code>addNLLAndForward</code> method takes care to split
-the result into an integer and fractional part while performing the
-arithmetic operations. (The latter is approximated by a rational
-number.)</p>
+<p>The package exports a small actor surface — <code>Site</code>,
+<code>Master</code>, and the helpers <code><a href="../reference/make_site.html">make_site()</a></code>,
+<code><a href="../reference/make_master.html">make_master()</a></code>, <code><a href="../reference/round_robin_chain.html">round_robin_chain()</a></code>,
+<code><a href="../reference/run_round_robin.html">run_round_robin()</a></code> — that captures the round-robin protocol
+once and lets each application supply its own per-site summary
+function.</p>
+<p>The per-site negative log-likelihood is just an ordinary R function
+of <code>(data, theta)</code>. We write it out and hand it to the
+constructor:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://forgemia.inra.fr/sylvain.jasson/gmp" class="external-link">gmp</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR" class="external-link">homomorpheR</a></span><span class="op">)</span></span>
-<span><span class="va">Site</span> <span class="op">&lt;-</span> <span class="fu">R6</span><span class="fu">::</span><span class="kw"><a href="https://r6.r-lib.org/reference/R6Class.html" class="external-link">R6Class</a></span><span class="op">(</span><span class="st">"Site"</span>,</span>
-<span>                    private <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                        <span class="co">## name of the site</span></span>
-<span>                        name <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        <span class="co">## only master has this, NA for workers</span></span>
-<span>                        privkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        <span class="co">## local data</span></span>
-<span>                        data <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        <span class="co">## The next site in the communication: NA for master</span></span>
-<span>                        nextSite <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        <span class="co">## is this the master site?</span></span>
-<span>                        iAmMaster <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>                        <span class="co">## intermediate result variable</span></span>
-<span>                        intermediateResult <span class="op">=</span> <span class="cn">NA</span></span>
-<span>                    <span class="op">)</span>,</span>
-<span>                    public <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>                        <span class="co">## Common denominator for approximate real arithmetic</span></span>
-<span>                        den <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        <span class="co">## The public key; everyone has this</span></span>
-<span>                        pubkey <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                        initialize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">data</span>, <span class="va">den</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="va">name</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">data</span></span>
-<span>                            <span class="va">self</span><span class="op">$</span><span class="va">den</span> <span class="op">&lt;-</span> <span class="va">den</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        setPublicKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">pubkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">pubkey</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        setPrivateKey <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">privkey</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">privkey</span> <span class="op">&lt;-</span> <span class="va">privkey</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        <span class="co">## Make me master</span></span>
-<span>                        makeMeMaster <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">iAmMaster</span> <span class="op">&lt;-</span> <span class="cn">TRUE</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        <span class="co">## add neg log lik and forward to next site</span></span>
-<span>                        addNLLAndForward <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">lambda</span>, <span class="va">enc.offset</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="kw">if</span> <span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">iAmMaster</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                                <span class="co">## We are master, so don't forward</span></span>
-<span>                                <span class="co">## Just store intermediate result and return</span></span>
-<span>                                <span class="va">private</span><span class="op">$</span><span class="va">intermediateResult</span> <span class="op">&lt;-</span> <span class="va">enc.offset</span></span>
-<span>                            <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>                                <span class="co">## We are workers, so add and forward</span></span>
-<span>                                <span class="co">## add negative log likelihood and forward result to next site</span></span>
-<span>                                <span class="co">## Note that offset is encrypted</span></span>
-<span>                                <span class="va">nllValue</span> <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="fu">nLL</span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span></span>
-<span>                                <span class="va">result.int</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="va">nllValue</span><span class="op">)</span></span>
-<span>                                <span class="va">result.frac</span> <span class="op">&lt;-</span> <span class="va">nllValue</span> <span class="op">-</span> <span class="va">result.int</span></span>
-<span>                                <span class="va">result.fracnum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">numerator</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="va">result.frac</span><span class="op">)</span> <span class="op">*</span> <span class="va">self</span><span class="op">$</span><span class="va">den</span><span class="op">)</span><span class="op">)</span></span>
-<span>                                <span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                                <span class="va">enc.result.int</span> <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.int</span><span class="op">)</span></span>
-<span>                                <span class="va">enc.result.fracnum</span> <span class="op">&lt;-</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">result.fracnum</span><span class="op">)</span></span>
-<span>                                <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">enc.result.int</span>, <span class="va">enc.offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
-<span>                                               frac <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">add</span><span class="op">(</span><span class="va">enc.result.fracnum</span>, <span class="va">enc.offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span><span class="op">)</span></span>
-<span>                                <span class="va">private</span><span class="op">$</span><span class="va">nextSite</span><span class="op">$</span><span class="fu">addNLLAndForward</span><span class="op">(</span><span class="va">lambda</span>, enc.offset <span class="op">=</span> <span class="va">result</span><span class="op">)</span></span>
-<span>                            <span class="op">}</span></span>
-<span>                            <span class="co">## Return a TRUE result for now.</span></span>
-<span>                            <span class="cn">TRUE</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        <span class="co">## Set the next site in the communication graph</span></span>
-<span>                        setNextSite <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">nextSite</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="va">private</span><span class="op">$</span><span class="va">nextSite</span> <span class="op">&lt;-</span> <span class="va">nextSite</span></span>
-<span>                        <span class="op">}</span>,</span>
-<span>                        <span class="co">## The negative log likelihood</span></span>
-<span>                        nLL <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                            <span class="kw">if</span> <span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">iAmMaster</span><span class="op">)</span> <span class="op">{</span></span>
-<span>                                <span class="co">## We're master, so need to get result from sites</span></span>
-<span>                                <span class="co">## 1. Generate a random offset and encrypt it</span></span>
-<span>                                <span class="va">pubkey</span> <span class="op">&lt;-</span> <span class="va">self</span><span class="op">$</span><span class="va">pubkey</span></span>
-<span>                                <span class="va">offset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span>,</span>
-<span>                                               frac <span class="op">=</span> <span class="fu"><a href="../reference/random.bigz.html">random.bigz</a></span><span class="op">(</span>nBits <span class="op">=</span> <span class="fl">256</span><span class="op">)</span><span class="op">)</span></span>
-<span>                                <span class="va">enc.offset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>int <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span>,</span>
-<span>                                                   frac <span class="op">=</span> <span class="va">pubkey</span><span class="op">$</span><span class="fu">encrypt</span><span class="op">(</span><span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span><span class="op">)</span></span>
-<span>                                <span class="co">## 2. Send off to next site</span></span>
-<span>                                <span class="va">throwaway</span> <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">nextSite</span><span class="op">$</span><span class="fu">addNLLAndForward</span><span class="op">(</span><span class="va">lambda</span>, <span class="va">enc.offset</span><span class="op">)</span></span>
-<span>                                <span class="co">## 3. When the call returns, the result will be in</span></span>
-<span>                                <span class="co">##    the field intermediateResult, so decrypt that.</span></span>
-<span>                                <span class="va">sum</span> <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">intermediateResult</span></span>
-<span>                                <span class="va">privkey</span> <span class="op">&lt;-</span> <span class="va">private</span><span class="op">$</span><span class="va">privkey</span></span>
-<span>                                <span class="va">intResult</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">privkey</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">sum</span><span class="op">$</span><span class="va">int</span><span class="op">)</span> <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">int</span><span class="op">)</span></span>
-<span>                                <span class="va">fracResult</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="va">privkey</span><span class="op">$</span><span class="fu">decrypt</span><span class="op">(</span><span class="va">sum</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span> <span class="op">-</span> <span class="va">offset</span><span class="op">$</span><span class="va">frac</span><span class="op">)</span> <span class="op">/</span> <span class="va">den</span><span class="op">)</span></span>
-<span>                                <span class="va">intResult</span> <span class="op">+</span> <span class="va">fracResult</span></span>
-<span>                            <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>                                <span class="co">## We're worker, so compute local nLL</span></span>
-<span>                                <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">dpois</a></span><span class="op">(</span><span class="va">private</span><span class="op">$</span><span class="va">data</span>, <span class="va">lambda</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span>                            <span class="op">}</span></span>
-<span>                        <span class="op">}</span><span class="op">)</span></span>
-<span>                    <span class="op">)</span></span></code></pre></div>
-<p>We are now ready to use our sites in the computation.</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/homomorpheR/">homomorpheR</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">local_nll</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">lambda</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">dpois</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">lambda</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <div class="section level3">
-<h3 id="generate-public-and-private-key-pair">1. Generate public and private key pair<a class="anchor" aria-label="anchor" href="#generate-public-and-private-key-pair"></a>
+<h3 id="generate-a-key-pair">1. Generate a key pair<a class="anchor" aria-label="anchor" href="#generate-a-key-pair"></a>
 </h3>
-<p>We also choose a denominator for all our rational approximations.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="va"><a href="../reference/PaillierKeyPair.html">PaillierKeyPair</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="fl">1024</span><span class="op">)</span> <span class="co">## Generate new public and private key.</span></span>
-<span><span class="va">den</span> <span class="op">&lt;-</span> <span class="fu">gmp</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gmp/man/bigrational.html" class="external-link">as.bigq</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">^</span><span class="fl">256</span>  <span class="co">#Our denominator for rational approximations</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/paillier_keypair.html">paillier_keypair</a></span><span class="op">(</span>modulus_bits <span class="op">=</span> <span class="fl">1024</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="create-sites">2. Create sites<a class="anchor" aria-label="anchor" href="#create-sites"></a>
+<h3 id="build-sites-and-master-wire-the-chain">2. Build sites and master, wire the chain<a class="anchor" aria-label="anchor" href="#build-sites-and-master-wire-the-chain"></a>
 </h3>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">site1</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">y1</span>, den <span class="op">=</span> <span class="va">den</span><span class="op">)</span></span>
-<span><span class="va">site2</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">y2</span>, den <span class="op">=</span> <span class="va">den</span><span class="op">)</span></span>
-<span><span class="va">site3</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">y3</span>, den <span class="op">=</span> <span class="va">den</span><span class="op">)</span></span></code></pre></div>
-<p>The master process is also a site but has no data. So has to be thus
-designated.</p>
+<code class="sourceCode R"><span><span class="va">site1</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_site.html">make_site</a></span><span class="op">(</span><span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">y1</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<span><span class="va">site2</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_site.html">make_site</a></span><span class="op">(</span><span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">y2</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<span><span class="va">site3</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_site.html">make_site</a></span><span class="op">(</span><span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">y3</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_master.html">make_master</a></span><span class="op">(</span><span class="st">"Master"</span>, keypair <span class="op">=</span> <span class="va">keys</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/round_robin_chain.html">round_robin_chain</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">site1</span>, <span class="va">site2</span>, <span class="va">site3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/round_robin_chain.html">round_robin_chain()</a></code> wires
+<code>master -&gt; site1 -&gt; site2 -&gt; site3 -&gt; master</code> and
+broadcasts the public key to every site.</p>
+</div>
+<div class="section level3">
+<h3 id="perform-the-likelihood-estimation">3. Perform the likelihood estimation<a class="anchor" aria-label="anchor" href="#perform-the-likelihood-estimation"></a>
+</h3>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Master has no data!</span></span>
-<span><span class="va">master</span> <span class="op">&lt;-</span> <span class="va">Site</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Master"</span>, data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>, den <span class="op">=</span> <span class="va">den</span><span class="op">)</span></span>
-<span><span class="va">master</span><span class="op">$</span><span class="fu">makeMeMaster</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="distribute-public-key-to-sites">2. Distribute public key to sites<a class="anchor" aria-label="anchor" href="#distribute-public-key-to-sites"></a>
-</h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">site1</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span><span class="va">site2</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span><span class="va">site3</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span>
-<span><span class="va">master</span><span class="op">$</span><span class="fu">setPublicKey</span><span class="op">(</span><span class="va">keys</span><span class="op">$</span><span class="va">pubkey</span><span class="op">)</span></span></code></pre></div>
-<p>Only master has private key for decryption.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span><span class="op">$</span><span class="fu">setPrivateKey</span><span class="op">(</span><span class="va">keys</span><span class="op">$</span><span class="fu">getPrivateKey</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="define-the-communication-graph">3. Define the communication graph<a class="anchor" aria-label="anchor" href="#define-the-communication-graph"></a>
-</h3>
-<p>Master will always send to the first site, and then the others have
-to forward results in turn with the last site returning to the
-master.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span><span class="op">$</span><span class="fu">setNextSite</span><span class="op">(</span><span class="va">site1</span><span class="op">)</span></span>
-<span><span class="va">site1</span><span class="op">$</span><span class="fu">setNextSite</span><span class="op">(</span><span class="va">site2</span><span class="op">)</span></span>
-<span><span class="va">site2</span><span class="op">$</span><span class="fu">setNextSite</span><span class="op">(</span><span class="va">site3</span><span class="op">)</span></span>
-<span><span class="va">site3</span><span class="op">$</span><span class="fu">setNextSite</span><span class="op">(</span><span class="va">master</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="perform-the-likelihood-estimation">4. Perform the likelihood estimation<a class="anchor" aria-label="anchor" href="#perform-the-likelihood-estimation"></a>
-</h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="va">master</span><span class="op">$</span><span class="va">nLL</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">fit1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">lambda</span><span class="op">)</span> <span class="fu"><a href="../reference/run_round_robin.html">run_round_robin</a></span><span class="op">(</span><span class="va">master</span>, <span class="va">lambda</span><span class="op">)</span>,</span>
+<span>            start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Print the summary.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit1</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Maximum likelihood estimation</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Call:</span></span>
-<span><span class="co">## mle(minuslogl = master$nLL, start = list(lambda = 5))</span></span>
+<span><span class="co">## mle(minuslogl = function(lambda) run_round_robin(master, lambda), </span></span>
+<span><span class="co">##     start = list(lambda = 5))</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## Coefficients:</span></span>
 <span><span class="co">##        Estimate Std. Error</span></span>
-<span><span class="co">## lambda    9.175  0.4789311</span></span>
+<span><span class="co">## lambda    9.175  0.4789307</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## -2 log L: 199.5328</span></span></code></pre>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit1</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## 'log Lik.' -99.76641 (df=1)</span></span></code></pre>
 <p>The results should be the same as above.</p>
@@ -419,7 +325,7 @@ substantially improved for real-world use. You’ve been warned.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

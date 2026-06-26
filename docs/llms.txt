@@ -1,0 +1,234 @@
+# homomorpheR
+
+`homomorpheR` provides homomorphic computation in R for
+privacy-preserving statistics. It implements the Paillier additive
+scheme natively, and reaches the fully homomorphic CKKS, BFV, and BGV
+schemes through the companion `openfhe.R` package. On top of these it
+ships reusable master/worker primitives that let ordinary R modeling
+code — [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html), stratified
+[`survival::coxph()`](https://rdrr.io/pkg/survival/man/coxph.html),
+convex programs via `CVXR` — run across sites that never share their raw
+data, optionally under *n*-of-*n* threshold key generation so that no
+single party can decrypt.
+
+The published version may be found on
+[CRAN](https://cran.r-project.org/package=homomorpheR) and can be
+installed as usual.
+
+## Development version
+
+Install this development version by cutting and pasting into your R
+session, which will install all dependencies also.
+
+    ## Install a package if not already installed
+    install_if_needed <- function(packages, ...) {
+        toInstall <- setdiff(packages, installed.packages()[, 1])
+        if (length(toInstall) > 0) install.packages(toInstall, ...)
+    }
+    install_if_needed(c("gmp", "sodium", "devtools"), repos = "https://cloud.r-project.org")
+    devtools::install_github("bnaras/homomorpheR")
+
+The fully homomorphic (CKKS/BFV/BGV) vignettes additionally require the
+`openfhe.R` package.
+
+The vignettes build up from a gentle introduction to complete
+distributed protocols:
+
+**Getting started**
+
+- `introduction` — a quick tour of homomorphic computation in R.
+- `mle` — homomorphic maximum-likelihood estimation for a Poisson
+  parameter.
+
+**Distributed statistical modeling under FHE**
+
+- `cox` — stratified Cox regression distributed across sites under CKKS.
+- `cox-threshold` — the same fit under *n*-of-*n* threshold key
+  generation, so no single party can decrypt.
+- `cvxr-consensus-admm` — consensus ADMM for a `CVXR` convex program
+  under threshold FHE.
+- `secure-inference` — two-party encrypted prediction.
+- `encrypted-regression` — logistic regression on encrypted data via a
+  Chebyshev sigmoid approximation.
+- `similarity` — federated cosine-similarity retrieval with site-private
+  fine-tuned models.
+- `privacy-preserving-aggregation` — exact integer aggregation under
+  BFV.
+
+**Differential-privacy variants**
+
+- `cox-threshold-dp`, `cvxr-consensus-admm-dp` — the threshold-FHE
+  protocols above with site-side differential-privacy noise.
+
+**Legacy Paillier vignettes** (the historical predecessors)
+
+- `homomorphing` — Paillier homomorphic computations.
+- `DHCox` — distributed Cox regression via Paillier.
+- `QueryNCP` — query count with non-cooperating parties.
+- `DHCoxNCP` — distributed Cox with non-cooperating parties.
+
+A related project is
+[distcomp](https://cran.r-project.org/package=distcomp).
+
+## Website
+
+You can view everything, including documentation and vignettes on the
+[homomorpheR website](https://bnaras.github.io/homomorpheR/).
+
+# Package index
+
+## All functions
+
+- [`CKKSMaster()`](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)
+  : CKKS-backed master
+
+- [`DLBCL`](https://bnaras.github.io/homomorpheR/reference/DLBCL.md) :
+  Diffuse Large B-cell Lymphoma Cohort (Rosenwald et al. 2002)
+
+- [`DLBCL_gex`](https://bnaras.github.io/homomorpheR/reference/DLBCL_gex.md)
+  : DLBCL Lymphochip gene-expression matrix
+
+- [`Master()`](https://bnaras.github.io/homomorpheR/reference/Master.md)
+  : Abstract master class
+
+- [`NCParty()`](https://bnaras.github.io/homomorpheR/reference/NCParty.md)
+  : A non-cooperating party
+
+- [`PaillierCiphertext()`](https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.md)
+  : A Paillier ciphertext
+
+- [`PaillierEncryptedReal()`](https://bnaras.github.io/homomorpheR/reference/PaillierEncryptedReal.md)
+  : A Paillier-encrypted real number
+
+- [`PaillierKeyPair()`](https://bnaras.github.io/homomorpheR/reference/PaillierKeyPair.md)
+  : Paillier key pair
+
+- [`PaillierMaster()`](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md)
+  : Paillier-backed master
+
+- [`PaillierPrivateKey()`](https://bnaras.github.io/homomorpheR/reference/PaillierPrivateKey.md)
+  : Paillier private key
+
+- [`PaillierPublicKey()`](https://bnaras.github.io/homomorpheR/reference/PaillierPublicKey.md)
+  : Paillier public key
+
+- [`Site()`](https://bnaras.github.io/homomorpheR/reference/Site.md) : A
+  site in a multi-party protocol
+
+- [`ThresholdMaster()`](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md)
+  : Threshold-CKKS master (n-of-n key generation)
+
+- [`add_site()`](https://bnaras.github.io/homomorpheR/reference/add_site.md)
+  : Add a site to a non-cooperating party
+
+- [`cvxr_consensus`](https://bnaras.github.io/homomorpheR/reference/cvxr_consensus.md)
+  : Precomputed encrypted Cox-lasso consensus-ADMM results
+
+- [`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+  : Decrypt a Paillier ciphertext
+
+- [`encrypt()`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)
+  : Encrypt a value under a Paillier public key
+
+- [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md)
+  : Encrypt a real number under a Paillier public key
+
+- [`get_lambda()`](https://bnaras.github.io/homomorpheR/reference/get_lambda.md)
+  : Return the secret lambda from a private key
+
+- [`get_private_key()`](https://bnaras.github.io/homomorpheR/reference/get_private_key.md)
+  : Return the private key from a key pair
+
+- [`homomorpheR-package`](https://bnaras.github.io/homomorpheR/reference/homomorpheR.md)
+  [`homomorpheR`](https://bnaras.github.io/homomorpheR/reference/homomorpheR.md)
+  : homomorpheR: Homomorphic computations in R
+
+- [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
+  : Construct a CKKS-backed master
+
+- [`make_master()`](https://bnaras.github.io/homomorpheR/reference/make_master.md)
+  : Construct a Paillier-backed master
+
+- [`make_ncparty()`](https://bnaras.github.io/homomorpheR/reference/make_ncparty.md)
+  : Construct an NCParty
+
+- [`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md)
+  : Construct a Site
+
+- [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
+  : Construct a threshold-CKKS master and the per-site secret shares
+
+- [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)
+  :
+
+  Construct a worker (alias for
+  [`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md))
+
+- [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
+  : Run one round of the master/worker protocol
+
+- [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+  : Decrypt the master's protocol result back to a scalar real
+
+- [`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
+  : Encrypt a real value for a master's protocol
+
+- [`paillier_keypair()`](https://bnaras.github.io/homomorpheR/reference/paillier_keypair.md)
+  : Generate a new Paillier key pair
+
+- [`random.bigz()`](https://bnaras.github.io/homomorpheR/reference/random.bigz.md)
+  : Random big integer
+
+- [`round_robin_chain()`](https://bnaras.github.io/homomorpheR/reference/round_robin_chain.md)
+  : Wire a master and a list of sites into a round-robin chain
+
+- [`run_round_robin()`](https://bnaras.github.io/homomorpheR/reference/run_round_robin.md)
+  : Run one round of the round-robin protocol
+
+- [`set_next_site()`](https://bnaras.github.io/homomorpheR/reference/set_next_site.md)
+  :
+
+  Wire one site's `next_site` to another
+
+- [`set_public_key()`](https://bnaras.github.io/homomorpheR/reference/set_public_key.md)
+  : Distribute the public key from the master to a downstream actor
+
+- [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
+  : Wire a master to a flat list of workers
+
+# Articles
+
+### All vignettes
+
+- [Threshold Cox + Output Differential Privacy
+  (Demonstration)](https://bnaras.github.io/homomorpheR/articles/cox-threshold-dp.md):
+- [Distributed Cox Regression with Threshold Key
+  Generation](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md):
+- [Distributed Stratified Cox Regression under
+  CKKS](https://bnaras.github.io/homomorpheR/articles/cox.md):
+- [Consensus ADMM + Output Differential Privacy
+  (Demonstration)](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm-dp.md):
+- [Federated Consensus ADMM with CVXR over Threshold
+  CKKS](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md):
+- [Federated Cox-Lasso via Consensus ADMM on DLBCL (Threshold
+  CKKS)](https://bnaras.github.io/homomorpheR/articles/cvxr-cox-lasso-dlbcl.md):
+- [Distributed Stratified Cox Regression using Homomorphic
+  Computation](https://bnaras.github.io/homomorpheR/articles/DHCox.md):
+- [Distributed Stratified Cox Regression using Non-Cooperating
+  Parties](https://bnaras.github.io/homomorpheR/articles/DHCoxNCP.md):
+- [Encrypted Logistic Regression
+  Prediction](https://bnaras.github.io/homomorpheR/articles/encrypted-regression.md):
+- [Maximum Likelihood Computation using Homomorphic
+  Computation](https://bnaras.github.io/homomorpheR/articles/homomorphing.md):
+- [Introduction to Homomorphic Computation in
+  R](https://bnaras.github.io/homomorpheR/articles/introduction.md):
+- [Distributed Maximum Likelihood Estimation under
+  CKKS](https://bnaras.github.io/homomorpheR/articles/mle.md):
+- [Privacy-Preserving Count Aggregation under
+  BFV](https://bnaras.github.io/homomorpheR/articles/privacy-preserving-aggregation.md):
+- [Distributed Query Count using Non-Cooperating
+  Parties](https://bnaras.github.io/homomorpheR/articles/QueryNCP.md):
+- [Secure Model Inference on Encrypted
+  Data](https://bnaras.github.io/homomorpheR/articles/secure-inference.md):
+- [Federated Cosine Similarity with Site-Private Fine-Tuned
+  Models](https://bnaras.github.io/homomorpheR/articles/similarity.md):
