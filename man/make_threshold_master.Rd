@@ -9,9 +9,12 @@ make_threshold_master(name, crypto_context, n_sites)
 \arguments{
 \item{name}{short identifier.}
 
-\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} configured for
-CKKS \emph{with} the \code{MULTIPARTY} feature enabled. Pass
-\code{features = c(Feature$MULTIPARTY)} to \code{fhe_context()}.}
+\item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} (CKKS, BFV,
+or BGV) \emph{with} the \code{MULTIPARTY} feature enabled. Pass
+\code{features = c(Feature$MULTIPARTY)} to \code{fhe_context()}. The
+scheme is read back from the context, so the same master drives
+the protocol over real-valued (CKKS) or exact-integer (BFV/BGV)
+arithmetic without further configuration.}
 
 \item{n_sites}{number of participating sites (>= 2).}
 }

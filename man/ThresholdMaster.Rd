@@ -27,8 +27,10 @@ ThresholdMaster(
 (the first is the lead site whose \code{sk} started the chain).}
 }
 \description{
-A \link{Master} that drives the protocol over \code{openfhe.R}'s CKKS with
-threshold key generation. There is no single secret key: each
+A \link{Master} that drives the protocol over \code{openfhe.R} with
+threshold key generation, under whichever scheme the supplied
+crypto context was built for (CKKS for real-valued work, BFV or
+BGV for exact integer work). There is no single secret key: each
 site holds a secret share \code{sk_i}, and the joint public key
 \verb{pk_\{1..n\}} is built by chaining \code{multiparty_key_gen()} across
 sites. Encryption goes under \code{joint_pubkey}. Decryption requires

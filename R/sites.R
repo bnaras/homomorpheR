@@ -1,6 +1,6 @@
 #' @importFrom S7 new_class new_generic new_object method method<- class_any class_character class_integer S7_object S7_inherits
 #' @importFrom stats runif
-#' @importFrom openfhe.R make_ckks_packed_plaintext get_real_packed_value
+#' @importFrom openfhe.R make_ckks_packed_plaintext get_real_packed_value make_packed_plaintext get_packed_value get_scheme_id
 #' @importFrom openfhe.R multiparty_key_gen multiparty_decrypt_lead multiparty_decrypt_main multiparty_decrypt_fusion
 NULL
 
@@ -112,8 +112,10 @@ CKKSMaster <- new_class(
 
 #' Threshold-CKKS master (n-of-n key generation)
 #'
-#' A [Master] that drives the protocol over `openfhe.R`'s CKKS with
-#' threshold key generation. There is no single secret key: each
+#' A [Master] that drives the protocol over `openfhe.R` with
+#' threshold key generation, under whichever scheme the supplied
+#' crypto context was built for (CKKS for real-valued work, BFV or
+#' BGV for exact integer work). There is no single secret key: each
 #' site holds a secret share `sk_i`, and the joint public key
 #' `pk_{1..n}` is built by chaining `multiparty_key_gen()` across
 #' sites. Encryption goes under `joint_pubkey`. Decryption requires
@@ -220,9 +222,12 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #' inside [master_decrypt()] when called on a `ThresholdMaster`.
 #'
 #' @param name short identifier.
-#' @param crypto_context an `openfhe.R` `CryptoContext` configured for
-#'   CKKS *with* the `MULTIPARTY` feature enabled. Pass
-#'   `features = c(Feature$MULTIPARTY)` to `fhe_context()`.
+#' @param crypto_context an `openfhe.R` `CryptoContext` (CKKS, BFV,
+#'   or BGV) *with* the `MULTIPARTY` feature enabled. Pass
+#'   `features = c(Feature$MULTIPARTY)` to `fhe_context()`. The
+#'   scheme is read back from the context, so the same master drives
+#'   the protocol over real-valued (CKKS) or exact-integer (BFV/BGV)
+#'   arithmetic without further configuration.
 #' @param n_sites number of participating sites (>= 2).
 #' @return a [ThresholdMaster].
 #' @export
@@ -370,20 +375,20 @@ method(master_decrypt, PaillierMaster) <- function(master, ciphertext) {
 
 method(master_encrypt, CKKSMaster) <- function(master, value) {
     cc <- master@crypto_context
-    pt <- openfhe.R::make_ckks_packed_plaintext(cc, value)
+    pt <- .packed_codec(cc)$encode(value)
     openfhe.R::encrypt(master@keypair@public, pt, cc = cc)
 }
 method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
     cc <- master@crypto_context
     pt <- openfhe.R::decrypt(ciphertext, master@keypair@secret, cc = cc)
     openfhe.R::set_length(pt, as.integer(len))
-    vals <- openfhe.R::get_real_packed_value(pt)
+    vals <- .packed_codec(cc)$decode(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
 method(master_encrypt, ThresholdMaster) <- function(master, value) {
     cc <- master@crypto_context
-    pt <- openfhe.R::make_ckks_packed_plaintext(cc, value)
+    pt <- .packed_codec(cc)$encode(value)
     openfhe.R::encrypt(master@joint_pubkey, pt, cc = cc)
 }
 method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L) {
@@ -404,13 +409,36 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
     ## partials would not suffice.
     pt <- do.call(openfhe.R::multiparty_decrypt_fusion, c(list(cc), partials))
     openfhe.R::set_length(pt, as.integer(len))
-    vals <- openfhe.R::get_real_packed_value(pt)
+    vals <- .packed_codec(cc)$decode(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
 
 # ---- Helpers --------------------------------------------------------------
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+## Plaintext codec matching a crypto context's scheme.
+##
+## The protocol body (encrypt local summaries, add homomorphically,
+## decrypt the total) is identical across schemes; only the
+## plaintext encode/decode pair differs. CKKS carries reals and its
+## decode returns approximate doubles; BFV and BGV carry exact
+## integers. Detecting the scheme from the context keeps it the
+## single source of truth -- a master never has to be told which
+## scheme its context was built for.
+.packed_codec <- function(cc) {
+    if (openfhe.R::get_scheme_id(cc) == openfhe.R::SchemeId$CKKSRNS_SCHEME) {
+        list(
+            encode = function(value) openfhe.R::make_ckks_packed_plaintext(cc, value),
+            decode = function(pt)    openfhe.R::get_real_packed_value(pt)
+        )
+    } else {
+        list(
+            encode = function(value) openfhe.R::make_packed_plaintext(cc, as.integer(value)),
+            decode = function(pt)    openfhe.R::get_packed_value(pt)
+        )
+    }
+}
 
 #' Wire a master and a list of sites into a round-robin chain
 #'

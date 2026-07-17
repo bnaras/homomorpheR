@@ -12,14 +12,8 @@ navbar:
    articles:
     text: Articles
     menu:
-    - text: Introduction
-      href: articles/introduction.html
-    - text: Maximum Likelihood Estimation (Paillier)
-      href: articles/homomorphing.html
     - text: Maximum Likelihood Estimation (CKKS)
       href: articles/mle.html
-    - text: Distributed Cox Regression (Paillier)
-      href: articles/DHCox.html
     - text: Distributed Cox Regression (CKKS)
       href: articles/cox.html
     - text: Distributed Cox Regression (Threshold CKKS)
@@ -36,12 +30,10 @@ navbar:
       href: articles/encrypted-regression.html
     - text: Privacy-Preserving Count Aggregation (BFV)
       href: articles/privacy-preserving-aggregation.html
+    - text: Distributed Query Count (Threshold BFV)
+      href: articles/query-count-threshold.html
     - text: Threshold Cox + Output DP (Demonstration)
       href: articles/cox-threshold-dp.html
     - text: Consensus ADMM + Output DP (Demonstration)
       href: articles/cvxr-consensus-admm-dp.html
-    - text: Distributed Query Count using Noncooperating parties
-      href: articles/QueryNCP.html
-    - text: Distributed Cox Regression using Noncooperating parties
-      href: articles/DHCoxNCP.html
 
