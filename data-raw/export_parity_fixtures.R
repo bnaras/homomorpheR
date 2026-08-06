@@ -289,6 +289,9 @@ suppressPackageStartupMessages(library(survival))
 ## coxph(init = beta, iter.max = 0)$loglik[1] is the partial
 ## log-likelihood AT beta -- this is the per-site local_fn the
 ## threshold-Cox protocol aggregates, not a fitted value.
+.loglik_at_nll <- function(data, beta)
+    -.loglik_at(data, beta, "efron")
+
 .loglik_at <- function(data, beta, ties = "efron") {
     fit <- tryCatch(
         coxph(.cox_formula, data = data, init = beta,
@@ -340,7 +343,33 @@ write_json(list(
                       "local_fn returns the negative per-site value."),
     tolerance = list(value = 1e-10, kind = "numeric",
                      note = "Measured agreement is ~1e-12 (2026-08-06)."),
-    cases = .cox_cases),
+    cases = .cox_cases,
+    ## The fitted result the Python port must reproduce. optim's own
+    ## settings, exactly as the vignettes run them.
+    reference_fit = local({
+        obj <- function(beta)
+            sum(vapply(.cox_sites, .loglik_at_nll, numeric(1), beta = beta))
+        f <- optim(rep(0, 5), obj, method = "BFGS",
+                   control = list(reltol = 1e-7, ndeps = rep(1e-3, 5)))
+        agg <- coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
+                         BMP6 + MHC2_sig + strata(Subgroup), data = DLBCL)
+        list(optimizer   = "optim(method='BFGS', reltol=1e-7, ndeps=1e-3)",
+             convergence = f$convergence,
+             n_fn_evals  = unname(f$counts[["function"]]),
+             coefficients = setNames(as.list(f$par), .cox_covars),
+             objective   = f$value,
+             centralized = setNames(as.list(unname(coef(agg)[.cox_covars])),
+                                    .cox_covars),
+             max_abs_diff_vs_centralized =
+                 max(abs(f$par - coef(agg)[.cox_covars])),
+             tolerance = list(
+                 coefficients = list(value = 1e-5, kind = "statistical",
+                     note = paste("Two optimizers with different stopping",
+                                  "criteria (R reltol vs scipy gtol);",
+                                  "R itself lands 1.8e-06 from coxph.")),
+                 objective = list(value = 1e-6, kind = "numeric",
+                     note = "Same objective at nearly the same point.")))
+    })),
     "cox_loglik.json")
 record("cox_loglik.json", "reference", n_cases = length(.cox_cases),
        ties = c("efron", "breslow"),
