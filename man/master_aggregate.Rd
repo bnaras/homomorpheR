@@ -16,8 +16,9 @@ worker's \code{local_fn}).}
 the aggregated value, or \code{NA_real_} on failure.
 }
 \description{
-Backend-agnostic: works for both \link{PaillierMaster} and \link{CKKSMaster}
-via the \code{\link[=master_encrypt]{master_encrypt()}} / \code{\link[=master_decrypt]{master_decrypt()}} generics.
+Backend-agnostic via the \code{\link[=master_encrypt]{master_encrypt()}} / \code{\link[=master_decrypt]{master_decrypt()}}
+generics: works over \link{CKKSMaster}, \link{ThresholdMaster}, and the
+legacy \link{PaillierMaster}.
 }
 \details{
 The master broadcasts \code{theta} to each worker. Each worker computes

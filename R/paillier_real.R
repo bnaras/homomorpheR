@@ -1,3 +1,9 @@
+## FROZEN (Paillier legacy, 2026-08-05) -- do not extend. Kept only
+## for the archived Paillier vignettes (paillier-archive/) and the
+## API distcomp pins; slated for un-export and eventual removal once
+## a revamped distcomp (dropping its homomorpheR imports) reaches
+## CRAN ahead of the next homomorpheR release.
+##
 #' @importFrom S7 new_class method class_any S7_inherits
 NULL
 

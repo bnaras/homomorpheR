@@ -46,3 +46,7 @@ round_robin_chain(master3, list(s1, s2))
 fit <- stats4::mle(function(lambda) run_round_robin(master3, lambda),
                    start = list(lambda = 5))
 expect_true(abs(stats4::coef(fit) - mean(c(2, 3, 4, 5))) < 1e-2)
+
+## print() on a CKKS master must not reach Paillier-only properties
+## (regression: the old print(Master) read x@keypair@pubkey@bits).
+expect_true(any(grepl("CKKSMaster", capture.output(print(master)))))

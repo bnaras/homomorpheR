@@ -7,10 +7,10 @@
 set_public_key(obj, ...)
 }
 \arguments{
-\item{obj}{an \link{NCParty} or \link{Site} to receive the key.}
+\item{obj}{a \link{Site} (or legacy \link{NCParty}) to receive the key.}
 
-\item{...}{method-specific arguments. The Site/NCParty methods
-take a single \link{PaillierPublicKey} \code{pubkey}.}
+\item{...}{method-specific arguments. The methods take a single
+public key \code{pubkey} of the master's backend type.}
 }
 \description{
 Distribute the public key from the master to a downstream actor

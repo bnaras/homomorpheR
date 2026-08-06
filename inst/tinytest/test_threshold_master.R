@@ -45,3 +45,7 @@ expect_error(make_threshold_master("M", cc, n_sites = 1),
 ## Constructor produces secret_keys list of the right length.
 m3 <- make_threshold_master("M3", cc, n_sites = 4)
 expect_equal(length(m3@secret_keys), 4L)
+
+## print() on a threshold master must not reach Paillier-only
+## properties (ThresholdMaster has no keypair property at all).
+expect_true(any(grepl("ThresholdMaster", capture.output(print(m3)))))
