@@ -14,7 +14,6 @@ Suggests:
     knitr,
     rmarkdown,
     survival,
-    digest,
     CVXR,
     tinytest
 Imports:
