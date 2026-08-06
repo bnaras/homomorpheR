@@ -247,10 +247,10 @@ five-query attack works; a production model-as-a-service
 deployment is the transport layer plus at least one of the
 defences above.
 
-## Network protocol: serialisation
+## Network protocol: serialization
 
 In practice the hospital and lab are on different machines. All
-objects serialise for network transport:
+objects serialize for network transport:
 
 ```{r}
 tdir <- tempdir()
@@ -258,17 +258,17 @@ fhe_serialize(cc, file.path(tdir, "context.bin"))
 fhe_serialize(keys@public, file.path(tdir, "pubkey.bin"))
 fhe_serialize(ct1, file.path(tdir, "patient_bm1.bin"))
 
-## Lab receives the serialised files
+## Lab receives the serialized files
 cc_lab <- fhe_deserialize(file.path(tdir, "context.bin"), "CryptoContext")
 ct_lab <- fhe_deserialize(file.path(tdir, "patient_bm1.bin"), "Ciphertext")
 
-## Lab applies its weights to the deserialised ciphertext
+## Lab applies its weights to the deserialized ciphertext
 ct_weighted <- ct_lab * 0.35
 
 ## Lab returns the result
 fhe_serialize(ct_weighted, file.path(tdir, "weighted.bin"))
 
-## Hospital receives, deserialises, decrypts
+## Hospital receives, deserializes, decrypts
 ct_recv <- fhe_deserialize(file.path(tdir, "weighted.bin"), "Ciphertext")
 result  <- decrypt(ct_recv, keys@secret, cc = cc)
 set_length(result, 8L)

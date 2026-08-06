@@ -74,7 +74,7 @@ sk <- keys@secret
 ```
 
 In a real deployment the coordinator distributes the public key
-(and the serialised context) to each site. The secret key stays
+(and the serialized context) to each site. The secret key stays
 with the coordinator. We simulate this in one R session by
 sharing `cc` and `pk` locally.
 
@@ -138,10 +138,10 @@ BFV is *exact* over its integer plaintext space.
 No site revealed its individual count. The coordinator never
 saw any patient-level data. The total is exact.
 
-## Serialising for a real distributed protocol
+## Serializing for a real distributed protocol
 
 In a real deployment each site needs the coordinator's context
-and public key. `openfhe.R` provides serialisation:
+and public key. `openfhe.R` provides serialization:
 
 ```{r}
 tdir <- tempdir()

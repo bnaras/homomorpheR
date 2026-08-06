@@ -193,7 +193,7 @@ multiplicative homomorphism becomes a prerequisite.
 
 This is a teaching example. In production you would want a real
 communication transport, threshold key generation so no single party
-holds the full secret, and persistent serialisation at site
+holds the full secret, and persistent serialization at site
 boundaries. The point of this vignette is not the deployment story
 but the *structure* of a privacy-preserving distributed computation
 built on homomorphic encryption.
