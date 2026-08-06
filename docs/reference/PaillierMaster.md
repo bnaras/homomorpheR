@@ -4,6 +4,10 @@ A [Master](https://bnaras.github.io/homomorpheR/reference/Master.md)
 that drives the protocol over Paillier additive encryption. Constructed
 by
 [`make_master()`](https://bnaras.github.io/homomorpheR/reference/make_master.md).
+Part of the frozen Paillier-era legacy surface; new work should use
+[`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
+or
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md).
 
 ## Usage
 

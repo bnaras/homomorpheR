@@ -1,6 +1,6 @@
 # Add a site to a non-cooperating party
 
-Add a site to a non-cooperating party
+Part of the frozen Paillier-era legacy surface.
 
 ## Usage
 

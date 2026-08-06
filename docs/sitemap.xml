@@ -1,9 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://bnaras.github.io/homomorpheR/404.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/LICENSE-text.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/articles/DHCox.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/articles/DHCoxNCP.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/articles/QueryNCP.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/cox-threshold-dp.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/cox-threshold.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/cox.html</loc></url>
@@ -11,11 +8,10 @@
 <url><loc>https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/cvxr-cox-lasso-dlbcl.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/encrypted-regression.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/articles/homomorphing.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/index.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/articles/introduction.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/mle.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/privacy-preserving-aggregation.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/articles/query-count-threshold.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/secure-inference.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/articles/similarity.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/authors.html</loc></url>
@@ -56,7 +52,6 @@
 <url><loc>https://bnaras.github.io/homomorpheR/reference/paillier_keypair.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/random.bigz.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/round_robin_chain.html</loc></url>
-<url><loc>https://bnaras.github.io/homomorpheR/reference/run_master_worker.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/run_round_robin.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/set_next_site.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/set_public_key.html</loc></url>

@@ -25,3 +25,10 @@ round_robin_chain(master, sites)
 ## Value
 
 the master, invisibly.
+
+## Details
+
+Part of the frozen Paillier-era legacy surface; the supported topology
+is
+[`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md) +
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md).

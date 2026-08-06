@@ -22,9 +22,11 @@ master_encrypt(master, ...)
 
 ## Value
 
-the encrypted value (a
+the encrypted value (an `openfhe.R` `Ciphertext` for
+[CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)
+/
+[ThresholdMaster](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md);
+a
 [PaillierEncryptedReal](https://bnaras.github.io/homomorpheR/reference/PaillierEncryptedReal.md)
-for
-[PaillierMaster](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md);
-an `openfhe.R` `Ciphertext` for
-[CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)).
+for the legacy
+[PaillierMaster](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md)).

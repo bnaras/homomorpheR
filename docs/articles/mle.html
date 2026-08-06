@@ -38,10 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
-    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
@@ -50,10 +47,9 @@
     <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
     <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +75,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-06-26</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/mle.Rmd" class="external-link"><code>vignettes/mle.Rmd</code></a></small>
       <div class="d-none name"><code>mle.Rmd</code></div>
@@ -188,7 +184,7 @@ in principle; the cryptographic story strengthens when paired with
 threshold key generation, where no single party holds the secret key. We
 will revisit that in the Cox threshold vignette.</p>
 <p>(The companion Paillier vignette
-<code><a href="../articles/homomorphing.html">vignette("homomorphing")</a></code> uses an older <em>round-robin</em>
+<code>vignette("homomorphing")</code> uses an older <em>round-robin</em>
 protocol with a random offset traveling around a chain. That idiom was a
 Paillier-era pedagogical artifact; with proper FHE plus threshold key
 generation we no longer need it.)</p>
@@ -228,16 +224,16 @@ would be in the cleartext case:</p>
 <h3 id="generate-a-ckks-key-pair">1. Generate a CKKS key pair<a class="anchor" aria-label="anchor" href="#generate-a-ckks-key-pair"></a>
 </h3>
 <p>We use <code>openfhe.R</code> qualified rather than
-<code><a href="https://bnaras.github.io/openfhe.R/" class="external-link">library(openfhe.R)</a></code>: both packages export
+<code><a href="https://openfheorg.github.io/openfhe.R/" class="external-link">library(openfhe.R)</a></code>: both packages export
 <code>encrypt</code>/<code>decrypt</code> generics, and we want
 <code>homomorpheR</code>’s on the search path so the protocol code below
 reads naturally.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
+<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>                           scaling_mod_size     <span class="op">=</span> <span class="fl">50L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span><span class="op">)</span></span>
-<span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="build-workers-and-master">2. Build workers and master<a class="anchor" aria-label="anchor" href="#build-workers-and-master"></a>
@@ -280,7 +276,7 @@ any other party.</p>
 </h2>
 <p>For Poisson MLE the protocol uses only additions, so even the purely
 additive Paillier scheme suffices (see
-<code><a href="../articles/homomorphing.html">vignette("homomorphing")</a></code>). CKKS is a clean improvement but
+<code>vignette("homomorphing")</code>). CKKS is a clean improvement but
 not strictly necessary here. The story changes for likelihoods that need
 products or higher-order statistics — distributed Cox regression, for
 example — where CKKS’s multiplicative homomorphism becomes a
@@ -291,7 +287,7 @@ prerequisite.</p>
 </h2>
 <p>This is a teaching example. In production you would want a real
 communication transport, threshold key generation so no single party
-holds the full secret, and persistent serialisation at site boundaries.
+holds the full secret, and persistent serialization at site boundaries.
 The point of this vignette is not the deployment story but the
 <em>structure</em> of a privacy-preserving distributed computation built
 on homomorphic encryption.</p>

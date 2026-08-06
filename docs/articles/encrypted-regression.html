@@ -38,10 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
-    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
@@ -50,10 +47,9 @@
     <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
     <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +75,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-06-26</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/encrypted-regression.Rmd" class="external-link"><code>vignettes/encrypted-regression.Rmd</code></a></small>
       <div class="d-none name"><code>encrypted-regression.Rmd</code></div>
@@ -133,22 +129,22 @@ the model coefficients. The same two-party shape as
 We use depth 8 and enable <code>Feature$ADVANCEDSHE</code> for the
 polynomial-evaluation primitives.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bnaras.github.io/openfhe.R/" class="external-link">openfhe.R</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/" class="external-link">openfhe.R</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
+<span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                  multiplicative_depth <span class="op">=</span> <span class="fl">8L</span>,</span>
 <span>                  scaling_mod_size     <span class="op">=</span> <span class="fl">50L</span>,</span>
 <span>                  batch_size           <span class="op">=</span> <span class="fl">16L</span>,</span>
 <span>                  features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">Feature</span><span class="op">$</span><span class="va">ADVANCEDSHE</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span>, eval_mult <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span>, eval_mult <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">new_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">45</span>, <span class="fl">52</span>, <span class="fl">60</span>, <span class="fl">38</span>, <span class="fl">70</span>, <span class="fl">55</span>, <span class="fl">48</span>, <span class="fl">63</span>,</span>
 <span>             <span class="fl">41</span>, <span class="fl">57</span>, <span class="fl">66</span>, <span class="fl">44</span>, <span class="fl">72</span>, <span class="fl">50</span>, <span class="fl">59</span>, <span class="fl">35</span><span class="op">)</span></span>
 <span><span class="va">new_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span>,  <span class="fl">0.3</span>, <span class="fl">1.2</span>, <span class="op">-</span><span class="fl">1.0</span>, <span class="fl">0.8</span>, <span class="fl">0.1</span>, <span class="op">-</span><span class="fl">0.3</span>, <span class="fl">1.5</span>,</span>
 <span>             <span class="op">-</span><span class="fl">0.8</span>,  <span class="fl">0.6</span>, <span class="fl">0.9</span>, <span class="op">-</span><span class="fl">0.4</span>, <span class="fl">1.1</span>, <span class="fl">0.0</span>,  <span class="fl">0.7</span>, <span class="op">-</span><span class="fl">1.2</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ct_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_age</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="va">ct_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_bm</span><span class="op">)</span>,  cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">ct_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_age</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">ct_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_bm</span><span class="op">)</span>,  cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-3-evaluate-the-linear-predictor-encrypted">Step 3: evaluate the linear predictor (encrypted)<a class="anchor" aria-label="anchor" href="#step-3-evaluate-the-linear-predictor-encrypted"></a>
@@ -171,15 +167,15 @@ must cover the realisable range of
 degree 16 gives good precision with depth modest enough to fit the
 budget we declared above.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ct_prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/eval_logistic.html" class="external-link">eval_logistic</a></span><span class="op">(</span><span class="va">ct_eta</span>, a <span class="op">=</span> <span class="op">-</span><span class="fl">4</span>, b <span class="op">=</span> <span class="fl">4</span>, degree <span class="op">=</span> <span class="fl">16</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ct_prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/eval_logistic.html" class="external-link">eval_logistic</a></span><span class="op">(</span><span class="va">ct_eta</span>, a <span class="op">=</span> <span class="op">-</span><span class="fl">4</span>, b <span class="op">=</span> <span class="fl">4</span>, degree <span class="op">=</span> <span class="fl">16</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-5-decrypt-predictions">Step 5: decrypt predictions<a class="anchor" aria-label="anchor" href="#step-5-decrypt-predictions"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_prob</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">result</span>, <span class="fl">16L</span><span class="op">)</span></span>
-<span><span class="va">encrypted_probs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">16</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">result</span>, <span class="fl">16L</span><span class="op">)</span></span>
+<span><span class="va">encrypted_probs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">16</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">cleartext_probs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="va">beta</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="va">beta</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="va">new_age</span> <span class="op">+</span> <span class="va">beta</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="va">new_bm</span><span class="op">)</span></span>
 <span><span class="va">max_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">encrypted_probs</span> <span class="op">-</span> <span class="va">cleartext_probs</span><span class="op">)</span><span class="op">)</span></span>
@@ -208,8 +204,8 @@ clinical decision.</li>
 <div class="section level2">
 <h2 id="connection-to-homomorphers-paillier-vignettes">Connection to homomorpheR’s Paillier vignettes<a class="anchor" aria-label="anchor" href="#connection-to-homomorphers-paillier-vignettes"></a>
 </h2>
-<p>The Paillier vignettes (<code><a href="../articles/homomorphing.html">vignette("homomorphing")</a></code>,
-<code><a href="../articles/DHCox.html">vignette("DHCox")</a></code>, <code><a href="../articles/DHCoxNCP.html">vignette("DHCoxNCP")</a></code>)
+<p>The Paillier vignettes (<code>vignette("homomorphing")</code>,
+<code>vignette("DHCox")</code>, <code>vignette("DHCoxNCP")</code>)
 demonstrate distributed Cox regression and MLE under additive Paillier
 encryption. That approach requires:</p>
 <ul>

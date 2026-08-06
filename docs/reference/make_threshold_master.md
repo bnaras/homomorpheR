@@ -21,9 +21,11 @@ make_threshold_master(name, crypto_context, n_sites)
 
 - crypto_context:
 
-  an `openfhe.R` `CryptoContext` configured for CKKS *with* the
+  an `openfhe.R` `CryptoContext` (CKKS, BFV, or BGV) *with* the
   `MULTIPARTY` feature enabled. Pass `features = c(Feature$MULTIPARTY)`
-  to `fhe_context()`.
+  to `fhe_context()`. The scheme is read back from the context, so the
+  same master drives the protocol over real-valued (CKKS) or
+  exact-integer (BFV/BGV) arithmetic without further configuration.
 
 - n_sites:
 

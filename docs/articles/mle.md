@@ -15,16 +15,7 @@ log-likelihood
 In R, this is a one-liner using
 [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html):
 
-``` r
-
-library(stats4)
-set.seed(17822)
-y <- rpois(n = 40, lambda = 10)
-
-nLL <- function(lambda) -sum(stats::dpois(y, lambda, log = TRUE))
-fit0 <- mle(nLL, start = list(lambda = 5), nobs = NROW(y))
-summary(fit0)
-```
+[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``17822``)`` ``y`` ``<-`` `[`rpois`](https://rdrr.io/r/stats/Poisson.html)`(``n ``=`` ``40``, lambda ``=`` ``10``)`` `` ``nLL`` ``<-`` ``function``(``lambda``)`` ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``y``, ``lambda``, log ``=`` ``TRUE``)``)`` ``fit0`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``nLL``, start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``, nobs ``=`` `[`NROW`](https://rdrr.io/r/base/nrow.html)`(``y``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit0``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -37,10 +28,7 @@ summary(fit0)
     ## 
     ## -2 log L: 199.5328
 
-``` r
-
-logLik(fit0)
-```
+[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit0``)`
 
     ## 'log Lik.' -99.76641 (df=1)
 
@@ -54,12 +42,7 @@ another party’s contribution.
 
 To simulate this, partition `y`:
 
-``` r
-
-y1 <- y[1:20]
-y2 <- y[21:27]
-y3 <- y[28:40]
-```
+`y1`` ``<-`` ``y``[``1``:``20``]`` ``y2`` ``<-`` ``y``[``21``:``27``]`` ``y3`` ``<-`` ``y``[``28``:``40``]`
 
 The negative log-likelihood factorises additively:
 
@@ -102,11 +85,10 @@ strengthens when paired with threshold key generation, where no single
 party holds the secret key. We will revisit that in the Cox threshold
 vignette.
 
-(The companion Paillier vignette
-[`vignette("homomorphing")`](https://bnaras.github.io/homomorpheR/articles/homomorphing.md)
-uses an older *round-robin* protocol with a random offset traveling
-around a chain. That idiom was a Paillier-era pedagogical artifact; with
-proper FHE plus threshold key generation we no longer need it.)
+(The companion Paillier vignette `vignette("homomorphing")` uses an
+older *round-robin* protocol with a random offset traveling around a
+chain. That idiom was a Paillier-era pedagogical artifact; with proper
+FHE plus threshold key generation we no longer need it.)
 
 ## Why CKKS, not Paillier?
 
@@ -131,51 +113,25 @@ runner are backend-agnostic.
 The per-site negative log-likelihood is the same plain R function it
 would be in the cleartext case:
 
-``` r
-
-library(homomorpheR)
-
-local_nll <- function(data, lambda) {
-    -sum(stats::dpois(data, lambda, log = TRUE))
-}
-```
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` ``local_nll`` ``<-`` ``function``(``data``, ``lambda``)`` ``{`` `` ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``data``, ``lambda``, log ``=`` ``TRUE``)``)`` ``}`
 
 ### 1. Generate a CKKS key pair
 
 We use `openfhe.R` qualified rather than
-[`library(openfhe.R)`](https://bnaras.github.io/openfhe.R/): both
+[`library(openfhe.R)`](https://openfheorg.github.io/openfhe.R/): both
 packages export `encrypt`/`decrypt` generics, and we want
 `homomorpheR`’s on the search path so the protocol code below reads
 naturally.
 
-``` r
-
-cc <- openfhe.R::fhe_context("CKKS",
-                           multiplicative_depth = 1L,
-                           scaling_mod_size     = 50L,
-                           batch_size           = 8L)
-keys <- openfhe.R::key_gen(cc)
-```
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``50L``,`` `` batch_size ``=`` ``8L``)`` ``keys`` ``<-`` ``openfhe.R``::`[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``)`
 
 ### 2. Build workers and master
 
-``` r
-
-worker1 <- make_worker("Site 1", data = y1, local_fn = local_nll)
-worker2 <- make_worker("Site 2", data = y2, local_fn = local_nll)
-worker3 <- make_worker("Site 3", data = y3, local_fn = local_nll)
-master  <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
-set_workers(master, list(worker1, worker2, worker3))
-```
+`worker1`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 1"``, data ``=`` ``y1``, local_fn ``=`` ``local_nll``)`` ``worker2`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 2"``, data ``=`` ``y2``, local_fn ``=`` ``local_nll``)`` ``worker3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 3"``, data ``=`` ``y3``, local_fn ``=`` ``local_nll``)`` ``master`` ``<-`` `[`make_ckks_master`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)`(``"Master"``, crypto_context ``=`` ``cc``, keypair ``=`` ``keys``)`` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker1``, ``worker2``, ``worker3``)``)`
 
 ### 3. Run `mle()` through the encrypted channel
 
-``` r
-
-fit1 <- mle(function(lambda) master_aggregate(master, lambda),
-            start = list(lambda = 5))
-summary(fit1)
-```
+`fit1`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``function``(``lambda``)`` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, ``lambda``)``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit1``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -189,10 +145,7 @@ summary(fit1)
     ## 
     ## -2 log L: 199.5328
 
-``` r
-
-logLik(fit1)
-```
+[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit1``)`
 
     ## 'log Lik.' -99.76641 (df=1)
 
@@ -203,9 +156,8 @@ any other party.
 ## Beyond MLE
 
 For Poisson MLE the protocol uses only additions, so even the purely
-additive Paillier scheme suffices (see
-[`vignette("homomorphing")`](https://bnaras.github.io/homomorpheR/articles/homomorphing.md)).
-CKKS is a clean improvement but not strictly necessary here. The story
+additive Paillier scheme suffices (see `vignette("homomorphing")`). CKKS
+is a clean improvement but not strictly necessary here. The story
 changes for likelihoods that need products or higher-order statistics —
 distributed Cox regression, for example — where CKKS’s multiplicative
 homomorphism becomes a prerequisite.
@@ -214,7 +166,7 @@ homomorphism becomes a prerequisite.
 
 This is a teaching example. In production you would want a real
 communication transport, threshold key generation so no single party
-holds the full secret, and persistent serialisation at site boundaries.
+holds the full secret, and persistent serialization at site boundaries.
 The point of this vignette is not the deployment story but the
 *structure* of a privacy-preserving distributed computation built on
 homomorphic encryption.

@@ -39,60 +39,18 @@ coefficients.
 
 ## Setup: hospital’s context and patient data
 
-``` r
-
-library(openfhe.R)
-
-cc <- fhe_context("CKKS",
-                  multiplicative_depth = 2L,
-                  scaling_mod_size     = 50L,
-                  batch_size           = 8L)
-keys <- key_gen(cc, eval_mult = TRUE)
-
-## 8 patients, each with 4 biomarker values. We pack each biomarker
-## across patients (SIMD layout): one ciphertext per biomarker, with
-## patient values in the slots.
-biomarker1 <- c(1.2, 0.8, 1.5, 0.3, 2.1, 0.9, 1.1, 1.8)
-biomarker2 <- c(0.5, 1.1, 0.3, 0.8, 0.2, 1.4, 0.7, 0.6)
-biomarker3 <- c(2.0, 1.5, 2.3, 1.0, 1.8, 2.1, 1.6, 2.5)
-biomarker4 <- c(0.1, 0.4, 0.2, 0.6, 0.3, 0.1, 0.5, 0.2)
-
-ct1 <- encrypt(keys@public, make_ckks_packed_plaintext(cc, biomarker1), cc = cc)
-ct2 <- encrypt(keys@public, make_ckks_packed_plaintext(cc, biomarker2), cc = cc)
-ct3 <- encrypt(keys@public, make_ckks_packed_plaintext(cc, biomarker3), cc = cc)
-ct4 <- encrypt(keys@public, make_ckks_packed_plaintext(cc, biomarker4), cc = cc)
-```
+[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`` `` ``cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``2L``,`` `` scaling_mod_size ``=`` ``50L``,`` `` batch_size ``=`` ``8L``)`` ``keys`` ``<-`` `[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``, eval_mult ``=`` ``TRUE``)`` `` ``## 8 patients, each with 4 biomarker values. We pack each biomarker`` ``## across patients (SIMD layout): one ciphertext per biomarker, with`` ``## patient values in the slots.`` ``biomarker1`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``1.2``, ``0.8``, ``1.5``, ``0.3``, ``2.1``, ``0.9``, ``1.1``, ``1.8``)`` ``biomarker2`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.5``, ``1.1``, ``0.3``, ``0.8``, ``0.2``, ``1.4``, ``0.7``, ``0.6``)`` ``biomarker3`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``2.0``, ``1.5``, ``2.3``, ``1.0``, ``1.8``, ``2.1``, ``1.6``, ``2.5``)`` ``biomarker4`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.1``, ``0.4``, ``0.2``, ``0.6``, ``0.3``, ``0.1``, ``0.5``, ``0.2``)`` `` ``ct1`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker1``)``, cc ``=`` ``cc``)`` ``ct2`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker2``)``, cc ``=`` ``cc``)`` ``ct3`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker3``)``, cc ``=`` ``cc``)`` ``ct4`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker4``)``, cc ``=`` ``cc``)`
 
 ## Lab side: apply the model to encrypted data
 
 The lab receives the encrypted biomarkers and applies its proprietary
 model — without ever seeing patient values.
 
-``` r
-
-## Lab's proprietary model weights (never shared with the hospital)
-w <- c(0.35, -0.20, 0.50, 0.15)
-b <- 1.2
-
-## Encrypted score = w1*x1 + w2*x2 + w3*x3 + w4*x4 + b
-ct_score <- ct1 * w[1] + ct2 * w[2] + ct3 * w[3] + ct4 * w[4] + b
-```
+`## Lab's proprietary model weights (never shared with the hospital)`` ``w`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.35``, ``-``0.20``, ``0.50``, ``0.15``)`` ``b`` ``<-`` ``1.2`` `` ``## Encrypted score = w1*x1 + w2*x2 + w3*x3 + w4*x4 + b`` ``ct_score`` ``<-`` ``ct1`` ``*`` ``w``[``1``]`` ``+`` ``ct2`` ``*`` ``w``[``2``]`` ``+`` ``ct3`` ``*`` ``w``[``3``]`` ``+`` ``ct4`` ``*`` ``w``[``4``]`` ``+`` ``b`
 
 ## Hospital side: decrypt the results
 
-``` r
-
-result <- decrypt(ct_score, keys@secret, cc = cc)
-set_length(result, 8L)
-scores <- get_real_packed_value(result)[1:8]
-
-for (i in seq_len(8)) {
-    risk <- if (scores[i] > 2.0) "HIGH"
-            else if (scores[i] > 1.5) "MODERATE"
-            else "LOW"
-    cat(sprintf("  Patient %d: %.3f (%s)\n", i, scores[i], risk))
-}
-```
+`result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_score``, ``keys``@``secret``, cc ``=`` ``cc``)`` `[`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``result``, ``8L``)`` ``scores`` ``<-`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``result``)``[``1``:``8``]`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``8``)``)`` ``{`` `` ``risk`` ``<-`` ``if`` ``(``scores``[``i``]`` ``>`` ``2.0``)`` ``"HIGH"`` `` ``else`` ``if`` ``(``scores``[``i``]`` ``>`` ``1.5``)`` ``"MODERATE"`` `` ``else`` ``"LOW"`` `` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``" Patient %d: %.3f (%s)\n"``, ``i``, ``scores``[``i``]``, ``risk``)``)`` ``}`
 
     ##   Patient 1: 2.535 (HIGH)
     ##   Patient 2: 2.070 (HIGH)
@@ -105,15 +63,9 @@ for (i in seq_len(8)) {
 
 ## Verification
 
-``` r
+`cleartext_scores`` ``<-`` ``w``[``1``]`` ``*`` ``biomarker1`` ``+`` ``w``[``2``]`` ``*`` ``biomarker2`` ``+`` `` ``w``[``3``]`` ``*`` ``biomarker3`` ``+`` ``w``[``4``]`` ``*`` ``biomarker4`` ``+`` ``b`` ``max_error`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``scores`` ``-`` ``cleartext_scores``)``)`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Maximum error vs cleartext: %.2e"``, ``max_error``)`
 
-cleartext_scores <- w[1] * biomarker1 + w[2] * biomarker2 +
-                    w[3] * biomarker3 + w[4] * biomarker4 + b
-max_error <- max(abs(scores - cleartext_scores))
-sprintf("Maximum error vs cleartext: %.2e", max_error)
-```
-
-    ## [1] "Maximum error vs cleartext: 9.19e-14"
+    ## [1] "Maximum error vs cleartext: 7.19e-14"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.
@@ -158,45 +110,7 @@ lab’s scoring pipeline as a function that closes over $`w`$ and $`b`$
 without revealing them, then pack the five probes across SIMD slots 1–5
 of the four biomarker ciphertexts.
 
-``` r
-
-## Lab pipeline wrapped as a function. Closes over `w` and `b`;
-## the caller (hospital) never reads either.
-lab_score <- function(ct_bio) {
-    ct_bio[[1]] * w[1] + ct_bio[[2]] * w[2] +
-    ct_bio[[3]] * w[3] + ct_bio[[4]] * w[4] + b
-}
-
-## Hospital crafts five probes packed across slots 1..5.
-## Slot 1 is e_0 (all zeros, probes b). Slot j+1 is e_j (a one in
-## position j, probes w_j + b).
-probe_bio1 <- c(0, 1, 0, 0, 0, 0, 0, 0)
-probe_bio2 <- c(0, 0, 1, 0, 0, 0, 0, 0)
-probe_bio3 <- c(0, 0, 0, 1, 0, 0, 0, 0)
-probe_bio4 <- c(0, 0, 0, 0, 1, 0, 0, 0)
-
-ct_probe <- list(
-    encrypt(keys@public, make_ckks_packed_plaintext(cc, probe_bio1), cc = cc),
-    encrypt(keys@public, make_ckks_packed_plaintext(cc, probe_bio2), cc = cc),
-    encrypt(keys@public, make_ckks_packed_plaintext(cc, probe_bio3), cc = cc),
-    encrypt(keys@public, make_ckks_packed_plaintext(cc, probe_bio4), cc = cc)
-)
-
-ct_probe_score <- lab_score(ct_probe)
-probe_result   <- decrypt(ct_probe_score, keys@secret, cc = cc)
-set_length(probe_result, 5L)
-probe_scores <- get_real_packed_value(probe_result)[1:5]
-
-b_hat <- probe_scores[1]
-w_hat <- probe_scores[2:5] - b_hat
-
-recovered <- rbind(
-    true      = c(b, w),
-    recovered = c(b_hat, w_hat)
-)
-colnames(recovered) <- c("b", "w1", "w2", "w3", "w4")
-round(recovered, 6)
-```
+`` ## Lab pipeline wrapped as a function. Closes over `w` and `b`; ``` ``## the caller (hospital) never reads either.`` ``lab_score`` ``<-`` ``function``(``ct_bio``)`` ``{`` `` ``ct_bio``[[``1``]``]`` ``*`` ``w``[``1``]`` ``+`` ``ct_bio``[[``2``]``]`` ``*`` ``w``[``2``]`` ``+`` `` ``ct_bio``[[``3``]``]`` ``*`` ``w``[``3``]`` ``+`` ``ct_bio``[[``4``]``]`` ``*`` ``w``[``4``]`` ``+`` ``b`` ``}`` `` ``## Hospital crafts five probes packed across slots 1..5.`` ``## Slot 1 is e_0 (all zeros, probes b). Slot j+1 is e_j (a one in`` ``## position j, probes w_j + b).`` ``probe_bio1`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``, ``0``, ``0``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio2`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``1``, ``0``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio3`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``0``, ``1``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio4`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``0``, ``0``, ``1``, ``0``, ``0``, ``0``)`` `` ``ct_probe`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio1``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio2``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio3``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio4``)``, cc ``=`` ``cc``)`` ``)`` `` ``ct_probe_score`` ``<-`` ``lab_score``(``ct_probe``)`` ``probe_result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_probe_score``, ``keys``@``secret``, cc ``=`` ``cc``)`` `[`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``probe_result``, ``5L``)`` ``probe_scores`` ``<-`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``probe_result``)``[``1``:``5``]`` `` ``b_hat`` ``<-`` ``probe_scores``[``1``]`` ``w_hat`` ``<-`` ``probe_scores``[``2``:``5``]`` ``-`` ``b_hat`` `` ``recovered`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(`` `` true ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``b``, ``w``)``,`` `` recovered ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``b_hat``, ``w_hat``)`` ``)`` `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``recovered``)`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"b"``, ``"w1"``, ``"w2"``, ``"w3"``, ``"w4"``)`` `[`round`](https://rdrr.io/r/base/Round.html)`(``recovered``, ``6``)`
 
     ##             b   w1   w2  w3   w4
     ## true      1.2 0.35 -0.2 0.5 0.15
@@ -233,7 +147,7 @@ layer defences *on top of* the FHE transport:
   attack; decryption requires cooperation from the other key-holders.
 - **Non-linear scoring structure.** A linear model is the trivial
   extraction case. Non-linear scorers
-  ([`openfhe.R::eval_logistic`](https://bnaras.github.io/openfhe.R/reference/eval_logistic.html),
+  ([`openfhe.R::eval_logistic`](https://openfheorg.github.io/openfhe.R/reference/eval_logistic.html),
   polynomial compositions) resist closed-form basis-vector attacks,
   though approximation attacks from the model-extraction literature
   still apply.
@@ -244,33 +158,11 @@ key is exactly the configuration where the five-query attack works; a
 production model-as-a-service deployment is the transport layer plus at
 least one of the defences above.
 
-## Network protocol: serialisation
+## Network protocol: serialization
 
 In practice the hospital and lab are on different machines. All objects
-serialise for network transport:
+serialize for network transport:
 
-``` r
-
-tdir <- tempdir()
-fhe_serialize(cc, file.path(tdir, "context.bin"))
-fhe_serialize(keys@public, file.path(tdir, "pubkey.bin"))
-fhe_serialize(ct1, file.path(tdir, "patient_bm1.bin"))
-
-## Lab receives the serialised files
-cc_lab <- fhe_deserialize(file.path(tdir, "context.bin"), "CryptoContext")
-ct_lab <- fhe_deserialize(file.path(tdir, "patient_bm1.bin"), "Ciphertext")
-
-## Lab applies its weights to the deserialised ciphertext
-ct_weighted <- ct_lab * 0.35
-
-## Lab returns the result
-fhe_serialize(ct_weighted, file.path(tdir, "weighted.bin"))
-
-## Hospital receives, deserialises, decrypts
-ct_recv <- fhe_deserialize(file.path(tdir, "weighted.bin"), "Ciphertext")
-result  <- decrypt(ct_recv, keys@secret, cc = cc)
-set_length(result, 8L)
-get_real_packed_value(result)[1:8]
-```
+`tdir`` ``<-`` `[`tempdir`](https://rdrr.io/r/base/tempfile.html)`(``)`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``cc``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``)`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``keys``@``public``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"pubkey.bin"``)``)`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``ct1``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"patient_bm1.bin"``)``)`` `` ``## Lab receives the serialized files`` ``cc_lab`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``, ``"CryptoContext"``)`` ``ct_lab`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"patient_bm1.bin"``)``, ``"Ciphertext"``)`` `` ``## Lab applies its weights to the deserialized ciphertext`` ``ct_weighted`` ``<-`` ``ct_lab`` ``*`` ``0.35`` `` ``## Lab returns the result`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``ct_weighted``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"weighted.bin"``)``)`` `` ``## Hospital receives, deserializes, decrypts`` ``ct_recv`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"weighted.bin"``)``, ``"Ciphertext"``)`` ``result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_recv``, ``keys``@``secret``, cc ``=`` ``cc``)`` `[`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``result``, ``8L``)`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``result``)``[``1``:``8``]`
 
     ## [1] 0.420 0.280 0.525 0.105 0.735 0.315 0.385 0.630

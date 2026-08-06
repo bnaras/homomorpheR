@@ -1,6 +1,6 @@
 # Internal generic: forward the running encrypted total along the chain
 
-Internal generic: forward the running encrypted total along the chain
+Part of the frozen Paillier-era legacy surface.
 
 ## Usage
 

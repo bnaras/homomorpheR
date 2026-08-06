@@ -38,10 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
-    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
@@ -50,10 +47,9 @@
     <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
     <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +75,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-06-26</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm.Rmd</code></div>
@@ -320,12 +316,12 @@ contribution under the joint public key and
 partial-decrypt fan-in across sites is handled inside the master
 class.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
+<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>                           scaling_mod_size     <span class="op">=</span> <span class="fl">59L</span>,</span>
 <span>                           first_mod_size       <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
-<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://bnaras.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">cts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span></span>
@@ -550,9 +546,9 @@ then the main loop:</p>
 </tr>
 <tr class="even">
 <td align="left">beta_4</td>
-<td align="right">0.659835</td>
+<td align="right">0.659836</td>
 <td align="right">0.659840</td>
-<td align="right">5e-06</td>
+<td align="right">4e-06</td>
 </tr>
 </tbody>
 </table>
@@ -560,7 +556,7 @@ then the main loop:</p>
 <code class="sourceCode R"><span><span class="va">max_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_curr</span> <span class="op">-</span> <span class="va">beta_central</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Max absolute coefficient difference vs. centralized fit: %.2e\n"</span>,</span>
 <span>            <span class="va">max_diff</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.37e-06</span></span></code></pre>
+<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.40e-06</span></span></code></pre>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">max_diff</span> <span class="op">&gt;</span> <span class="fl">10</span> <span class="op">*</span> <span class="va">reltol</span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "</span>,</span>

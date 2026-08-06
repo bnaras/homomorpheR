@@ -29,3 +29,11 @@ NCParty(name = character(0), number = integer(0), state = NULL)
 
   an environment for mutable bookkeeping (the list of sites it manages,
   public key). Default: a fresh empty env.
+
+## Details
+
+Part of the frozen Paillier-era legacy surface: the NCP masking
+construction compensated for Paillier's single decryption key, a role
+that threshold key generation
+([`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md))
+now fills without extra parties.

@@ -1,14 +1,14 @@
 # Run one round of the master/worker protocol
 
-Backend-agnostic: works for both
-[PaillierMaster](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md)
-and
-[CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)
-via the
+Backend-agnostic via the
 [`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
 /
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-generics.
+generics: works over
+[CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md),
+[ThresholdMaster](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md),
+and the legacy
+[PaillierMaster](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md).
 
 ## Usage
 

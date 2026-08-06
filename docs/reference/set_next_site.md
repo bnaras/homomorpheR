@@ -1,6 +1,9 @@
 # Wire one site's `next_site` to another
 
-Wire one site's `next_site` to another
+Part of the frozen Paillier-era legacy surface (round-robin chain
+wiring); the supported topology is
+[`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md) +
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md).
 
 ## Usage
 

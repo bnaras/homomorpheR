@@ -38,10 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
-    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
@@ -50,10 +47,9 @@
     <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
     <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +75,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-06-26</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold-dp.Rmd" class="external-link"><code>vignettes/cox-threshold-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold-dp.Rmd</code></div>
@@ -207,12 +203,12 @@ per-worker <code>local_fn</code>: each worker adds an independent
 draw to its local nLL before returning. The master/worker runner sees
 only the noisy local value and encrypts it as usual.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
+<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>                           scaling_mod_size     <span class="op">=</span> <span class="fl">59L</span>,</span>
 <span>                           first_mod_size       <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
-<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://bnaras.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span>
+<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">n_sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">cox_data</span><span class="op">)</span></span>
 <span></span>
@@ -276,7 +272,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638716</td>
 <td align="right">-0.2638698</td>
-<td align="right">1.822e-06</td>
+<td align="right">1.823e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
@@ -385,7 +381,7 @@ threshold-DP encrypted nLL.</p>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="right">1e-02</td>
-<td align="right">297</td>
+<td align="right">300</td>
 <td align="right">-0.240806</td>
 <td align="right">-0.266638</td>
 <td align="right">0.296517</td>
@@ -396,7 +392,7 @@ threshold-DP encrypted nLL.</p>
 <tr class="even">
 <td align="left">sigma_0.1</td>
 <td align="right">1e-01</td>
-<td align="right">146</td>
+<td align="right">147</td>
 <td align="right">-0.475716</td>
 <td align="right">-0.276219</td>
 <td align="right">0.506100</td>
@@ -407,7 +403,7 @@ threshold-DP encrypted nLL.</p>
 <tr class="odd">
 <td align="left">sigma_1</td>
 <td align="right">1e+00</td>
-<td align="right">91</td>
+<td align="right">90</td>
 <td align="right">-0.133843</td>
 <td align="right">-0.389685</td>
 <td align="right">0.034282</td>
@@ -474,7 +470,7 @@ divisor. Noise still hurts it, but more gently than BFGS.</p>
 <span>                 <span class="va">fits_bfgs</span><span class="op">[[</span><span class="st">"sigma_1"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                 <span class="va">fit_nm_1</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 91 evals, NM 503
+<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 90 evals, NM 503
 evals)</caption>
 <thead><tr class="header">
 <th align="left">coefficient</th>
@@ -594,28 +590,28 @@ zCDP composition gives:</p>
 <td align="left">sigma_0.01</td>
 <td align="left">BFGS</td>
 <td align="right">1e-02</td>
-<td align="right">297</td>
+<td align="right">300</td>
 <td align="right">5e+03</td>
-<td align="right">1.485e+06</td>
-<td align="right">1.493270e+06</td>
+<td align="right">1.500e+06</td>
+<td align="right">1.508311e+06</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
 <td align="left">BFGS</td>
 <td align="right">1e-01</td>
-<td align="right">146</td>
+<td align="right">147</td>
 <td align="right">5e+01</td>
-<td align="right">7.300e+03</td>
-<td align="right">7.879808e+03</td>
+<td align="right">7.350e+03</td>
+<td align="right">7.931790e+03</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma_1</td>
 <td align="left">BFGS</td>
 <td align="right">1e+00</td>
-<td align="right">91</td>
+<td align="right">90</td>
 <td align="right">5e-01</td>
-<td align="right">4.550e+01</td>
-<td align="right">9.127500e+01</td>
+<td align="right">4.500e+01</td>
+<td align="right">9.052280e+01</td>
 </tr>
 <tr class="even">
 <td align="left">1</td>

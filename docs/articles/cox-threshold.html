@@ -38,10 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/introduction.html">Introduction</a></li>
-    <li><a class="dropdown-item" href="../articles/homomorphing.html">Maximum Likelihood Estimation (Paillier)</a></li>
-    <li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCox.html">Distributed Cox Regression (Paillier)</a></li>
+<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
@@ -50,10 +47,9 @@
     <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
     <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
     <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/QueryNCP.html">Distributed Query Count using Noncooperating parties</a></li>
-    <li><a class="dropdown-item" href="../articles/DHCoxNCP.html">Distributed Cox Regression using Noncooperating parties</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +75,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-06-26</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold.Rmd" class="external-link"><code>vignettes/cox-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold.Rmd</code></div>
@@ -228,12 +224,12 @@ same as the single-decrypter case.</p>
 <p>The CKKS context needs the <code>MULTIPARTY</code> feature enabled so
 the chained <code>multiparty_key_gen()</code> calls work:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://bnaras.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
+<code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>                           scaling_mod_size     <span class="op">=</span> <span class="fl">59L</span>,</span>
 <span>                           first_mod_size       <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
-<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://bnaras.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><code>make_threshold_master(name, cc, n_sites)</code> runs the
 chained key generation and returns a master holding the joint public key
 and a list of per-site secret shares. The master’s
@@ -282,7 +278,7 @@ changed.</p>
 <span><span class="co">##              Estimate Std. Error</span></span>
 <span><span class="co">## GCB_sig    -0.2638698 0.11940447</span></span>
 <span><span class="co">## LN_sig     -0.2543587 0.08515178</span></span>
-<span><span class="co">## Prolif_sig  0.3031250 0.14981283</span></span>
+<span><span class="co">## Prolif_sig  0.3031250 0.14981284</span></span>
 <span><span class="co">## BMP6        0.3036367 0.10727837</span></span>
 <span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span>
 <span><span class="co">## </span></span>
@@ -344,7 +340,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638698</td>
 <td align="right">-0.2638716</td>
-<td align="right">1.822e-06</td>
+<td align="right">1.823e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>

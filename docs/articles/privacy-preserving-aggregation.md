@@ -8,8 +8,7 @@ Multiple research sites each hold patient data and want to know the
 per-site counts to anyone, including the coordinator running the
 aggregation.
 
-This is the same pattern the Paillier vignette
-[`vignette("QueryNCP")`](https://bnaras.github.io/homomorpheR/articles/QueryNCP.md)
+This is the same pattern the Paillier vignette `vignette("QueryNCP")`
 demonstrates with non-cooperating parties. Here we use OpenFHE’s **BFV**
 scheme via the `openfhe.R` package. BFV operates on *integer vectors*
 with both addition and multiplication — well-suited to counting and
@@ -24,90 +23,37 @@ sufficient statistics CKKS is the right choice.
 
 ## Setup
 
-``` r
-
-library(openfhe.R)
-
-set.seed(42)
-site_data <- lapply(c(1000, 500, 1500), function(n) {
-    data.frame(
-        age       = sample(40:70, n, replace = TRUE),
-        sex       = sample(c("M", "F"), n, replace = TRUE),
-        biomarker = runif(n, 0, 1)
-    )
-})
-```
+[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`` `` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``42``)`` ``site_data`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`c`](https://rdrr.io/r/base/c.html)`(``1000``, ``500``, ``1500``)``, ``function``(``n``)`` ``{`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` age ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(``40``:``70``, ``n``, replace ``=`` ``TRUE``)``,`` `` sex ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(`[`c`](https://rdrr.io/r/base/c.html)`(``"M"``, ``"F"``)``, ``n``, replace ``=`` ``TRUE``)``,`` `` biomarker ``=`` `[`runif`](https://rdrr.io/r/stats/Uniform.html)`(``n``, ``0``, ``1``)`` `` ``)`` ``}``)`
 
 ## The coordinator sets up encryption
 
-``` r
-
-## BFV: exact integer arithmetic mod plaintext_modulus.
-cc   <- fhe_context("BFV",
-                    plaintext_modulus    = 65537L,
-                    multiplicative_depth = 1L)
-keys <- key_gen(cc)
-
-pk <- keys@public
-sk <- keys@secret
-```
+`## BFV: exact integer arithmetic mod plaintext_modulus.`` ``cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"BFV"``,`` `` plaintext_modulus ``=`` ``65537L``,`` `` multiplicative_depth ``=`` ``1L``)`` ``keys`` ``<-`` `[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``)`` `` ``pk`` ``<-`` ``keys``@``public`` ``sk`` ``<-`` ``keys``@``secret`
 
 In a real deployment the coordinator distributes the public key (and the
-serialised context) to each site. The secret key stays with the
+serialized context) to each site. The secret key stays with the
 coordinator. We simulate this in one R session by sharing `cc` and `pk`
 locally.
 
 ## Each site computes locally and encrypts
 
-``` r
-
-site_encrypt <- function(site_df, cc, pk) {
-    count <- sum(site_df$age < 50 &
-                 site_df$sex == "F" &
-                 site_df$biomarker < 0.2)
-    pt    <- make_packed_plaintext(cc, as.integer(count))
-    encrypt(pk, pt, cc = cc)
-}
-
-ct_site1 <- site_encrypt(site_data[[1]], cc, pk)
-ct_site2 <- site_encrypt(site_data[[2]], cc, pk)
-ct_site3 <- site_encrypt(site_data[[3]], cc, pk)
-```
+`site_encrypt`` ``<-`` ``function``(``site_df``, ``cc``, ``pk``)`` ``{`` `` ``count`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``site_df``$``age`` ``<`` ``50`` ``&`` `` ``site_df``$``sex`` ``==`` ``"F"`` ``&`` `` ``site_df``$``biomarker`` ``<`` ``0.2``)`` `` ``pt`` ``<-`` `[`make_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html)`(``cc``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``count``)``)`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``pk``, ``pt``, cc ``=`` ``cc``)`` ``}`` `` ``ct_site1`` ``<-`` ``site_encrypt``(``site_data``[[``1``]``]``, ``cc``, ``pk``)`` ``ct_site2`` ``<-`` ``site_encrypt``(``site_data``[[``2``]``]``, ``cc``, ``pk``)`` ``ct_site3`` ``<-`` ``site_encrypt``(``site_data``[[``3``]``]``, ``cc``, ``pk``)`
 
 These ciphertexts are opaque to the coordinator — they learn nothing
 about individual site counts.
 
 ## The coordinator aggregates
 
-``` r
-
-## Homomorphic addition: the coordinator never decrypts intermediate values.
-ct_total <- ct_site1 + ct_site2 + ct_site3
-
-## Only the coordinator holds the secret key.
-result      <- decrypt(ct_total, sk, cc = cc)
-total_count <- get_packed_value(result)[1]
-total_count
-```
+`## Homomorphic addition: the coordinator never decrypts intermediate values.`` ``ct_total`` ``<-`` ``ct_site1`` ``+`` ``ct_site2`` ``+`` ``ct_site3`` `` ``## Only the coordinator holds the secret key.`` ``result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_total``, ``sk``, cc ``=`` ``cc``)`` ``total_count`` ``<-`` `[`get_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html)`(``result``)``[``1``]`` ``total_count`
 
     ## [1] 105
 
 ## Verification
 
-``` r
-
-true_count <- sum(sapply(site_data, function(df) {
-    sum(df$age < 50 & df$sex == "F" & df$biomarker < 0.2)
-}))
-true_count
-```
+`true_count`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`sapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``function``(``df``)`` ``{`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(``df``$``age`` ``<`` ``50`` ``&`` ``df``$``sex`` ``==`` ``"F"`` ``&`` ``df``$``biomarker`` ``<`` ``0.2``)`` ``}``)``)`` ``true_count`
 
     ## [1] 105
 
-``` r
-
-stopifnot(total_count == true_count)
-```
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(``total_count`` ``==`` ``true_count``)`
 
 The aggregated count matches the cleartext computation exactly — BFV is
 *exact* over its integer plaintext space.
@@ -126,39 +72,20 @@ The aggregated count matches the cleartext computation exactly — BFV is
 No site revealed its individual count. The coordinator never saw any
 patient-level data. The total is exact.
 
-## Serialising for a real distributed protocol
+## Serializing for a real distributed protocol
 
 In a real deployment each site needs the coordinator’s context and
-public key. `openfhe.R` provides serialisation:
+public key. `openfhe.R` provides serialization:
 
-``` r
-
-tdir <- tempdir()
-fhe_serialize(cc, file.path(tdir, "context.bin"))
-fhe_serialize(pk, file.path(tdir, "pubkey.bin"))
-
-cc_remote <- fhe_deserialize(file.path(tdir, "context.bin"), "CryptoContext")
-pk_remote <- fhe_deserialize(file.path(tdir, "pubkey.bin"), "PublicKey")
-
-ct <- encrypt(pk_remote,
-              make_packed_plaintext(cc_remote, 42L),
-              cc = cc_remote)
-
-fhe_serialize(ct, file.path(tdir, "site_count.bin"))
-ct_received <- fhe_deserialize(file.path(tdir, "site_count.bin"), "Ciphertext")
-result      <- decrypt(ct_received, sk, cc = cc)
-get_packed_value(result)[1]
-```
+`tdir`` ``<-`` `[`tempdir`](https://rdrr.io/r/base/tempfile.html)`(``)`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``cc``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``)`` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``pk``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"pubkey.bin"``)``)`` `` ``cc_remote`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``, ``"CryptoContext"``)`` ``pk_remote`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"pubkey.bin"``)``, ``"PublicKey"``)`` `` ``ct`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``pk_remote``,`` `` `[`make_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html)`(``cc_remote``, ``42L``)``,`` `` cc ``=`` ``cc_remote``)`` `` `[`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``ct``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"site_count.bin"``)``)`` ``ct_received`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"site_count.bin"``)``, ``"Ciphertext"``)`` ``result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_received``, ``sk``, cc ``=`` ``cc``)`` `[`get_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html)`(``result``)``[``1``]`
 
     ## [1] 42
 
 ## Comparison with the Paillier vignettes
 
-The legacy Paillier vignettes
-([`vignette("QueryNCP")`](https://bnaras.github.io/homomorpheR/articles/QueryNCP.md)
-in particular) achieve the same kind of count aggregation using Paillier
-encryption, which supports only additive homomorphism. With
-`openfhe.R`’s BFV:
+The legacy Paillier vignettes (`vignette("QueryNCP")` in particular)
+achieve the same kind of count aggregation using Paillier encryption,
+which supports only additive homomorphism. With `openfhe.R`’s BFV:
 
 - **Multiplication** is available — encrypted products, variances, more
   complex integer-valued aggregates.
@@ -169,7 +96,7 @@ encryption, which supports only additive homomorphism. With
   counts can ride in the slots of a single ciphertext for parallel
   aggregation.
 - **Threshold FHE** —
-  [`multiparty_key_gen()`](https://bnaras.github.io/openfhe.R/reference/multiparty_key_gen.html)
+  [`multiparty_key_gen()`](https://openfheorg.github.io/openfhe.R/reference/multiparty_key_gen.html)
   lets the secret key be split across parties so no single party can
   decrypt unilaterally. (See
   [`vignette("cox-threshold")`](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md)

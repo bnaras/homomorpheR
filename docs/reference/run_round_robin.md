@@ -1,14 +1,13 @@
 # Run one round of the round-robin protocol
 
-Backend-agnostic: works for both
-[PaillierMaster](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md)
-and
-[CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)
-via the
+Backend-agnostic via the
 [`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
 /
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-generics.
+generics, but part of the frozen Paillier-era legacy surface: the
+random-offset chain idiom compensated for Paillier-era trust
+assumptions. The supported pattern is
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md).
 
 ## Usage
 

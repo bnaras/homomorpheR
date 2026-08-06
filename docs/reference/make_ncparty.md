@@ -1,7 +1,6 @@
 # Construct an [NCParty](https://bnaras.github.io/homomorpheR/reference/NCParty.md)
 
-Construct an
-[NCParty](https://bnaras.github.io/homomorpheR/reference/NCParty.md)
+Part of the frozen Paillier-era legacy surface.
 
 ## Usage
 

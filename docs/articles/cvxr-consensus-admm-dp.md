@@ -67,125 +67,20 @@ $`T`$.
 
 ## Setup
 
-``` r
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(``{`` `` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` `[`library`](https://rdrr.io/r/base/library.html)`(`[`CVXR`](https://cvxr.rbind.io)`)`` `` `[`library`](https://rdrr.io/r/base/library.html)`(`[`S7`](https://rconsortium.github.io/S7/)`)`` ``}``)`` `` ``N`` ``<-`` ``3L`` ``p`` ``<-`` ``4L`` ``lam`` ``<-`` ``1`
 
-suppressPackageStartupMessages({
-    library(homomorpheR)
-    library(CVXR)
-    library(S7)
-})
-
-N   <- 3L
-p   <- 4L
-lam <- 1
-```
-
-``` r
-
-build_local_problem <- function(X_i, y_i, rho_val) {
-    x  <- Variable(p)
-    zp <- Parameter(p)
-    up <- Parameter(p)
-    y_signs <- 2 * y_i - 1
-    margins <- -y_signs * (X_i %*% x)
-    local_loss <- sum(logistic(margins)) +
-                  (lam / (2 * N)) * sum_squares(x)
-    augmented  <- (rho_val / 2) * sum_squares(x - zp + up)
-    prob <- Problem(Minimize(local_loss + augmented))
-    value(zp) <- rep(0, p); value(up) <- rep(0, p)
-    list(prob = prob, x = x, zp = zp, up = up)
-}
-
-ConsensusSite <- new_class("ConsensusSite",
-    properties = list(
-        name  = class_character,
-        n     = class_integer,
-        state = class_any))
-
-make_consensus_site <- function(name, X_i, y_i, rho_val) {
-    st        <- new.env(parent = emptyenv())
-    st$X      <- X_i
-    st$y      <- y_i
-    built     <- build_local_problem(X_i, y_i, rho_val)
-    st$prob   <- built$prob
-    st$x_var  <- built$x
-    st$zp     <- built$zp
-    st$up     <- built$up
-    st$x_curr <- rep(0, ncol(X_i))
-    st$u_curr <- rep(0, ncol(X_i))
-    ConsensusSite(name = name, n = nrow(X_i), state = st)
-}
-
-local_update <- function(site, z_curr) {
-    st <- site@state
-    value(st$zp) <- z_curr
-    value(st$up) <- st$u_curr
-    suppressMessages(suppressWarnings(psolve(st$prob, solver = "CLARABEL")))
-    if (!status(st$prob) %in% c("optimal", "optimal_inaccurate"))
-        stop("Local CVXR solve at ", site@name, " did not reach optimal status.")
-    st$x_curr <- as.numeric(value(st$x_var))
-    invisible(st$x_curr)
-}
-```
+`build_local_problem`` ``<-`` ``function``(``X_i``, ``y_i``, ``rho_val``)`` ``{`` `` ``x`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)`` `` ``zp`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)`` `` ``up`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)`` `` ``y_signs`` ``<-`` ``2`` ``*`` ``y_i`` ``-`` ``1`` `` ``margins`` ``<-`` ``-``y_signs`` ``*`` ``(``X_i`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``x``)`` `` ``local_loss`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins``)``)`` ``+`` `` ``(``lam`` ``/`` ``(``2`` ``*`` ``N``)``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x``)`` `` ``augmented`` ``<-`` ``(``rho_val`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x`` ``-`` ``zp`` ``+`` ``up``)`` `` ``prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(``local_loss`` ``+`` ``augmented``)``)`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``zp``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)``; `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``up``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``prob ``=`` ``prob``, x ``=`` ``x``, zp ``=`` ``zp``, up ``=`` ``up``)`` ``}`` `` ``ConsensusSite`` ``<-`` `[`new_class`](https://rconsortium.github.io/S7/reference/new_class.html)`(``"ConsensusSite"``,`` `` properties ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` name ``=`` ``class_character``,`` `` n ``=`` ``class_integer``,`` `` state ``=`` ``class_any``)``)`` `` ``make_consensus_site`` ``<-`` ``function``(``name``, ``X_i``, ``y_i``, ``rho_val``)`` ``{`` `` ``st`` ``<-`` `[`new.env`](https://rdrr.io/r/base/environment.html)`(``parent ``=`` `[`emptyenv`](https://rdrr.io/r/base/environment.html)`(``)``)`` `` ``st``$``X`` ``<-`` ``X_i`` `` ``st``$``y`` ``<-`` ``y_i`` `` ``built`` ``<-`` ``build_local_problem``(``X_i``, ``y_i``, ``rho_val``)`` `` ``st``$``prob`` ``<-`` ``built``$``prob`` `` ``st``$``x_var`` ``<-`` ``built``$``x`` `` ``st``$``zp`` ``<-`` ``built``$``zp`` `` ``st``$``up`` ``<-`` ``built``$``up`` `` ``st``$``x_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`` `` ``st``$``u_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`` `` ``ConsensusSite``(``name ``=`` ``name``, n ``=`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``, state ``=`` ``st``)`` ``}`` `` ``local_update`` ``<-`` ``function``(``site``, ``z_curr``)`` ``{`` `` ``st`` ``<-`` ``site``@``state`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``zp``)`` ``<-`` ``z_curr`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``up``)`` ``<-`` ``st``$``u_curr`` `` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``st``$``prob``, solver ``=`` ``"CLARABEL"``)``)``)`` `` ``if`` ``(``!`[`status`](https://www.cvxgrp.org/CVXR/reference/status.html)`(``st``$``prob``)`` `[`%in%`](https://rdrr.io/r/base/match.html)` `[`c`](https://rdrr.io/r/base/c.html)`(``"optimal"``, ``"optimal_inaccurate"``)``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Local CVXR solve at "``, ``site``@``name``, ``" did not reach optimal status."``)`` `` ``st``$``x_curr`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``x_var``)``)`` `` `[`invisible`](https://rdrr.io/r/base/invisible.html)`(``st``$``x_curr``)`` ``}`
 
 ## Simulated cohort
 
-``` r
-
-set.seed(20260412)
-n_per_site <- c(500L, 1000L, 1500L)
-beta_true  <- c(intercept = -0.5, age = 0.4, bmi = -0.3, sex = 0.6)
-
-make_site_data <- function(n) {
-    X  <- cbind(1, rnorm(n), rnorm(n), rbinom(n, 1, 0.5))
-    pr <- plogis(as.numeric(X %*% beta_true))
-    y  <- as.integer(runif(n) < pr)
-    list(X = X, y = y)
-}
-site_data <- lapply(n_per_site, make_site_data)
-```
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``20260412``)`` ``n_per_site`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``500L``, ``1000L``, ``1500L``)`` ``beta_true`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``intercept ``=`` ``-``0.5``, age ``=`` ``0.4``, bmi ``=`` ``-``0.3``, sex ``=`` ``0.6``)`` `` ``make_site_data`` ``<-`` ``function``(``n``)`` ``{`` `` ``X`` ``<-`` `[`cbind`](https://rdrr.io/r/base/cbind.html)`(``1``, `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n``)``, `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n``)``, `[`rbinom`](https://rdrr.io/r/stats/Binomial.html)`(``n``, ``1``, ``0.5``)``)`` `` ``pr`` ``<-`` `[`plogis`](https://rdrr.io/r/stats/Logistic.html)`(`[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``X`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_true``)``)`` `` ``y`` ``<-`` `[`as.integer`](https://rdrr.io/r/base/integer.html)`(`[`runif`](https://rdrr.io/r/stats/Uniform.html)`(``n``)`` ``<`` ``pr``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``X ``=`` ``X``, y ``=`` ``y``)`` ``}`` ``site_data`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``n_per_site``, ``make_site_data``)`
 
 ## Cleartext $`\rho`$ sweep
 
 Pick $`\rho`$ programmatically — same idiom as the lossless ADMM
 vignette.
 
-``` r
-
-tol      <- 1e-3
-max_iter <- 60L
-
-sweep_one_rho <- function(rho_val) {
-    built <- lapply(site_data,
-                    function(s) build_local_problem(s$X, s$y, rho_val))
-    x_curr <- u_curr <- replicate(N, rep(0, p), simplify = FALSE)
-    z      <- rep(0, p)
-    k_conv <- NA_integer_
-    for (k in seq_len(max_iter)) {
-        for (i in seq_len(N)) {
-            value(built[[i]]$zp) <- z
-            value(built[[i]]$up) <- u_curr[[i]]
-            suppressMessages(suppressWarnings(
-                psolve(built[[i]]$prob, solver = "CLARABEL")))
-            x_curr[[i]] <- as.numeric(value(built[[i]]$x))
-        }
-        z_prev <- z
-        z <- Reduce(`+`, Map(`+`, x_curr, u_curr)) / N
-        for (i in seq_len(N)) u_curr[[i]] <- u_curr[[i]] + x_curr[[i]] - z
-        pri <- sqrt(sum(vapply(seq_len(N),
-            function(i) sum((x_curr[[i]] - z)^2), 0)) / N)
-        dua <- rho_val * sqrt(sum((z - z_prev)^2))
-        if (pri < tol && dua < tol) { k_conv <- k; break }
-    }
-    data.frame(rho = rho_val,
-               iters = if (is.na(k_conv)) max_iter else k_conv,
-               converged = !is.na(k_conv))
-}
-
-rho_grid  <- c(10, 20, 50, 100, 500)
-rho_sweep <- do.call(rbind, lapply(rho_grid, sweep_one_rho))
-knitr::kable(rho_sweep, caption = "Cleartext consensus-ADMM convergence")
-```
+`tol`` ``<-`` ``1e-3`` ``max_iter`` ``<-`` ``60L`` `` ``sweep_one_rho`` ``<-`` ``function``(``rho_val``)`` ``{`` `` ``built`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``,`` `` ``function``(``s``)`` ``build_local_problem``(``s``$``X``, ``s``$``y``, ``rho_val``)``)`` `` ``x_curr`` ``<-`` ``u_curr`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)``, simplify ``=`` ``FALSE``)`` `` ``z`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`` `` ``k_conv`` ``<-`` ``NA_integer_`` `` ``for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``max_iter``)``)`` ``{`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``)`` ``{`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``built``[[``i``]``]``$``zp``)`` ``<-`` ``z`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``built``[[``i``]``]``$``up``)`` ``<-`` ``u_curr``[[``i``]``]`` `` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``built``[[``i``]``]``$``prob``, solver ``=`` ``"CLARABEL"``)``)``)`` `` ``x_curr``[[``i``]``]`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``built``[[``i``]``]``$``x``)``)`` `` ``}`` `` ``z_prev`` ``<-`` ``z`` `` ``z`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`Map`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``x_curr``, ``u_curr``)``)`` ``/`` ``N`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``)`` ``u_curr``[[``i``]``]`` ``<-`` ``u_curr``[[``i``]``]`` ``+`` ``x_curr``[[``i``]``]`` ``-`` ``z`` `` ``pri`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``,`` `` ``function``(``i``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``x_curr``[[``i``]``]`` ``-`` ``z``)``^``2``)``, ``0``)``)`` ``/`` ``N``)`` `` ``dua`` ``<-`` ``rho_val`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z`` ``-`` ``z_prev``)``^``2``)``)`` `` ``if`` ``(``pri`` ``<`` ``tol`` ``&&`` ``dua`` ``<`` ``tol``)`` ``{`` ``k_conv`` ``<-`` ``k``; ``break`` ``}`` `` ``}`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``rho ``=`` ``rho_val``,`` `` iters ``=`` ``if`` ``(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``k_conv``)``)`` ``max_iter`` ``else`` ``k_conv``,`` `` converged ``=`` ``!`[`is.na`](https://rdrr.io/r/base/NA.html)`(``k_conv``)``)`` ``}`` `` ``rho_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``10``, ``20``, ``50``, ``100``, ``500``)`` ``rho_sweep`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``rho_grid``, ``sweep_one_rho``)``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``rho_sweep``, caption ``=`` ``"Cleartext consensus-ADMM convergence"``)`
 
 | rho | iters | converged |
 |----:|------:|:----------|
@@ -197,17 +92,7 @@ knitr::kable(rho_sweep, caption = "Cleartext consensus-ADMM convergence")
 
 Cleartext consensus-ADMM convergence {.table}
 
-``` r
-
-converged_rows <- rho_sweep[rho_sweep$converged, ]
-if (nrow(converged_rows) == 0L)
-    stop("No rho in the grid converged within max_iter.")
-
-rho_chosen <- converged_rows$rho[which.min(converged_rows$iters)]
-T_fixed    <- converged_rows$iters[converged_rows$rho == rho_chosen]
-cat(sprintf("Chosen rho = %g (T = %d iterations cleartext).\n",
-            rho_chosen, T_fixed))
-```
+`converged_rows`` ``<-`` ``rho_sweep``[``rho_sweep``$``converged``, ``]`` ``if`` ``(`[`nrow`](https://rdrr.io/r/base/nrow.html)`(``converged_rows``)`` ``==`` ``0L``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"No rho in the grid converged within max_iter."``)`` `` ``rho_chosen`` ``<-`` ``converged_rows``$``rho``[`[`which.min`](https://rdrr.io/r/base/which.min.html)`(``converged_rows``$``iters``)``]`` ``T_fixed`` ``<-`` ``converged_rows``$``iters``[``converged_rows``$``rho`` ``==`` ``rho_chosen``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Chosen rho = %g (T = %d iterations cleartext).\n"``,`` `` ``rho_chosen``, ``T_fixed``)``)`
 
     ## Chosen rho = 50 (T = 30 iterations cleartext).
 
@@ -216,148 +101,51 @@ of residuals.
 
 ## Threshold-FHE setup
 
-``` r
-
-cc <- openfhe.R::fhe_context("CKKS",
-                           multiplicative_depth = 1L,
-                           scaling_mod_size     = 59L,
-                           first_mod_size       = 60L,
-                           batch_size           = 8L,
-                           features             = c(openfhe.R::Feature$MULTIPARTY))
-```
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
 The DP version of the consensus step. The only change from the lossless
 ADMM vignette’s `encrypted_consensus()` is the
 `rnorm(p, ..., sd = sigma * sqrt(Nv))` term inside the per-site loop:
 
-``` r
-
-encrypted_consensus_dp <- function(threshold_master, sites, sigma) {
-    Nv  <- length(sites)
-    cts <- vector("list", Nv)
-    for (i in seq_along(sites)) {
-        st  <- sites[[i]]@state
-        val <- st$x_curr + st$u_curr +
-               rnorm(p, mean = 0, sd = sigma * sqrt(Nv))
-        cts[[i]] <- master_encrypt(threshold_master, val)
-    }
-    ct_sum <- Reduce(`+`, cts)
-    ct_avg <- ct_sum * (1 / Nv)
-    master_decrypt(threshold_master, ct_avg, len = p)
-}
-```
+`encrypted_consensus_dp`` ``<-`` ``function``(``threshold_master``, ``sites``, ``sigma``)`` ``{`` `` ``Nv`` ``<-`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites``)`` `` ``cts`` ``<-`` `[`vector`](https://rdrr.io/r/base/vector.html)`(``"list"``, ``Nv``)`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sites``)``)`` ``{`` `` ``st`` ``<-`` ``sites``[[``i``]``]``@``state`` `` ``val`` ``<-`` ``st``$``x_curr`` ``+`` ``st``$``u_curr`` ``+`` `` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``, mean ``=`` ``0``, sd ``=`` ``sigma`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``Nv``)``)`` `` ``cts``[[``i``]``]`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``threshold_master``, ``val``)`` `` ``}`` `` ``ct_sum`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` `` ``ct_avg`` ``<-`` ``ct_sum`` ``*`` ``(``1`` ``/`` ``Nv``)`` `` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``threshold_master``, ``ct_avg``, len ``=`` ``p``)`` ``}`
 
 ## The DP-ADMM loop
 
-``` r
-
-run_dp_admm <- function(sigma, T_iter = T_fixed, seed = NULL) {
-    if (!is.null(seed)) set.seed(seed)
-    master <- make_threshold_master("Aggregator",
-                                    crypto_context = cc,
-                                    n_sites        = N)
-    sites <- list(
-        make_consensus_site("Site 1", site_data[[1]]$X, site_data[[1]]$y, rho_chosen),
-        make_consensus_site("Site 2", site_data[[2]]$X, site_data[[2]]$y, rho_chosen),
-        make_consensus_site("Site 3", site_data[[3]]$X, site_data[[3]]$y, rho_chosen))
-
-    z_curr <- rep(0, p)
-    z_hist <- matrix(NA_real_, nrow = T_iter, ncol = p,
-                     dimnames = list(NULL, names(beta_true)))
-    for (k in seq_len(T_iter)) {
-        for (s in sites) local_update(s, z_curr)
-        z_curr <- encrypted_consensus_dp(master, sites, sigma)
-        for (s in sites) {
-            s@state$u_curr <- s@state$u_curr + (s@state$x_curr - z_curr)
-        }
-        z_hist[k, ] <- z_curr
-    }
-    list(z = z_curr, z_hist = z_hist)
-}
-```
+`run_dp_admm`` ``<-`` ``function``(``sigma``, ``T_iter`` ``=`` ``T_fixed``, ``seed`` ``=`` ``NULL``)`` ``{`` `` ``if`` ``(``!`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``seed``)``)`` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``seed``)`` `` ``master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``N``)`` `` ``sites`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` ``make_consensus_site``(``"Site 1"``, ``site_data``[[``1``]``]``$``X``, ``site_data``[[``1``]``]``$``y``, ``rho_chosen``)``,`` `` ``make_consensus_site``(``"Site 2"``, ``site_data``[[``2``]``]``$``X``, ``site_data``[[``2``]``]``$``y``, ``rho_chosen``)``,`` `` ``make_consensus_site``(``"Site 3"``, ``site_data``[[``3``]``]``$``X``, ``site_data``[[``3``]``]``$``y``, ``rho_chosen``)``)`` `` `` ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`` `` ``z_hist`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``NA_real_``, nrow ``=`` ``T_iter``, ncol ``=`` ``p``,`` `` dimnames ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``NULL``, `[`names`](https://rdrr.io/r/base/names.html)`(``beta_true``)``)``)`` `` ``for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``T_iter``)``)`` ``{`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``local_update``(``s``, ``z_curr``)`` `` ``z_curr`` ``<-`` ``encrypted_consensus_dp``(``master``, ``sites``, ``sigma``)`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``{`` `` ``s``@``state``$``u_curr`` ``<-`` ``s``@``state``$``u_curr`` ``+`` ``(``s``@``state``$``x_curr`` ``-`` ``z_curr``)`` `` ``}`` `` ``z_hist``[``k``, ``]`` ``<-`` ``z_curr`` `` ``}`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z_curr``, z_hist ``=`` ``z_hist``)`` ``}`
 
 ## Centralized CVXR fit
 
-``` r
-
-X_pooled  <- do.call(rbind, lapply(site_data, `[[`, "X"))
-y_pooled  <- unlist(lapply(site_data, `[[`, "y"))
-beta_var  <- Variable(p)
-y_signs_p <- 2 * y_pooled - 1
-margins_p <- -y_signs_p * (X_pooled %*% beta_var)
-suppressMessages(suppressWarnings(
-    psolve(Problem(Minimize(sum(logistic(margins_p)) +
-                            (lam / 2) * sum_squares(beta_var))),
-           solver = "CLARABEL")))
-```
+`X_pooled`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"X"``)``)`` ``y_pooled`` ``<-`` `[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"y"``)``)`` ``beta_var`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)`` ``y_signs_p`` ``<-`` ``2`` ``*`` ``y_pooled`` ``-`` ``1`` ``margins_p`` ``<-`` ``-``y_signs_p`` ``*`` ``(``X_pooled`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_var``)`` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(`[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins_p``)``)`` ``+`` `` ``(``lam`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``beta_var``)``)``)``,`` `` solver ``=`` ``"CLARABEL"``)``)``)`
 
     ## [1] 1932.792
 
-``` r
-
-beta_central <- as.numeric(value(beta_var))
-names(beta_central) <- names(beta_true)
-```
+`beta_central`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``beta_var``)``)`` `[`names`](https://rdrr.io/r/base/names.html)`(``beta_central``)`` ``<-`` `[`names`](https://rdrr.io/r/base/names.html)`(``beta_true``)`
 
 ## The $`\sigma`$ sweep
 
 Six $`\sigma`$ values from zero to one. The $`\sigma = 0`$ row is the
 sanity check that the DP mechanism is a no-op when off.
 
-``` r
-
-sigma_grid    <- c(0, 1e-4, 1e-3, 1e-2, 1e-1, 1)
-sweep_results <- vector("list", length(sigma_grid))
-for (j in seq_along(sigma_grid)) {
-    sweep_results[[j]] <- run_dp_admm(sigma = sigma_grid[j], seed = 100L + j)
-}
-names(sweep_results) <- sprintf("sigma=%.0e", sigma_grid)
-```
+`sigma_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1e-4``, ``1e-3``, ``1e-2``, ``1e-1``, ``1``)`` ``sweep_results`` ``<-`` `[`vector`](https://rdrr.io/r/base/vector.html)`(``"list"``, `[`length`](https://rdrr.io/r/base/length.html)`(``sigma_grid``)``)`` ``for`` ``(``j`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sigma_grid``)``)`` ``{`` `` ``sweep_results``[[``j``]``]`` ``<-`` ``run_dp_admm``(``sigma ``=`` ``sigma_grid``[``j``]``, seed ``=`` ``100L`` ``+`` ``j``)`` ``}`` `[`names`](https://rdrr.io/r/base/names.html)`(``sweep_results``)`` ``<-`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"sigma=%.0e"``, ``sigma_grid``)`
 
 ## $`\sigma = 0`$ sanity check
 
-``` r
+`clean_dev`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``sweep_results``[[``1``]``]``$``z`` ``-`` ``beta_central``)``)`` ``agree_tol`` ``<-`` ``10`` ``*`` ``tol`` ``if`` ``(``clean_dev`` ``>`` ``agree_tol``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"DP-ADMM at sigma = 0 disagrees with the centralized fit."``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"``,`` `` ``clean_dev``, ``agree_tol``)``)`
 
-clean_dev <- max(abs(sweep_results[[1]]$z - beta_central))
-agree_tol <- 10 * tol
-if (clean_dev > agree_tol)
-    stop("DP-ADMM at sigma = 0 disagrees with the centralized fit.")
-cat(sprintf("Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n",
-            clean_dev, agree_tol))
-```
-
-    ## Sigma = 0 max coefficient deviation: 8.67e-05 (tol 1e-02)
+    ## Sigma = 0 max coefficient deviation: 8.65e-05 (tol 1e-02)
 
 ## Summary table
 
-``` r
-
-summary_df <- do.call(rbind, lapply(seq_along(sigma_grid), function(j) {
-    z <- sweep_results[[j]]$z
-    data.frame(sigma     = sigma_grid[j],
-               intercept = z[1],
-               age       = z[2],
-               bmi       = z[3],
-               sex       = z[4],
-               max_dev   = max(abs(z - beta_central)))
-}))
-central_row <- data.frame(sigma = NA, intercept = beta_central[1],
-                         age = beta_central[2], bmi = beta_central[3],
-                         sex = beta_central[4], max_dev = 0)
-summary_table <- rbind(summary_df, central_row)
-rownames(summary_table) <- c(sprintf("sigma=%g", sigma_grid), "centralized")
-knitr::kable(summary_table, digits = 6,
-             caption = "DP-ADMM coefficients vs centralized CVXR")
-```
+`summary_df`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sigma_grid``)``, ``function``(``j``)`` ``{`` `` ``z`` ``<-`` ``sweep_results``[[``j``]``]``$``z`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``sigma ``=`` ``sigma_grid``[``j``]``,`` `` intercept ``=`` ``z``[``1``]``,`` `` age ``=`` ``z``[``2``]``,`` `` bmi ``=`` ``z``[``3``]``,`` `` sex ``=`` ``z``[``4``]``,`` `` max_dev ``=`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z`` ``-`` ``beta_central``)``)``)`` ``}``)``)`` ``central_row`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``sigma ``=`` ``NA``, intercept ``=`` ``beta_central``[``1``]``,`` `` age ``=`` ``beta_central``[``2``]``, bmi ``=`` ``beta_central``[``3``]``,`` `` sex ``=`` ``beta_central``[``4``]``, max_dev ``=`` ``0``)`` ``summary_table`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(``summary_df``, ``central_row``)`` `[`rownames`](https://rdrr.io/r/base/colnames.html)`(``summary_table``)`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"sigma=%g"``, ``sigma_grid``)``, ``"centralized"``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``summary_table``, digits ``=`` ``6``,`` `` caption ``=`` ``"DP-ADMM coefficients vs centralized CVXR"``)`
 
 |              | sigma | intercept |       age |       bmi |      sex |  max_dev |
 |:-------------|------:|----------:|----------:|----------:|---------:|---------:|
-| sigma=0      | 0e+00 | -0.591018 |  0.402617 | -0.325959 | 0.641609 | 0.000087 |
-| sigma=0.0001 | 1e-04 | -0.591025 |  0.402670 | -0.325838 | 0.641469 | 0.000145 |
-| sigma=0.001  | 1e-03 | -0.591691 |  0.401580 | -0.326375 | 0.643028 | 0.001464 |
-| sigma=0.01   | 1e-02 | -0.605935 |  0.407191 | -0.318839 | 0.657241 | 0.015677 |
+| sigma=0      | 0e+00 | -0.591018 |  0.402617 | -0.325959 | 0.641609 | 0.000086 |
+| sigma=0.0001 | 1e-04 | -0.591025 |  0.402669 | -0.325837 | 0.641469 | 0.000146 |
+| sigma=0.001  | 1e-03 | -0.591691 |  0.401580 | -0.326374 | 0.643028 | 0.001464 |
+| sigma=0.01   | 1e-02 | -0.605935 |  0.407191 | -0.318838 | 0.657241 | 0.015677 |
 | sigma=0.1    | 1e-01 | -0.777970 |  0.401483 | -0.382908 | 0.519775 | 0.186865 |
-| sigma=1      | 1e+00 | -0.461572 | -0.677927 | -0.499757 | 1.302194 | 1.080602 |
+| sigma=1      | 1e+00 | -0.461572 | -0.677927 | -0.499757 | 1.302194 | 1.080601 |
 | centralized  |    NA | -0.591104 |  0.402674 | -0.325983 | 0.641564 | 0.000000 |
 
 DP-ADMM coefficients vs centralized CVXR {.table style="width:100%;"}
@@ -376,16 +164,7 @@ Per-iteration zCDP: $`\rho_{\text{iter}} = (\Delta/\sigma)^2/2`$ per
 total $`\rho = T \cdot N \cdot (\Delta/\sigma)^2/2`$. Convert to
 $`(\varepsilon, \delta)`$ via the standard formula.
 
-``` r
-
-zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
-
-budget <- data.frame(sigma = sigma_grid[sigma_grid > 0])
-budget$rho_total                  <- T_fixed * N * (1 / budget$sigma)^2 / 2
-budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
-knitr::kable(budget, digits = 4,
-             caption = "zCDP composition; sensitivity Delta = 1, delta = 1e-5")
-```
+`zcdp_to_eps`` ``<-`` ``function``(``rho``, ``delta`` ``=`` ``1e-5``)`` ``rho`` ``+`` ``2`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``rho`` ``*`` `[`log`](https://rdrr.io/r/base/Log.html)`(``1`` ``/`` ``delta``)``)`` `` ``budget`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``sigma ``=`` ``sigma_grid``[``sigma_grid`` ``>`` ``0``]``)`` ``budget``$``rho_total`` ``<-`` ``T_fixed`` ``*`` ``N`` ``*`` ``(``1`` ``/`` ``budget``$``sigma``)``^``2`` ``/`` ``2`` ``budget``$``epsilon_at_delta_1e_minus_5`` ``<-`` ``zcdp_to_eps``(``budget``$``rho_total``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``budget``, digits ``=`` ``4``,`` `` caption ``=`` ``"zCDP composition; sensitivity Delta = 1, delta = 1e-5"``)`
 
 | sigma | rho_total | epsilon_at_delta_1e_minus_5 |
 |------:|----------:|----------------------------:|

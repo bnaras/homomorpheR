@@ -55,37 +55,7 @@ when each site adds $`\mathcal{N}(0, \sigma^2/N)`$.
 
 ## The Cox setup (same DLBCL data as the other Cox vignettes)
 
-``` r
-
-suppressPackageStartupMessages(library(survival))
-library(homomorpheR)
-library(stats4)
-data(DLBCL)
-
-cox_data <- split(
-  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
-            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
-  DLBCL$Subgroup)
-
-agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
-                       Prolif_sig + BMP6 + MHC2_sig +
-                       strata(Subgroup),
-                   data = DLBCL)
-agg_coef <- coef(agg_model)
-
-cph_control <- replace(coxph.control(), "iter.max", 0)
-
-local_cox_nll <- function(data, beta) {
-    fit <- tryCatch(
-        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
-                  BMP6 + MHC2_sig,
-              data    = data,
-              init    = beta,
-              control = cph_control),
-        error = function(e) NULL)
-    if (is.null(fit)) NA_real_ else -fit$loglik[1]
-}
-```
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)``)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``)`` `` ``cox_data`` ``<-`` `[`split`](https://rdrr.io/r/base/split.html)`(`` `` ``DLBCL``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"time"``, ``"status"``, ``"GCB_sig"``, ``"LN_sig"``,`` `` ``"Prolif_sig"``, ``"BMP6"``, ``"MHC2_sig"``, ``"Subgroup"``)``]``,`` `` ``DLBCL``$``Subgroup``)`` `` ``agg_model`` ``<-`` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` `` ``Prolif_sig`` ``+`` ``BMP6`` ``+`` ``MHC2_sig`` ``+`` `` `[`strata`](https://rdrr.io/pkg/survival/man/strata.html)`(``Subgroup``)``,`` `` data ``=`` ``DLBCL``)`` ``agg_coef`` ``<-`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``agg_model``)`` `` ``cph_control`` ``<-`` `[`replace`](https://rdrr.io/r/base/replace.html)`(`[`coxph.control`](https://rdrr.io/pkg/survival/man/coxph.control.html)`(``)``, ``"iter.max"``, ``0``)`` `` ``local_cox_nll`` ``<-`` ``function``(``data``, ``beta``)`` ``{`` `` ``fit`` ``<-`` `[`tryCatch`](https://rdrr.io/r/base/conditions.html)`(`` `` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` ``Prolif_sig`` ``+`` `` ``BMP6`` ``+`` ``MHC2_sig``,`` `` data ``=`` ``data``,`` `` init ``=`` ``beta``,`` `` control ``=`` ``cph_control``)``,`` `` error ``=`` ``function``(``e``)`` ``NULL``)`` `` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``fit``)``)`` ``NA_real_`` ``else`` ``-``fit``$``loglik``[``1``]`` ``}`
 
 ## Threshold setup and DP-noised workers
 
@@ -95,45 +65,7 @@ an independent $`\mathcal{N}(0, \sigma^2/N)`$ draw to its local nLL
 before returning. The master/worker runner sees only the noisy local
 value and encrypts it as usual.
 
-``` r
-
-cc <- openfhe.R::fhe_context("CKKS",
-                           multiplicative_depth = 1L,
-                           scaling_mod_size     = 59L,
-                           first_mod_size       = 60L,
-                           batch_size           = 8L,
-                           features             = c(openfhe.R::Feature$MULTIPARTY))
-
-n_sites <- length(cox_data)
-
-build_dp_workers <- function(sigma) {
-    lapply(names(cox_data), function(nm) {
-        make_worker(
-            nm,
-            data     = cox_data[[nm]],
-            local_fn = function(data, beta) {
-                nll <- local_cox_nll(data, beta)
-                if (is.na(nll)) return(NA_real_)
-                nll + rnorm(1L, mean = 0, sd = sigma / sqrt(n_sites))
-            })
-    })
-}
-
-fit_at_sigma <- function(sigma, method = "BFGS", seed = 1L) {
-    set.seed(seed)   # stabilize the DP-noise draws across runs
-    master <- make_threshold_master("Aggregator",
-                                    crypto_context = cc,
-                                    n_sites        = n_sites)
-    set_workers(master, build_dp_workers(sigma))
-    dp_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
-        master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
-    stats4::mle(dp_nLL,
-                start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
-                               BMP6    = 0, MHC2_sig = 0),
-                method  = method,
-                control = list(reltol = 1e-7))
-}
-```
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`` `` ``n_sites`` ``<-`` `[`length`](https://rdrr.io/r/base/length.html)`(``cox_data``)`` `` ``build_dp_workers`` ``<-`` ``function``(``sigma``)`` ``{`` `` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`names`](https://rdrr.io/r/base/names.html)`(``cox_data``)``, ``function``(``nm``)`` ``{`` `` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(`` `` ``nm``,`` `` data ``=`` ``cox_data``[[``nm``]``]``,`` `` local_fn ``=`` ``function``(``data``, ``beta``)`` ``{`` `` ``nll`` ``<-`` ``local_cox_nll``(``data``, ``beta``)`` `` ``if`` ``(`[`is.na`](https://rdrr.io/r/base/NA.html)`(``nll``)``)`` `[`return`](https://rdrr.io/r/base/function.html)`(``NA_real_``)`` `` ``nll`` ``+`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``1L``, mean ``=`` ``0``, sd ``=`` ``sigma`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``n_sites``)``)`` `` ``}``)`` `` ``}``)`` ``}`` `` ``fit_at_sigma`` ``<-`` ``function``(``sigma``, ``method`` ``=`` ``"BFGS"``, ``seed`` ``=`` ``1L``)`` ``{`` `` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``seed``)`` ``# stabilize the DP-noise draws across runs`` `` ``master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``n_sites``)`` `` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, ``build_dp_workers``(``sigma``)``)`` `` ``dp_nLL`` ``<-`` ``function``(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)`` `` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, `[`c`](https://rdrr.io/r/base/c.html)`(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)``)`` `` ``stats4``::`[`mle`](https://rdrr.io/r/stats4/mle.html)`(``dp_nLL``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``GCB_sig ``=`` ``0``, LN_sig ``=`` ``0``, Prolif_sig ``=`` ``0``,`` `` BMP6 ``=`` ``0``, MHC2_sig ``=`` ``0``)``,`` `` method ``=`` ``method``,`` `` control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``reltol ``=`` ``1e-7``)``)`` ``}`
 
 ## Mechanical correctness: $`\sigma = 0`$ reproduces `cox-threshold`
 
@@ -142,22 +74,11 @@ protocol. The fitted coefficients match
 [`coxph()`](https://rdrr.io/pkg/survival/man/coxph.html) to
 threshold-CKKS precision.
 
-``` r
-
-fit_clean <- fit_at_sigma(0)
-clean_check <- data.frame(
-    coefficient = names(agg_coef),
-    cleartext   = unname(agg_coef),
-    protocol    = unname(coef(fit_clean)[names(agg_coef)]),
-    abs_diff    = abs(unname(coef(fit_clean)[names(agg_coef)] - agg_coef))
-)
-knitr::kable(clean_check, digits = 9,
-             caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
-```
+`fit_clean`` ``<-`` ``fit_at_sigma``(``0``)`` ``clean_check`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` coefficient ``=`` `[`names`](https://rdrr.io/r/base/names.html)`(``agg_coef``)``,`` `` cleartext ``=`` `[`unname`](https://rdrr.io/r/base/unname.html)`(``agg_coef``)``,`` `` protocol ``=`` `[`unname`](https://rdrr.io/r/base/unname.html)`(`[`coef`](https://rdrr.io/r/stats/coef.html)`(``fit_clean``)``[`[`names`](https://rdrr.io/r/base/names.html)`(``agg_coef``)``]``)``,`` `` abs_diff ``=`` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(`[`unname`](https://rdrr.io/r/base/unname.html)`(`[`coef`](https://rdrr.io/r/stats/coef.html)`(``fit_clean``)``[`[`names`](https://rdrr.io/r/base/names.html)`(``agg_coef``)``]`` ``-`` ``agg_coef``)``)`` ``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``clean_check``, digits ``=`` ``9``,`` `` caption ``=`` ``"Threshold-DP protocol at sigma = 0 vs cleartext coxph()"``)`
 
 | coefficient |  cleartext |   protocol |  abs_diff |
 |:------------|-----------:|-----------:|----------:|
-| GCB_sig     | -0.2638716 | -0.2638698 | 1.822e-06 |
+| GCB_sig     | -0.2638716 | -0.2638698 | 1.823e-06 |
 | LN_sig      | -0.2543592 | -0.2543587 | 5.340e-07 |
 | Prolif_sig  |  0.3031258 |  0.3031250 | 7.480e-07 |
 | BMP6        |  0.3036375 |  0.3036367 | 7.940e-07 |
@@ -177,33 +98,15 @@ attributable to the noise.
 We sweep $`\sigma`$ across four orders of magnitude. Each fit is one
 full BFGS run over the threshold-DP encrypted nLL.
 
-``` r
-
-sigma_grid_bfgs <- c(1e-4, 1e-3, 1e-2, 1e-1, 1)
-fits_bfgs <- lapply(sigma_grid_bfgs, fit_at_sigma, method = "BFGS")
-names(fits_bfgs) <- sprintf("sigma_%g", sigma_grid_bfgs)
-
-bfgs_table <- data.frame(
-    sigma        = sigma_grid_bfgs,
-    n_evals      = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
-    GCB_sig      = sapply(fits_bfgs, function(f) coef(f)[["GCB_sig"]]),
-    LN_sig       = sapply(fits_bfgs, function(f) coef(f)[["LN_sig"]]),
-    Prolif_sig   = sapply(fits_bfgs, function(f) coef(f)[["Prolif_sig"]]),
-    BMP6         = sapply(fits_bfgs, function(f) coef(f)[["BMP6"]]),
-    MHC2_sig     = sapply(fits_bfgs, function(f) coef(f)[["MHC2_sig"]]),
-    max_abs_diff = sapply(fits_bfgs, function(f)
-        max(abs(coef(f) - agg_coef[names(coef(f))]))))
-knitr::kable(bfgs_table, digits = 6,
-             caption = "BFGS over the threshold-DP nLL at five noise scales")
-```
+`sigma_grid_bfgs`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``1e-4``, ``1e-3``, ``1e-2``, ``1e-1``, ``1``)`` ``fits_bfgs`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sigma_grid_bfgs``, ``fit_at_sigma``, method ``=`` ``"BFGS"``)`` `[`names`](https://rdrr.io/r/base/names.html)`(``fits_bfgs``)`` ``<-`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"sigma_%g"``, ``sigma_grid_bfgs``)`` `` ``bfgs_table`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` sigma ``=`` ``sigma_grid_bfgs``,`` `` n_evals ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` ``f``@``details``$``counts``[[``"function"``]``]``)``,`` `` GCB_sig ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``[[``"GCB_sig"``]``]``)``,`` `` LN_sig ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``[[``"LN_sig"``]``]``)``,`` `` Prolif_sig ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``[[``"Prolif_sig"``]``]``)``,`` `` BMP6 ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``[[``"BMP6"``]``]``)``,`` `` MHC2_sig ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``[[``"MHC2_sig"``]``]``)``,`` `` max_abs_diff ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` `` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(`[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)`` ``-`` ``agg_coef``[`[`names`](https://rdrr.io/r/base/names.html)`(`[`coef`](https://rdrr.io/r/stats/coef.html)`(``f``)``)``]``)``)``)``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``bfgs_table``, digits ``=`` ``6``,`` `` caption ``=`` ``"BFGS over the threshold-DP nLL at five noise scales"``)`
 
 |  | sigma | n_evals | GCB_sig | LN_sig | Prolif_sig | BMP6 | MHC2_sig | max_abs_diff |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
 | sigma_0.0001 | 1e-04 | 31 | -0.263711 | -0.254310 | 0.301416 | 0.304232 | -0.320419 | 0.001710 |
 | sigma_0.001 | 1e-03 | 95 | -0.255596 | -0.257797 | 0.284336 | 0.305723 | -0.320768 | 0.018790 |
-| sigma_0.01 | 1e-02 | 297 | -0.240806 | -0.266638 | 0.296517 | 0.312648 | -0.340970 | 0.023065 |
-| sigma_0.1 | 1e-01 | 146 | -0.475716 | -0.276219 | 0.506100 | 0.381061 | -0.188904 | 0.211845 |
-| sigma_1 | 1e+00 | 91 | -0.133843 | -0.389685 | 0.034282 | -0.045055 | -0.336133 | 0.348692 |
+| sigma_0.01 | 1e-02 | 300 | -0.240806 | -0.266638 | 0.296517 | 0.312648 | -0.340970 | 0.023065 |
+| sigma_0.1 | 1e-01 | 147 | -0.475716 | -0.276219 | 0.506100 | 0.381061 | -0.188904 | 0.211845 |
+| sigma_1 | 1e+00 | 90 | -0.133843 | -0.389685 | 0.034282 | -0.045055 | -0.336133 | 0.348692 |
 
 BFGS over the threshold-DP nLL at five noise scales {.table}
 
@@ -231,26 +134,7 @@ doing exactly what it claims: releasing $`\ell(\beta) +
 Nelder–Mead is gradient-free; it never amplifies noise through a $`1/h`$
 divisor. Noise still hurts it, but more gently than BFGS.
 
-``` r
-
-fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
-
-bfgs1 <- coef(fits_bfgs[["sigma_1"]])
-nm1   <- coef(fit_nm_1)
-coefs <- names(agg_coef)
-
-nm_compare <- data.frame(
-    coefficient  = coefs,
-    coxph_agg = unname(agg_coef[coefs]),
-    BFGS_sigma1  = unname(bfgs1[coefs]),
-    NM_sigma1    = unname(nm1[coefs])
-)
-knitr::kable(nm_compare, digits = 6,
-             caption = sprintf(
-                 "BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)",
-                 fits_bfgs[["sigma_1"]]@details$counts[["function"]],
-                 fit_nm_1@details$counts[["function"]]))
-```
+`fit_nm_1`` ``<-`` ``fit_at_sigma``(``1``, method ``=`` ``"Nelder-Mead"``)`` `` ``bfgs1`` ``<-`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``fits_bfgs``[[``"sigma_1"``]``]``)`` ``nm1`` ``<-`` `[`coef`](https://rdrr.io/r/stats/coef.html)`(``fit_nm_1``)`` ``coefs`` ``<-`` `[`names`](https://rdrr.io/r/base/names.html)`(``agg_coef``)`` `` ``nm_compare`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` coefficient ``=`` ``coefs``,`` `` coxph_agg ``=`` `[`unname`](https://rdrr.io/r/base/unname.html)`(``agg_coef``[``coefs``]``)``,`` `` BFGS_sigma1 ``=`` `[`unname`](https://rdrr.io/r/base/unname.html)`(``bfgs1``[``coefs``]``)``,`` `` NM_sigma1 ``=`` `[`unname`](https://rdrr.io/r/base/unname.html)`(``nm1``[``coefs``]``)`` ``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``nm_compare``, digits ``=`` ``6``,`` `` caption ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(`` `` ``"BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)"``,`` `` ``fits_bfgs``[[``"sigma_1"``]``]``@``details``$``counts``[[``"function"``]``]``,`` `` ``fit_nm_1``@``details``$``counts``[[``"function"``]``]``)``)`
 
 | coefficient | coxph_agg | BFGS_sigma1 | NM_sigma1 |
 |:------------|----------:|------------:|----------:|
@@ -260,7 +144,7 @@ knitr::kable(nm_compare, digits = 6,
 | BMP6        |  0.303638 |   -0.045055 |  0.472601 |
 | MHC2_sig    | -0.319147 |   -0.336133 | -0.343019 |
 
-BFGS vs Nelder-Mead at sigma = 1 (BFGS 91 evals, NM 503 evals) {.table}
+BFGS vs Nelder-Mead at sigma = 1 (BFGS 90 evals, NM 503 evals) {.table}
 
 At $`\sigma = 1`$ BFGS is unusable: at least one signature lands at the
 wrong sign relative to the aggregated cleartext fit. Nelder–Mead at the
@@ -273,34 +157,15 @@ which feeds back into the privacy budget below.
 For each fit, with sensitivity $`\Delta = 1`$ (placeholder) and target
 $`\delta = 10^{-5}`$, zCDP composition gives:
 
-``` r
-
-zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
-
-bfgs_budget <- data.frame(
-    optimizer = "BFGS",
-    sigma     = sigma_grid_bfgs,
-    n_queries = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
-    stringsAsFactors = FALSE)
-nm_budget <- data.frame(
-    optimizer = "Nelder-Mead",
-    sigma     = 1,
-    n_queries = fit_nm_1@details$counts[["function"]])
-budget <- rbind(bfgs_budget, nm_budget)
-budget$rho_per_query              <- (1 / budget$sigma)^2 / 2
-budget$rho_total                  <- budget$n_queries * budget$rho_per_query
-budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
-knitr::kable(budget, digits = 4,
-             caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
-```
+`zcdp_to_eps`` ``<-`` ``function``(``rho``, ``delta`` ``=`` ``1e-5``)`` ``rho`` ``+`` ``2`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``rho`` ``*`` `[`log`](https://rdrr.io/r/base/Log.html)`(``1`` ``/`` ``delta``)``)`` `` ``bfgs_budget`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` optimizer ``=`` ``"BFGS"``,`` `` sigma ``=`` ``sigma_grid_bfgs``,`` `` n_queries ``=`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``fits_bfgs``, ``function``(``f``)`` ``f``@``details``$``counts``[[``"function"``]``]``)``,`` `` stringsAsFactors ``=`` ``FALSE``)`` ``nm_budget`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` optimizer ``=`` ``"Nelder-Mead"``,`` `` sigma ``=`` ``1``,`` `` n_queries ``=`` ``fit_nm_1``@``details``$``counts``[[``"function"``]``]``)`` ``budget`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(``bfgs_budget``, ``nm_budget``)`` ``budget``$``rho_per_query`` ``<-`` ``(``1`` ``/`` ``budget``$``sigma``)``^``2`` ``/`` ``2`` ``budget``$``rho_total`` ``<-`` ``budget``$``n_queries`` ``*`` ``budget``$``rho_per_query`` ``budget``$``epsilon_at_delta_1e_minus_5`` ``<-`` ``zcdp_to_eps``(``budget``$``rho_total``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``budget``, digits ``=`` ``4``,`` `` caption ``=`` ``"zCDP composition; sensitivity Delta = 1, target delta = 1e-5"``)`
 
 |  | optimizer | sigma | n_queries | rho_per_query | rho_total | epsilon_at_delta_1e_minus_5 |
 |:---|:---|---:|---:|---:|---:|---:|
 | sigma_0.0001 | BFGS | 1e-04 | 31 | 5e+07 | 1.550e+09 | 1.550267e+09 |
 | sigma_0.001 | BFGS | 1e-03 | 95 | 5e+05 | 4.750e+07 | 4.754677e+07 |
-| sigma_0.01 | BFGS | 1e-02 | 297 | 5e+03 | 1.485e+06 | 1.493270e+06 |
-| sigma_0.1 | BFGS | 1e-01 | 146 | 5e+01 | 7.300e+03 | 7.879808e+03 |
-| sigma_1 | BFGS | 1e+00 | 91 | 5e-01 | 4.550e+01 | 9.127500e+01 |
+| sigma_0.01 | BFGS | 1e-02 | 300 | 5e+03 | 1.500e+06 | 1.508311e+06 |
+| sigma_0.1 | BFGS | 1e-01 | 147 | 5e+01 | 7.350e+03 | 7.931790e+03 |
+| sigma_1 | BFGS | 1e+00 | 90 | 5e-01 | 4.500e+01 | 9.052280e+01 |
 | 1 | Nelder-Mead | 1e+00 | 503 | 5e-01 | 2.515e+02 | 3.591197e+02 |
 
 zCDP composition; sensitivity Delta = 1, target delta = 1e-5 {.table}

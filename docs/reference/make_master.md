@@ -1,6 +1,6 @@
 # Construct a Paillier-backed master
 
-Construct a Paillier-backed master
+Part of the frozen Paillier-era legacy surface.
 
 ## Usage
 

@@ -57,18 +57,7 @@ different referral centers. The three sites are imbalanced in size (GCB
 $`n=115`$, ABC $`n=71`$, Type III $`n=49`$, with 54, 49, and 30 deaths
 respectively), which the master/worker protocol handles transparently.
 
-``` r
-
-suppressPackageStartupMessages(library(survival))
-library(homomorpheR)
-data(DLBCL)
-
-cox_data <- split(
-  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
-            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
-  DLBCL$Subgroup)
-sapply(cox_data, function(df) c(n = nrow(df), events = sum(df$status)))
-```
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)``)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``)`` `` ``cox_data`` ``<-`` `[`split`](https://rdrr.io/r/base/split.html)`(`` `` ``DLBCL``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"time"``, ``"status"``, ``"GCB_sig"``, ``"LN_sig"``,`` `` ``"Prolif_sig"``, ``"BMP6"``, ``"MHC2_sig"``, ``"Subgroup"``)``]``,`` `` ``DLBCL``$``Subgroup``)`` `[`sapply`](https://rdrr.io/r/base/lapply.html)`(``cox_data``, ``function``(``df``)`` `[`c`](https://rdrr.io/r/base/c.html)`(``n ``=`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``df``)``, events ``=`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``df``$``status``)``)``)`
 
     ##        GCB ABC Type III
     ## n      115  71       49
@@ -79,14 +68,7 @@ sapply(cox_data, function(df) c(n = nrow(df), events = sum(df$status)))
 If all data were in one place, fitting the stratified Cox model is
 trivial:
 
-``` r
-
-agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
-                       Prolif_sig + BMP6 + MHC2_sig +
-                       strata(Subgroup),
-                   data = DLBCL)
-agg_model
-```
+`agg_model`` ``<-`` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` `` ``Prolif_sig`` ``+`` ``BMP6`` ``+`` ``MHC2_sig`` ``+`` `` `[`strata`](https://rdrr.io/pkg/survival/man/strata.html)`(``Subgroup``)``,`` `` data ``=`` ``DLBCL``)`` ``agg_model`
 
     ## Call:
     ## coxph(formula = Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig + 
@@ -102,10 +84,7 @@ agg_model
     ## Likelihood ratio test=42.74  on 5 df, p=4.174e-08
     ## n= 235, number of events= 133
 
-``` r
-
-agg_model$loglik
-```
+`agg_model``$``loglik`
 
     ## [1] -516.5986 -495.2290
 
@@ -127,21 +106,7 @@ The local computation exploits a well-known feature of
 returns the partial log-likelihood evaluated at the supplied `init`
 *without* taking any Newton-Raphson steps.
 
-``` r
-
-cph_control <- replace(coxph.control(), "iter.max", 0)
-
-local_cox_nll <- function(data, beta) {
-    fit <- tryCatch(
-        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
-                  BMP6 + MHC2_sig,
-              data    = data,
-              init    = beta,
-              control = cph_control),
-        error = function(e) NULL)
-    if (is.null(fit)) NA_real_ else -fit$loglik[1]
-}
-```
+`cph_control`` ``<-`` `[`replace`](https://rdrr.io/r/base/replace.html)`(`[`coxph.control`](https://rdrr.io/pkg/survival/man/coxph.control.html)`(``)``, ``"iter.max"``, ``0``)`` `` ``local_cox_nll`` ``<-`` ``function``(``data``, ``beta``)`` ``{`` `` ``fit`` ``<-`` `[`tryCatch`](https://rdrr.io/r/base/conditions.html)`(`` `` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` ``Prolif_sig`` ``+`` `` ``BMP6`` ``+`` ``MHC2_sig``,`` `` data ``=`` ``data``,`` `` init ``=`` ``beta``,`` `` control ``=`` ``cph_control``)``,`` `` error ``=`` ``function``(``e``)`` ``NULL``)`` `` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``fit``)``)`` ``NA_real_`` ``else`` ``-``fit``$``loglik``[``1``]`` ``}`
 
 `tryCatch` returns `NA_real_` if the local fit blows up at extreme
 $`\beta`$ — `homomorpheR`’s
@@ -155,21 +120,7 @@ $`\approx 5 \times 10^2`$ — comfortably within CKKS precision at the
 default scaling parameters. We lift `scaling_mod_size` from 50 to 59 and
 set `first_mod_size = 60` for a safety margin.
 
-``` r
-
-cc <- openfhe.R::fhe_context("CKKS",
-                           multiplicative_depth = 1L,
-                           scaling_mod_size     = 59L,
-                           first_mod_size       = 60L,
-                           batch_size           = 8L)
-keys <- openfhe.R::key_gen(cc)
-
-worker_gcb <- make_worker("GCB",      data = cox_data[["GCB"]],      local_fn = local_cox_nll)
-worker_abc <- make_worker("ABC",      data = cox_data[["ABC"]],      local_fn = local_cox_nll)
-worker_t3  <- make_worker("Type III", data = cox_data[["Type III"]], local_fn = local_cox_nll)
-master     <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
-set_workers(master, list(worker_gcb, worker_abc, worker_t3))
-```
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``)`` ``keys`` ``<-`` ``openfhe.R``::`[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``)`` `` ``worker_gcb`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"GCB"``, data ``=`` ``cox_data``[[``"GCB"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_abc`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"ABC"``, data ``=`` ``cox_data``[[``"ABC"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_t3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Type III"``, data ``=`` ``cox_data``[[``"Type III"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``master`` ``<-`` `[`make_ckks_master`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)`(``"Master"``, crypto_context ``=`` ``cc``, keypair ``=`` ``keys``)`` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker_gcb``, ``worker_abc``, ``worker_t3``)``)`
 
 ## Iterative MLE through the encrypted protocol
 
@@ -178,25 +129,7 @@ that looks like a standard multivariate negative log-likelihood. Each
 call drives one master/worker round and returns a single decrypted
 scalar.
 
-``` r
-
-library(stats4)
-
-encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
-    master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
-}
-
-## Parameter order matches the coxph formula above, so the
-## side-by-side comparison below is honest. BFGS uses numerical
-## finite-difference gradients, the fair comparison given a
-## generic optimizer driven through an encrypted channel.
-fit <- mle(encrypted_nLL,
-           start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
-                          BMP6    = 0, MHC2_sig = 0),
-           method  = "BFGS",
-           control = list(reltol = 1e-7))
-summary(fit)
-```
+[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `` ``encrypted_nLL`` ``<-`` ``function``(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)`` ``{`` `` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, `[`c`](https://rdrr.io/r/base/c.html)`(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)``)`` ``}`` `` ``## Parameter order matches the coxph formula above, so the`` ``## side-by-side comparison below is honest. BFGS uses numerical`` ``## finite-difference gradients, the fair comparison given a`` ``## generic optimizer driven through an encrypted channel.`` ``fit`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``encrypted_nLL``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``GCB_sig ``=`` ``0``, LN_sig ``=`` ``0``, Prolif_sig ``=`` ``0``,`` `` BMP6 ``=`` ``0``, MHC2_sig ``=`` ``0``)``,`` `` method ``=`` ``"BFGS"``,`` `` control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``reltol ``=`` ``1e-7``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -215,19 +148,13 @@ summary(fit)
     ## 
     ## -2 log L: 990.458
 
-``` r
-
-logLik(fit)
-```
+[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)`
 
     ## 'log Lik.' -495.229 (df=5)
 
 ## Comparison with the aggregated fit
 
-``` r
-
-summary(agg_model)
-```
+[`summary`](https://rdrr.io/r/base/summary.html)`(``agg_model``)`
 
     ## Call:
     ## coxph(formula = Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig + 
@@ -256,17 +183,11 @@ summary(agg_model)
     ## Wald test            = 44.78  on 5 df,   p=2e-08
     ## Score (logrank) test = 44.83  on 5 df,   p=2e-08
 
-``` r
-
-cat(sprintf("logLik(distributed encrypted): %f\n", as.numeric(logLik(fit))))
-```
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(distributed encrypted): %f\n"``, `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)``)``)``)`
 
     ## logLik(distributed encrypted): -495.229022
 
-``` r
-
-cat(sprintf("logLik(aggregated cleartext) : %f\n", agg_model$loglik[2]))
-```
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(aggregated cleartext) : %f\n"``, ``agg_model``$``loglik``[``2``]``)``)`
 
     ## logLik(aggregated cleartext) : -495.229022
 
@@ -276,7 +197,7 @@ revealing its raw patient data.
 
 | coefficient | encrypted_distributed | aggregated_cleartext |  abs_diff |
 |:------------|----------------------:|---------------------:|----------:|
-| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.823e-06 |
+| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.822e-06 |
 | LN_sig      |            -0.2543587 |           -0.2543592 | 5.340e-07 |
 | Prolif_sig  |             0.3031250 |            0.3031258 | 7.480e-07 |
 | BMP6        |             0.3036367 |            0.3036375 | 7.940e-07 |

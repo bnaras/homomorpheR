@@ -58,22 +58,7 @@ without the joint fusion.
 
 ## The Cox setup (same DLBCL data as `cox.Rmd`)
 
-``` r
-
-suppressPackageStartupMessages(library(survival))
-library(homomorpheR)
-data(DLBCL)
-
-cox_data <- split(
-  DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
-            "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
-  DLBCL$Subgroup)
-
-agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
-                       Prolif_sig + BMP6 + MHC2_sig +
-                       strata(Subgroup),
-                   data = DLBCL)
-```
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)``)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``)`` `` ``cox_data`` ``<-`` `[`split`](https://rdrr.io/r/base/split.html)`(`` `` ``DLBCL``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"time"``, ``"status"``, ``"GCB_sig"``, ``"LN_sig"``,`` `` ``"Prolif_sig"``, ``"BMP6"``, ``"MHC2_sig"``, ``"Subgroup"``)``]``,`` `` ``DLBCL``$``Subgroup``)`` `` ``agg_model`` ``<-`` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` `` ``Prolif_sig`` ``+`` ``BMP6`` ``+`` ``MHC2_sig`` ``+`` `` `[`strata`](https://rdrr.io/pkg/survival/man/strata.html)`(``Subgroup``)``,`` `` data ``=`` ``DLBCL``)`
 
 ## The protocol
 
@@ -114,34 +99,12 @@ as the single-decrypter case.
 
 ## Implementation
 
-``` r
-
-cph_control <- replace(coxph.control(), "iter.max", 0)
-
-local_cox_nll <- function(data, beta) {
-    fit <- tryCatch(
-        coxph(Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
-                  BMP6 + MHC2_sig,
-              data    = data,
-              init    = beta,
-              control = cph_control),
-        error = function(e) NULL)
-    if (is.null(fit)) NA_real_ else -fit$loglik[1]
-}
-```
+`cph_control`` ``<-`` `[`replace`](https://rdrr.io/r/base/replace.html)`(`[`coxph.control`](https://rdrr.io/pkg/survival/man/coxph.control.html)`(``)``, ``"iter.max"``, ``0``)`` `` ``local_cox_nll`` ``<-`` ``function``(``data``, ``beta``)`` ``{`` `` ``fit`` ``<-`` `[`tryCatch`](https://rdrr.io/r/base/conditions.html)`(`` `` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` ``Prolif_sig`` ``+`` `` ``BMP6`` ``+`` ``MHC2_sig``,`` `` data ``=`` ``data``,`` `` init ``=`` ``beta``,`` `` control ``=`` ``cph_control``)``,`` `` error ``=`` ``function``(``e``)`` ``NULL``)`` `` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``fit``)``)`` ``NA_real_`` ``else`` ``-``fit``$``loglik``[``1``]`` ``}`
 
 The CKKS context needs the `MULTIPARTY` feature enabled so the chained
 `multiparty_key_gen()` calls work:
 
-``` r
-
-cc <- openfhe.R::fhe_context("CKKS",
-                           multiplicative_depth = 1L,
-                           scaling_mod_size     = 59L,
-                           first_mod_size       = 60L,
-                           batch_size           = 8L,
-                           features             = c(openfhe.R::Feature$MULTIPARTY))
-```
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
 `make_threshold_master(name, cc, n_sites)` runs the chained key
 generation and returns a master holding the joint public key and a list
@@ -149,18 +112,7 @@ of per-site secret shares. The master’s `master_encrypt` /
 `master_decrypt` methods automatically use the joint pk for encryption
 and the partial-decrypt fan-in for decryption.
 
-``` r
-
-master <- make_threshold_master("Aggregator",
-                                crypto_context = cc,
-                                n_sites        = 3)
-
-worker_gcb <- make_worker("GCB",      data = cox_data[["GCB"]],      local_fn = local_cox_nll)
-worker_abc <- make_worker("ABC",      data = cox_data[["ABC"]],      local_fn = local_cox_nll)
-worker_t3  <- make_worker("Type III", data = cox_data[["Type III"]], local_fn = local_cox_nll)
-
-set_workers(master, list(worker_gcb, worker_abc, worker_t3))
-```
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``3``)`` `` ``worker_gcb`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"GCB"``, data ``=`` ``cox_data``[[``"GCB"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_abc`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"ABC"``, data ``=`` ``cox_data``[[``"ABC"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_t3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Type III"``, data ``=`` ``cox_data``[[``"Type III"``]``]``, local_fn ``=`` ``local_cox_nll``)`` `` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker_gcb``, ``worker_abc``, ``worker_t3``)``)`
 
 ## Iterative MLE through the threshold protocol
 
@@ -169,21 +121,7 @@ The optimizer-facing code is *identical* to `cox.Rmd`. Same
 runner, same [`mle()`](https://rdrr.io/r/stats4/mle.html) driver — only
 the underlying master class changed.
 
-``` r
-
-library(stats4)
-
-encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
-    master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
-}
-
-fit <- mle(encrypted_nLL,
-           start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
-                          BMP6    = 0, MHC2_sig = 0),
-           method  = "BFGS",
-           control = list(reltol = 1e-7))
-summary(fit)
-```
+[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `` ``encrypted_nLL`` ``<-`` ``function``(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)`` ``{`` `` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, `[`c`](https://rdrr.io/r/base/c.html)`(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)``)`` ``}`` `` ``fit`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``encrypted_nLL``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``GCB_sig ``=`` ``0``, LN_sig ``=`` ``0``, Prolif_sig ``=`` ``0``,`` `` BMP6 ``=`` ``0``, MHC2_sig ``=`` ``0``)``,`` `` method ``=`` ``"BFGS"``,`` `` control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``reltol ``=`` ``1e-7``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -196,25 +134,19 @@ summary(fit)
     ##              Estimate Std. Error
     ## GCB_sig    -0.2638698 0.11940447
     ## LN_sig     -0.2543587 0.08515178
-    ## Prolif_sig  0.3031250 0.14981283
+    ## Prolif_sig  0.3031250 0.14981284
     ## BMP6        0.3036367 0.10727837
     ## MHC2_sig   -0.3191459 0.09412946
     ## 
     ## -2 log L: 990.458
 
-``` r
-
-logLik(fit)
-```
+[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)`
 
     ## 'log Lik.' -495.229 (df=5)
 
 ## Comparison with the cleartext fit
 
-``` r
-
-summary(agg_model)
-```
+[`summary`](https://rdrr.io/r/base/summary.html)`(``agg_model``)`
 
     ## Call:
     ## coxph(formula = Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig + 
@@ -243,25 +175,17 @@ summary(agg_model)
     ## Wald test            = 44.78  on 5 df,   p=2e-08
     ## Score (logrank) test = 44.83  on 5 df,   p=2e-08
 
-``` r
-
-cat(sprintf("logLik(threshold-distributed encrypted): %f\n",
-            as.numeric(logLik(fit))))
-```
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(threshold-distributed encrypted): %f\n"``,`` `` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)``)``)``)`
 
     ## logLik(threshold-distributed encrypted): -495.229022
 
-``` r
-
-cat(sprintf("logLik(aggregated cleartext)            : %f\n",
-            agg_model$loglik[2]))
-```
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(aggregated cleartext) : %f\n"``,`` `` ``agg_model``$``loglik``[``2``]``)``)`
 
     ## logLik(aggregated cleartext)            : -495.229022
 
 | coefficient | threshold_distributed | aggregated_cleartext |  abs_diff |
 |:------------|----------------------:|---------------------:|----------:|
-| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.822e-06 |
+| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.823e-06 |
 | LN_sig      |            -0.2543587 |           -0.2543592 | 5.340e-07 |
 | Prolif_sig  |             0.3031250 |            0.3031258 | 7.480e-07 |
 | BMP6        |             0.3036367 |            0.3036375 | 7.940e-07 |
