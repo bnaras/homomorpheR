@@ -116,7 +116,7 @@ factor_spec <- function(f) {
 
 ## ---- 1. DLBCL clinical table ---------------------------------------------
 
-cat("[1/8] DLBCL clinical table\n")
+cat("[1/9] DLBCL clinical table\n")
 data(DLBCL, package = "homomorpheR")
 
 stopifnot(is.factor(DLBCL$Subgroup), is.integer(DLBCL$ID) || is.numeric(DLBCL$ID))
@@ -146,7 +146,7 @@ record("dlbcl_clinical.csv", "table",
 
 ## ---- 2. DLBCL gene expression matrix -------------------------------------
 
-cat("[2/8] DLBCL expression matrix (raw float64 + dimnames)\n")
+cat("[2/9] DLBCL expression matrix (raw float64 + dimnames)\n")
 data(DLBCL_gex, package = "homomorpheR")
 stopifnot(is.matrix(DLBCL_gex), is.numeric(DLBCL_gex))
 
@@ -173,7 +173,7 @@ stopifnot(identical(as.character(DLBCL$ID), rownames(DLBCL_gex)))
 
 ## ---- 3. mle.Rmd: Poisson counts ------------------------------------------
 
-cat("[3/8] mle: Poisson counts\n")
+cat("[3/9] mle: Poisson counts\n")
 set.seed(17822)
 mle_y <- rpois(n = 40, lambda = 10)
 write_json(list(seed = 17822L, n = 40L, lambda_true = 10,
@@ -187,7 +187,7 @@ record("mle_poisson.json", "json", generator = "rpois",
 
 ## ---- 4. privacy-preserving-aggregation.Rmd -------------------------------
 
-cat("[4/8] aggregation: three site cohorts\n")
+cat("[4/9] aggregation: three site cohorts\n")
 set.seed(42)
 agg_sites <- lapply(c(1000, 500, 1500), function(n) {
     data.frame(age       = sample(40:70, n, replace = TRUE),
@@ -205,7 +205,7 @@ record("aggregation_sites.json", "json", generator = "sample/runif",
 
 ## ---- 5. query-count-threshold.Rmd ----------------------------------------
 
-cat("[5/8] query-count: three site cohorts + the query\n")
+cat("[5/9] query-count: three site cohorts + the query\n")
 set.seed(130)
 qc_sizes <- c(60, 15, 25)
 qc_data <- local({
@@ -242,7 +242,7 @@ record("query_count.json", "json", generator = "sample/rnorm",
 
 ## ---- 6. encrypted-regression.Rmd -----------------------------------------
 
-cat("[6/8] encrypted-regression: logistic training set\n")
+cat("[6/9] encrypted-regression: logistic training set\n")
 set.seed(123)
 er_n         <- 500
 er_age       <- rnorm(er_n, 55, 10)
@@ -265,7 +265,7 @@ record("encrypted_regression.json", "json", generator = "rnorm/rbinom",
 
 ## ---- 7. secure-inference.Rmd (deterministic, no RNG) ---------------------
 
-cat("[7/8] secure-inference: fixed biomarker panel\n")
+cat("[7/9] secure-inference: fixed biomarker panel\n")
 write_json(list(seed = NULL,
                 note = "Hand-specified in the vignette; no RNG involved.",
                 biomarkers = list(
@@ -276,9 +276,79 @@ write_json(list(seed = NULL,
            "secure_inference.json")
 record("secure_inference.json", "json", generator = "none")
 
+## ---- 7b. Cox partial log-likelihood reference ----------------------------
+
+cat("[7b/9] Cox log-likelihood reference (Efron + Breslow)\n")
+suppressPackageStartupMessages(library(survival))
+
+.cox_formula <- Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig +
+    BMP6 + MHC2_sig
+.cox_covars  <- c("GCB_sig", "LN_sig", "Prolif_sig", "BMP6", "MHC2_sig")
+.cph_control <- replace(coxph.control(), "iter.max", 0)
+
+## coxph(init = beta, iter.max = 0)$loglik[1] is the partial
+## log-likelihood AT beta -- this is the per-site local_fn the
+## threshold-Cox protocol aggregates, not a fitted value.
+.loglik_at <- function(data, beta, ties = "efron") {
+    fit <- tryCatch(
+        coxph(.cox_formula, data = data, init = beta,
+              control = .cph_control, ties = ties),
+        error = function(e) NULL)
+    if (is.null(fit)) NA_real_ else fit$loglik[1]
+}
+
+.cox_sites <- split(DLBCL, DLBCL$Subgroup)[levels(DLBCL$Subgroup)]
+
+## Guard the fixture's own meaning: if loglik[1] were the null-model
+## value, every case would be identical and the comparison vacuous.
+stopifnot(abs(.loglik_at(.cox_sites[[1]], rep(0, 5)) -
+              .loglik_at(.cox_sites[[1]], c(0.4, -0.3, 0.5, 0.1, -0.2))) > 1e-6)
+
+set.seed(20260806)
+.betas <- c(list(rep(0, 5), c(0.4, -0.3, 0.5, 0.1, -0.2)),
+            lapply(3:20, function(i) round(rnorm(5, sd = 0.5), 6)))
+
+.cox_cases <- lapply(seq_along(.betas), function(i) {
+    beta <- .betas[[i]]
+    by_site <- lapply(names(.cox_sites), function(nm)
+        list(site = nm, n = nrow(.cox_sites[[nm]]),
+             events  = sum(.cox_sites[[nm]]$status),
+             efron   = .loglik_at(.cox_sites[[nm]], beta, "efron"),
+             breslow = .loglik_at(.cox_sites[[nm]], beta, "breslow")))
+    list(index = i, beta = beta,
+         pooled = list(efron   = .loglik_at(DLBCL, beta, "efron"),
+                       breslow = .loglik_at(DLBCL, beta, "breslow")),
+         by_site = by_site,
+         ## What the protocol actually aggregates: summed per-site NLL.
+         summed_nll_efron = -sum(vapply(by_site, function(s) s$efron,
+                                        numeric(1))))
+})
+
+write_json(list(
+    formula    = paste("Surv(time, status) ~ GCB_sig + LN_sig +",
+                       "Prolif_sig + BMP6 + MHC2_sig"),
+    covariates = .cox_covars,
+    site_order = levels(DLBCL$Subgroup),
+    survival_version = as.character(utils::packageVersion("survival")),
+    ties_note = paste("survival::coxph defaults to Efron; statsmodels",
+                      "PHReg defaults to BRESLOW. Efron is the reference;",
+                      "both are exported so a silent Breslow default is",
+                      "detectable rather than merely wrong."),
+    semantics = paste("loglik values are coxph(init=beta,",
+                      "iter.max=0)$loglik[1] -- the partial",
+                      "log-likelihood evaluated AT beta. The protocol's",
+                      "local_fn returns the negative per-site value."),
+    tolerance = list(value = 1e-10, kind = "numeric",
+                     note = "Measured agreement is ~1e-12 (2026-08-06)."),
+    cases = .cox_cases),
+    "cox_loglik.json")
+record("cox_loglik.json", "reference", n_cases = length(.cox_cases),
+       ties = c("efron", "breslow"),
+       consumer = "statsmodels PHReg(ties='efron').loglike(beta)")
+
 ## ---- 8. cvxr_consensus golden outputs ------------------------------------
 
-cat("[8/8] cvxr_consensus golden fixture\n")
+cat("[8/9] cvxr_consensus golden fixture\n")
 data(cvxr_consensus, package = "homomorpheR")
 
 ## Ragged: trajectory is a list of 147 numeric(100). JSON, not parquet.
