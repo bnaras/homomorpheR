@@ -276,6 +276,43 @@ write_json(list(seed = NULL,
            "secure_inference.json")
 record("secure_inference.json", "json", generator = "none")
 
+## ---- 7a. consensus-ADMM simulated cohort ---------------------------------
+
+cat("[7a/9] consensus ADMM: simulated logistic cohort\n")
+## cvxr-consensus-admm.Rmd's cohort. rbinom (BTPE) has no numpy
+## equivalent, so like every other simulated example this is exported
+## rather than regenerated.
+set.seed(98765)
+.admm_p     <- 4L
+.admm_beta  <- c(0.5, -1.0, 0.3, 0.8)
+.admm_n_per <- c(400, 250, 350)
+.admm_sites <- lapply(seq_along(.admm_n_per), function(i) {
+    X   <- matrix(rnorm(.admm_n_per[i] * .admm_p), nrow = .admm_n_per[i])
+    eta <- X %*% .admm_beta
+    y   <- rbinom(.admm_n_per[i], size = 1, prob = 1 / (1 + exp(-eta)))
+    list(X = X, y = as.integer(y))
+})
+
+write_json(list(
+    seed = 98765L, p = .admm_p, N = length(.admm_n_per),
+    beta_true = .admm_beta, n_per = .admm_n_per,
+    lambda = 1,
+    rho_grid = c(10, 50, 200),
+    max_iter = 40L,
+    tol = 1e-3,
+    solver = "CLARABEL",
+    solver_note = paste("R passes solver='CLARABEL' to psolve()",
+                        "explicitly. The Python port must pass",
+                        "solver=cp.CLARABEL rather than accept cvxpy's",
+                        "automatic choice, or the two languages can",
+                        "silently use different algorithms."),
+    sites = lapply(.admm_sites, function(s)
+        list(X = as.vector(t(s$X)), y = s$y, n = nrow(s$X),
+             X_order = "C"))),
+    "admm_cohort.json")
+record("admm_cohort.json", "json", generator = "rnorm/rbinom",
+       p = .admm_p, N = length(.admm_n_per))
+
 ## ---- 7b. Cox partial log-likelihood reference ----------------------------
 
 cat("[7b/9] Cox log-likelihood reference (Efron + Breslow)\n")
