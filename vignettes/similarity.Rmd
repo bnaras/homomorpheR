@@ -891,27 +891,46 @@ mu_main   <- mu_sweep(beta = 0.6, na = 100L)   # ample calibration
 mu_scarce <- mu_sweep(beta = 0.6, na = 24L)    # anchor < p = 32
 
 ## --- beta sweep, ample anchor: Procrustes vs near-orthogonal vs LS ---
+## Common random numbers: within a replicate the public data and the
+## per-site drift directions are fixed and only the stretch magnitude
+## beta varies, so the no-drift ideal is a single drift-independent
+## reference rather than a wandering curve.
 beta_grid <- c(0, 0.3, 0.6, 1.0)
-beta_tab <- do.call(rbind, lapply(beta_grid, function(b) {
-  r3 <- replicate(n_rep, {
-    w  <- make_world(b, 100L); qp <- embed_cfg(n_q)
-    fits <- lapply(c(0, 1, Inf), function(mu) {
-      A <- lapply(seq_len(n_sites), function(k)
-        fit_adapter(w$Hanchor[[k]], w$anchor$z, mu))
-      fed_recall(qp, w$priv_db, A, if (is.infinite(mu)) 2L else 1L)
-    })
-    c(LS = fits[[1]], near = fits[[2]], Proc = fits[[3]],
-      ideal = fed_recall(qp, w$pub_db, I_list, 2L))
-  })
-  data.frame(beta = b, t(rowMeans(r3)))
-}))
+beta_acc <- 0; ideal_b <- 0
+for (r in seq_len(n_rep)) {
+  anchor  <- embed_cfg(n_anchor)
+  cohorts <- lapply(cohort_sizes, embed_cfg)
+  qp      <- embed_cfg(n_q)
+  Qg <- lapply(seq_len(n_sites), function(k)
+    list(Q = qr.Q(qr(matrix(rnorm(p * p), p, p))), g = rnorm(p)))
+  ideal_b  <- ideal_b + fed_recall(qp, cohorts, I_list, 2L)
+  beta_acc <- beta_acc + do.call(rbind, lapply(beta_grid, function(b) {
+    Bs   <- lapply(Qg, function(qg)
+      if (b == 0) qg$Q else qg$Q %*% diag(exp(b * qg$g)))
+    priv <- lapply(seq_len(n_sites), function(k)
+      list(z = embed_private(cohorts[[k]]$z, Bs[[k]]),
+           label = cohorts[[k]]$label))
+    Hanc <- lapply(seq_len(n_sites), function(k)
+      embed_private(anchor$z, Bs[[k]]))
+    fitb <- function(mu) lapply(seq_len(n_sites), function(k)
+      fit_adapter(Hanc[[k]], anchor$z, mu))
+    data.frame(beta = b,
+               LS   = fed_recall(qp, priv, fitb(0), 1L),
+               near = fed_recall(qp, priv, fitb(1), 1L),
+               Proc = fed_recall(qp, priv, fitb(Inf), 2L))
+  }))
+}
+beta_tab <- beta_acc / n_rep; beta_tab$beta <- beta_grid
+ideal_b  <- ideal_b / n_rep
 
 cat("mu sweep (beta=0.6, anchor=100):  ideal=",
     sprintf("%.3f", mu_main$ideal), " unaligned=",
     sprintf("%.3f", mu_main$unaligned), " Gram=",
     sprintf("%.3f\n", mu_main$gram), sep = "")
 print(round(mu_main$tab, 3), row.names = FALSE)
-cat("\nbeta sweep (anchor=100):\n"); print(round(beta_tab, 3), row.names = FALSE)
+cat("\nbeta sweep (anchor=100, common random numbers):  ideal=",
+    sprintf("%.3f\n", ideal_b), sep = "")
+print(round(beta_tab, 3), row.names = FALSE)
 cat("\nmu sweep at scarce anchor=24:\n")
 print(round(mu_scarce$tab[c("mu", "d1", "d2")], 3), row.names = FALSE)
 ```
@@ -961,7 +980,7 @@ plot(beta_tab$beta, beta_tab$Proc, type = "b", pch = 19, ylim = c(0, 1),
      main = "Procrustes vs relaxed adapters")
 lines(beta_tab$beta, beta_tab$near, type = "b", pch = 1, lty = 2, col = "blue")
 lines(beta_tab$beta, beta_tab$LS, type = "b", pch = 2, lty = 3, col = "firebrick")
-lines(beta_tab$beta, beta_tab$ideal, lty = 3, col = "darkgreen")
+abline(h = ideal_b, lty = 3, col = "darkgreen")
 legend("bottomleft", bty = "n", cex = 0.75,
        legend = c("Procrustes (mu=Inf)", "near-orth (mu=1)", "LS (mu=0)", "ideal"),
        col = c("black", "blue", "firebrick", "darkgreen"),
@@ -1097,11 +1116,12 @@ par(op)
 This vignette extends the threshold-FHE family in
 `homomorpheR` — `cox-threshold` and `cvxr-consensus-admm` —
 with a third protocol shape. Cox-threshold and ADMM use a
-round-robin sum over sites; the similarity protocol uses a
+master/worker fan-in — each worker's encrypted contribution is
+summed by the master; the similarity protocol uses a
 broadcast-and-aggregate shape: encrypted query in, per-site
 scoring, master-side threshold decryption of the released
 top-$k$. The actor surface (`make_threshold_master`,
-`make_site`, `master_encrypt`/`master_decrypt`) carries over
+`make_worker`, `master_encrypt`/`master_decrypt`) carries over
 unchanged.
 
 The closest precedents in the literature combine some but

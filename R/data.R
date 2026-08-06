@@ -45,7 +45,7 @@
 #' fit recovered by consensus ADMM in the clear, and the encrypted
 #' threshold-FHE fit that swaps only the consensus channel. The
 #' ~150-iteration ADMM runs are expensive, so they are computed once
-#' and shipped here; the manuscript and the `cvxr-consensus-admm`
+#' and shipped here; the manuscript and the `cvxr-cox-lasso-dlbcl`
 #' vignette load this object instead of recomputing, and pull their
 #' displayed code from the generating script (see Details).
 #'
@@ -82,7 +82,7 @@
 #' canonical pipeline `inst/scripts/cvxr-consensus.R`. That script is
 #' the single source of truth: its labelled chunks are read verbatim
 #' (via [knitr::read_chunk()]) by the openfhe-jss manuscript and the
-#' `cvxr-consensus-admm` vignette, so the code displayed there is
+#' `cvxr-cox-lasso-dlbcl` vignette, so the code displayed there is
 #' exactly the code that produced these results. Find the installed
 #' copy with
 #' `system.file("scripts", "cvxr-consensus.R", package = "homomorpheR")`.
