@@ -69,15 +69,27 @@ record <- function(file, kind, ...) {
                 substr(.entries[[file]]$sha256, 1, 12)))
 }
 
-## Raw little-endian float64 dump: the only lossless, language-neutral
-## format for a numeric matrix. Row-major, so numpy reads it with
-## np.fromfile(...).reshape(nrow, ncol).
-write_f64 <- function(m, file, dimnames_files = NULL) {
+## Raw little-endian float64 dump, gzipped: the only lossless,
+## language-neutral format for a numeric matrix. Row-major, so numpy
+## reads it with
+##   np.frombuffer(gzip.open(p).read(), "<f8").reshape(nrow, ncol)
+## Returns the sha256 of the UNCOMPRESSED bytes so content identity is
+## independent of the gzip level that happened to be used.
+write_f64_gz <- function(m, file) {
+    stopifnot(grepl("\\.gz$", file))
+    bytes <- as.double(as.vector(t(m)))
+
+    tmp <- tempfile()
+    con <- file(tmp, "wb"); writeBin(bytes, con, size = 8, endian = "little")
+    close(con)
+    content_sha <- sha256(tmp)
+    unlink(tmp)
+
     path <- file.path(OUTDIR, file)
-    con  <- file(path, "wb")
-    on.exit(close(con))
-    writeBin(as.double(as.vector(t(m))), con, size = 8, endian = "little")
-    invisible(path)
+    con  <- gzfile(path, "wb")
+    writeBin(bytes, con, size = 8, endian = "little")
+    close(con)
+    content_sha
 }
 
 write_csv_exact <- function(df, file) {
@@ -138,13 +150,17 @@ cat("[2/8] DLBCL expression matrix (raw float64 + dimnames)\n")
 data(DLBCL_gex, package = "homomorpheR")
 stopifnot(is.matrix(DLBCL_gex), is.numeric(DLBCL_gex))
 
-write_f64(DLBCL_gex, "dlbcl_gex.f64")
+.gex_content_sha <- write_f64_gz(DLBCL_gex, "dlbcl_gex.f64.gz")
 writeLines(rownames(DLBCL_gex), file.path(OUTDIR, "dlbcl_gex_rownames.txt"))
 writeLines(colnames(DLBCL_gex), file.path(OUTDIR, "dlbcl_gex_colnames.txt"))
 
-record("dlbcl_gex.f64", "matrix_f64",
+record("dlbcl_gex.f64.gz", "matrix_f64",
        shape = c(nrow(DLBCL_gex), ncol(DLBCL_gex)),
        order = "C", dtype = "float64", endian = "little",
+       compression = "gzip",
+       sha256_content = .gex_content_sha,
+       content_note = paste("sha256_content is over the UNCOMPRESSED bytes;",
+                            "sha256 is over the .gz file. Verify content."),
        rownames_file = "dlbcl_gex_rownames.txt",
        colnames_file = "dlbcl_gex_colnames.txt",
        alignment = paste("as.character(dlbcl$ID) must equal the row names,",

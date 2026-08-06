@@ -9,6 +9,7 @@ decryptor). Reference values were printed from R independently.
 Run: uv run --with numpy --with pandas python verify_fixtures.py <dir>
 """
 
+import gzip
 import hashlib
 import json
 import sys
@@ -42,10 +43,21 @@ for name, e in entries.items():
     check(name, got == e["sha256"] and p.stat().st_size == e["bytes"],
           f"{e['bytes']}B")
 
+if fails:
+    # Stop here: every downstream check reads these bytes, so continuing
+    # would either crash on malformed data or report confusing cascades.
+    print(f"\nINTEGRITY FAILURE ({len(fails)}): {fails}")
+    print("Fixtures are stale or corrupt. Regenerate with "
+          "fixtures/sync_fixtures.sh")
+    sys.exit(1)
+
 print("\n[2] DLBCL_gex: raw float64 round-trip (bit-exact vs R)")
-e = entries["dlbcl_gex.f64"]
+e = entries["dlbcl_gex.f64.gz"]
 nrow, ncol = e["shape"]
-gex = np.fromfile(D / "dlbcl_gex.f64", dtype="<f8").reshape(nrow, ncol)
+raw_bytes = gzip.open(D / "dlbcl_gex.f64.gz", "rb").read()
+check("uncompressed content sha256 matches manifest",
+      hashlib.sha256(raw_bytes).hexdigest() == e["sha256_content"])
+gex = np.frombuffer(raw_bytes, dtype="<f8").reshape(nrow, ncol)
 check("shape", gex.shape == (235, 6416), str(gex.shape))
 # Reference values printed from R at 17 significant digits.
 check("gex[0,0:3]", np.array_equal(gex[0, :3],
