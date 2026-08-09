@@ -20,6 +20,14 @@ back to the optimizer.}
 \item{state}{an environment for mutable bookkeeping (next site,
 public key, master back-reference). Default: a fresh empty env.}
 }
+\value{
+an S7 object of class \code{Site} with properties \code{name}, \code{data},
+\code{local_fn} and \code{state}, representing one data-holding party. The
+\code{state} environment carries the mutable wiring the protocol fills in
+— the public key to encrypt under, and the back-reference the site
+uses to signal a non-evaluable parameter. Construct with
+\code{\link[=make_site]{make_site()}}.
+}
 \description{
 Holds the site's local data and the function that computes the
 per-site summary at a given parameter value. Use \code{\link[=make_site]{make_site()}} to

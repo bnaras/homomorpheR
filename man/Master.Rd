@@ -11,6 +11,13 @@ Master(name = character(0), state = NULL)
 
 \item{state}{an environment for mutable bookkeeping.}
 }
+\value{
+nothing — this class is abstract, so calling it raises an error
+instead of returning an object. It exists so that \code{\link[=master_encrypt]{master_encrypt()}},
+\code{\link[=master_decrypt]{master_decrypt()}} and \code{\link[=master_aggregate]{master_aggregate()}} dispatch on a common
+parent. Construct a concrete master with \code{\link[=make_ckks_master]{make_ckks_master()}} or
+\code{\link[=make_threshold_master]{make_threshold_master()}}.
+}
 \description{
 Common base for \link{CKKSMaster} and \link{ThresholdMaster} (and the frozen
 legacy \link{PaillierMaster}). Concrete masters carry whatever keys and

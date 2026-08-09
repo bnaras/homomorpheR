@@ -16,7 +16,7 @@
 #'
 #' @details
 #' Derived from the public Lymphoma/Leukemia Molecular Profiling
-#' Project release (<https://llmpp.nih.gov/DLBCL/>; files
+#' Project release (<https://llmpp.ccr.cancer.gov/DLBCL/>; files
 #' `DLBCL_patient_data_NEW.txt` and `NEJM_Web_Fig1data`). Patients
 #' are matched to expression columns by LYM number. Of the 7399
 #' Lymphochip features, the 6416 measured across the cohort are
@@ -31,7 +31,7 @@
 #' @source Rosenwald A, Wright G, Chan WC, et al. (2002). The use of
 #'   molecular profiling to predict survival after chemotherapy for
 #'   diffuse large-B-cell lymphoma. *New England Journal of Medicine*
-#'   346(25):1937--1947. Data: <https://llmpp.nih.gov/DLBCL/>.
+#'   346(25):1937--1947. Data: <https://llmpp.ccr.cancer.gov/DLBCL/>.
 #'
 #' @seealso [DLBCL]
 #' @keywords datasets

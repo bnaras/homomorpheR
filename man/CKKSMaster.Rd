@@ -21,6 +21,13 @@ CKKS.}
 
 \item{keypair}{an \code{openfhe.R} \code{KeyPair}.}
 }
+\value{
+an S7 object of class \code{CKKSMaster}, inheriting from \link{Master}, with
+properties \code{name}, \code{crypto_context}, \code{keypair} and \code{state}. It holds
+a single CKKS key pair, so it is the appropriate master when one
+party is allowed to hold the secret key; when no party may, use
+\link{ThresholdMaster}. Construct with \code{\link[=make_ckks_master]{make_ckks_master()}}.
+}
 \description{
 A \link{Master} that drives the protocol over \code{openfhe.R}'s CKKS encryption.
 CKKS handles real-valued arithmetic natively, so no \code{den}

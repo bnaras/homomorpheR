@@ -17,6 +17,15 @@ PaillierEncryptedReal(
 
 \item{den}{the denominator used to scale the fractional part (a \link[gmp:bigq]{gmp::bigq}).}
 }
+\value{
+an S7 object of class \code{PaillierEncryptedReal} with properties \code{int},
+\code{frac} and \code{den}: the \link{PaillierCiphertext} carrying the integer
+part, the \link{PaillierCiphertext} carrying the fractional part scaled
+by \code{den}, and the denominator itself. It adds and subtracts with \code{+}
+and \code{-}; \code{\link[=decrypt]{decrypt()}} recombines the two parts and re-centers the
+result into \verb{(-n/2, n/2)} so that signed values round-trip. Produced
+by \code{\link[=encrypt_real]{encrypt_real()}}.
+}
 \description{
 A pair of Paillier ciphertexts representing the integer and
 fractional parts of a real number, together with the denominator

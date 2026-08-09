@@ -21,6 +21,13 @@ PaillierMaster(
 \item{den}{a \link[gmp:bigq]{gmp::bigq} denominator used to scale fractional parts
 when encrypting real numbers via \code{\link[=encrypt_real]{encrypt_real()}}.}
 }
+\value{
+an S7 object of class \code{PaillierMaster}, inheriting from \link{Master},
+with properties \code{name}, \code{keypair}, \code{den} and \code{state}: the
+\link{PaillierKeyPair} the protocol encrypts under, and the denominator
+used to scale fractional parts when encrypting reals. Construct with
+\code{\link[=make_master]{make_master()}}.
+}
 \description{
 A \link{Master} that drives the protocol over Paillier additive
 encryption. Constructed by \code{\link[=make_master]{make_master()}}. Part of the frozen

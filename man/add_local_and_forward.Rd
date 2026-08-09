@@ -13,6 +13,14 @@ add_local_and_forward(obj, ...)
 value), \code{running} (the running encrypted total), and \code{master}
 (so workers can signal failure back to the master).}
 }
+\value{
+\code{NULL}, invisibly. Called for its side effect: the \link{Site} method
+adds this site's encrypted local contribution to the running total
+and forwards it to the next link in the chain, while the \link{Master}
+method terminates the chain by storing the total in the master's
+\code{state}. If a site's local function returns \code{NA}, the master is
+flagged as failed and the chain stops early.
+}
 \description{
 Part of the frozen Paillier-era legacy surface.
 }

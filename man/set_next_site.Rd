@@ -12,6 +12,11 @@ set_next_site(obj, ...)
 \item{...}{method-specific arguments. The Site/Master methods take
 a single \code{next_site}.}
 }
+\value{
+the object \code{obj}, invisibly. Called for its side effect: \code{next_site}
+is recorded in \code{obj}'s \code{state} environment, forming one link of the
+round-robin chain.
+}
 \description{
 Part of the frozen Paillier-era legacy surface (round-robin chain
 wiring); the supported topology is \code{\link[=set_workers]{set_workers()}} +

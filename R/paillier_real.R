@@ -50,6 +50,13 @@ NULL
 #' @param int the [PaillierCiphertext] holding the integer part.
 #' @param frac the [PaillierCiphertext] holding the scaled fractional part.
 #' @param den the denominator used to scale the fractional part (a [gmp::bigq]).
+#' @return an S7 object of class `PaillierEncryptedReal` with properties `int`,
+#'   `frac` and `den`: the [PaillierCiphertext] carrying the integer
+#'   part, the [PaillierCiphertext] carrying the fractional part scaled
+#'   by `den`, and the denominator itself. It adds and subtracts with `+`
+#'   and `-`; [decrypt()] recombines the two parts and re-centers the
+#'   result into `(-n/2, n/2)` so that signed values round-trip. Produced
+#'   by [encrypt_real()].
 #' @export
 PaillierEncryptedReal <- new_class(
     "PaillierEncryptedReal",

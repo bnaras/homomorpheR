@@ -32,6 +32,11 @@ NULL
 #'
 #' @param bits modulus length in bits.
 #' @param n the modulus.
+#' @return an S7 object of class `PaillierPublicKey` with properties `bits`,
+#'   `n`, `n_squared` and `n_plus_one`: the modulus length, the modulus
+#'   itself, and the two values precomputed from it that encryption
+#'   needs. Obtain one as the `pubkey` component of the pair returned by
+#'   [paillier_keypair()] rather than constructing it directly.
 #' @export
 PaillierPublicKey <- new_class(
     "PaillierPublicKey",
@@ -60,6 +65,11 @@ PaillierPublicKey <- new_class(
 #'
 #' @param lambda the secret lambda.
 #' @param pubkey the matching [PaillierPublicKey].
+#' @return an S7 object of class `PaillierPrivateKey` with properties `pubkey`,
+#'   `lambda` and `x`: the matching [PaillierPublicKey], the secret
+#'   lambda, and a value cached from it so that decryption does not
+#'   recompute a modular inverse each time. Obtain one with
+#'   [get_private_key()] on the pair returned by [paillier_keypair()].
 #' @export
 PaillierPrivateKey <- new_class(
     "PaillierPrivateKey",
@@ -91,6 +101,9 @@ PaillierPrivateKey <- new_class(
 #'
 #' @param pubkey a [PaillierPublicKey].
 #' @param privkey a [PaillierPrivateKey].
+#' @return an S7 object of class `PaillierKeyPair` with properties `pubkey` (a
+#'   [PaillierPublicKey]) and `privkey` (a [PaillierPrivateKey]) — the
+#'   two halves of one generated key. Returned by [paillier_keypair()].
 #' @export
 PaillierKeyPair <- new_class(
     "PaillierKeyPair",
@@ -110,6 +123,11 @@ PaillierKeyPair <- new_class(
 #'
 #' @param value the encrypted big-integer value.
 #' @param pubkey the [PaillierPublicKey] under which it was encrypted.
+#' @return an S7 object of class `PaillierCiphertext` with properties `value`
+#'   (the encrypted big integer, which lives modulo `n^2`) and `pubkey`
+#'   (the [PaillierPublicKey] it was encrypted under). Ciphertexts under
+#'   the same key add and subtract with `+` and `-`, and multiply by a
+#'   cleartext integer with `*`; [decrypt()] recovers the cleartext.
 #' @export
 PaillierCiphertext <- new_class(
     "PaillierCiphertext",
@@ -344,11 +362,12 @@ method(print, PaillierCiphertext) <- function(x, ...) {
 #' @param modulus_bits modulus length in bits (e.g. 1024 or 2048).
 #' @return a [PaillierKeyPair].
 #' @examples
-#' \dontrun{
 #' keys <- paillier_keypair(1024)
 #' ct   <- encrypt(keys@pubkey, gmp::as.bigz(42))
+#' ct
+#'
+#' ## Only the private key recovers the cleartext:
 #' decrypt(get_private_key(keys), ct)
-#' }
 #' @export
 paillier_keypair <- function(modulus_bits) {
     repeat {

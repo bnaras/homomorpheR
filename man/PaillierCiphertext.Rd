@@ -11,6 +11,13 @@ PaillierCiphertext(value = NULL, pubkey = PaillierPublicKey())
 
 \item{pubkey}{the \link{PaillierPublicKey} under which it was encrypted.}
 }
+\value{
+an S7 object of class \code{PaillierCiphertext} with properties \code{value}
+(the encrypted big integer, which lives modulo \code{n^2}) and \code{pubkey}
+(the \link{PaillierPublicKey} it was encrypted under). Ciphertexts under
+the same key add and subtract with \code{+} and \code{-}, and multiply by a
+cleartext integer with \code{*}; \code{\link[=decrypt]{decrypt()}} recovers the cleartext.
+}
 \description{
 Wraps the encrypted big-integer value together with the public key
 it was encrypted under. Two ciphertexts encrypted under the same

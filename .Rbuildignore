@@ -16,3 +16,9 @@
 ^\.github$
 ^\.git$
 ^paillier-archive$
+# ── Local scratch that must never reach the tarball ──
+#    Rplots.pdf is dropped by any non-interactive plot; the dated .txt
+#    pattern matches saved session transcripts. Both showed up as a
+#    "Non-standard files/directories found at top level" NOTE.
+^Rplots\.pdf$
+^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}-.*\.txt$

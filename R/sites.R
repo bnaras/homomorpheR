@@ -34,6 +34,12 @@ NULL
 #'   back to the optimizer.
 #' @param state an environment for mutable bookkeeping (next site,
 #'   public key, master back-reference). Default: a fresh empty env.
+#' @return an S7 object of class `Site` with properties `name`, `data`,
+#'   `local_fn` and `state`, representing one data-holding party. The
+#'   `state` environment carries the mutable wiring the protocol fills in
+#'   — the public key to encrypt under, and the back-reference the site
+#'   uses to signal a non-evaluable parameter. Construct with
+#'   [make_site()].
 #' @export
 Site <- new_class(
     "Site",
@@ -57,6 +63,11 @@ Site <- new_class(
 #'
 #' @param name short identifier shown in printed output.
 #' @param state an environment for mutable bookkeeping.
+#' @return nothing — this class is abstract, so calling it raises an error
+#'   instead of returning an object. It exists so that [master_encrypt()],
+#'   [master_decrypt()] and [master_aggregate()] dispatch on a common
+#'   parent. Construct a concrete master with [make_ckks_master()] or
+#'   [make_threshold_master()].
 #' @export
 Master <- new_class(
     "Master",
@@ -79,6 +90,11 @@ Master <- new_class(
 #'   CKKS.
 #' @param keypair an `openfhe.R` `KeyPair`.
 #' @param state an environment for mutable bookkeeping.
+#' @return an S7 object of class `CKKSMaster`, inheriting from [Master], with
+#'   properties `name`, `crypto_context`, `keypair` and `state`. It holds
+#'   a single CKKS key pair, so it is the appropriate master when one
+#'   party is allowed to hold the secret key; when no party may, use
+#'   [ThresholdMaster]. Construct with [make_ckks_master()].
 #' @export
 CKKSMaster <- new_class(
     "CKKSMaster",
@@ -112,6 +128,12 @@ CKKSMaster <- new_class(
 #' @param secret_keys a list of per-site secret keys, in site order
 #'   (the first is the lead site whose `sk` started the chain).
 #' @param state an environment for mutable bookkeeping.
+#' @return an S7 object of class `ThresholdMaster`, inheriting from [Master],
+#'   with properties `name`, `crypto_context`, `joint_pubkey`,
+#'   `secret_keys` and `state`. There is no single secret key:
+#'   `secret_keys` holds one share per site and decryption fuses partial
+#'   decryptions from all of them, so no party can decrypt alone.
+#'   Construct with [make_threshold_master()].
 #' @export
 ThresholdMaster <- new_class(
     "ThresholdMaster",
@@ -209,6 +231,10 @@ make_threshold_master <- function(name, crypto_context, n_sites) {
 #' @param obj a [Site] (or legacy [NCParty]) to receive the key.
 #' @param ... method-specific arguments. The methods take a single
 #'   public key `pubkey` of the master's backend type.
+#' @return the object `obj`, invisibly. Called for its side effect: the
+#'   master's public key is stored in the receiving actor's `state`
+#'   environment, and in the [NCParty] method is forwarded on to every
+#'   [Site] that party manages, so each site can encrypt under it.
 #' @export
 set_public_key <- new_generic("set_public_key", "obj")
 

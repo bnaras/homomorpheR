@@ -26,6 +26,14 @@ ThresholdMaster(
 \item{secret_keys}{a list of per-site secret keys, in site order
 (the first is the lead site whose \code{sk} started the chain).}
 }
+\value{
+an S7 object of class \code{ThresholdMaster}, inheriting from \link{Master},
+with properties \code{name}, \code{crypto_context}, \code{joint_pubkey},
+\code{secret_keys} and \code{state}. There is no single secret key:
+\code{secret_keys} holds one share per site and decryption fuses partial
+decryptions from all of them, so no party can decrypt alone.
+Construct with \code{\link[=make_threshold_master]{make_threshold_master()}}.
+}
 \description{
 A \link{Master} that drives the protocol over \code{openfhe.R} with
 threshold key generation, under whichever scheme the supplied

@@ -23,13 +23,14 @@
 #' @references [Paillier Encryption](https://mhe.github.io/jspaillier/)
 #'
 #' @examples
-#' \dontrun{
 #' keys <- paillier_keypair(1024)
 #' encrypt_decrypt <- function(x) decrypt(get_private_key(keys),
 #'                                        encrypt(keys@pubkey, x))
+#'
+#' ## The additive homomorphism: adding in the clear and adding under
+#' ## encryption give the same answer.
 #' a <- gmp::as.bigz(1273849)
 #' identical(a + 10L, encrypt_decrypt(a + 10L))
-#' }
 #' @name homomorpheR
 "_PACKAGE"
 

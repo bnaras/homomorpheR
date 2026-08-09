@@ -12,6 +12,11 @@ add_site(ncp, ...)
 \item{...}{method-specific arguments. The NCParty method takes a
 single \link{Site}.}
 }
+\value{
+the \link{NCParty} \code{ncp}, invisibly. Called for its side effect: the site
+is appended to the list of sites the party manages, held in its
+\code{state} environment.
+}
 \description{
 Part of the frozen Paillier-era legacy surface.
 }

@@ -21,13 +21,14 @@ R's arithmetic operators dispatch to the homomorphism. Use
 For a quick overview, see the package vignettes.
 }
 \examples{
-\dontrun{
 keys <- paillier_keypair(1024)
 encrypt_decrypt <- function(x) decrypt(get_private_key(keys),
                                        encrypt(keys@pubkey, x))
+
+## The additive homomorphism: adding in the clear and adding under
+## encryption give the same answer.
 a <- gmp::as.bigz(1273849)
 identical(a + 10L, encrypt_decrypt(a + 10L))
-}
 }
 \references{
 \href{https://en.wikipedia.org/wiki/Homomorphic_encryption}{Homomorphic Encryption}
@@ -43,11 +44,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU}
+\strong{Maintainer}: Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU} [copyright holder]
 
 Authors:
 \itemize{
-  \item Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU}
+  \item Balasubramanian Narasimhan \email{naras@stat.Stanford.EDU} [copyright holder]
 }
 
 }

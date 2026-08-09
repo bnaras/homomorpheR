@@ -11,6 +11,13 @@ PaillierPrivateKey(lambda, pubkey)
 
 \item{pubkey}{the matching \link{PaillierPublicKey}.}
 }
+\value{
+an S7 object of class \code{PaillierPrivateKey} with properties \code{pubkey},
+\code{lambda} and \code{x}: the matching \link{PaillierPublicKey}, the secret
+lambda, and a value cached from it so that decryption does not
+recompute a modular inverse each time. Obtain one with
+\code{\link[=get_private_key]{get_private_key()}} on the pair returned by \code{\link[=paillier_keypair]{paillier_keypair()}}.
+}
 \description{
 Holds the secret \code{lambda} and a cached value \code{x} used during
 decryption, together with a reference to the matching public key.

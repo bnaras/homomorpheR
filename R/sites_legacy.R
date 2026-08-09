@@ -33,6 +33,11 @@ NULL
 #' @param den a [gmp::bigq] denominator used to scale fractional parts
 #'   when encrypting real numbers via [encrypt_real()].
 #' @param state an environment for mutable bookkeeping.
+#' @return an S7 object of class `PaillierMaster`, inheriting from [Master],
+#'   with properties `name`, `keypair`, `den` and `state`: the
+#'   [PaillierKeyPair] the protocol encrypts under, and the denominator
+#'   used to scale fractional parts when encrypting reals. Construct with
+#'   [make_master()].
 #' @export
 PaillierMaster <- new_class(
     "PaillierMaster",
@@ -92,6 +97,10 @@ method(print, PaillierMaster) <- function(x, ...) {
 #' @param number which share this NCP receives, `1` or `2`.
 #' @param state an environment for mutable bookkeeping (the list of
 #'   sites it manages, public key). Default: a fresh empty env.
+#' @return an S7 object of class `NCParty` with properties `name`, `number` and
+#'   `state`. `number` (1 or 2) records which of the two additive shares
+#'   this party receives; `state` holds the sites it manages and the
+#'   public key. Construct with [make_ncparty()].
 #' @export
 NCParty <- new_class(
     "NCParty",
@@ -122,6 +131,9 @@ make_ncparty <- function(name, number) {
 #' @param ncp an [NCParty].
 #' @param ... method-specific arguments. The NCParty method takes a
 #'   single [Site].
+#' @return the [NCParty] `ncp`, invisibly. Called for its side effect: the site
+#'   is appended to the list of sites the party manages, held in its
+#'   `state` environment.
 #' @export
 add_site <- new_generic("add_site", "ncp")
 
@@ -152,6 +164,9 @@ method(print, NCParty) <- function(x, ...) {
 #' @param obj a [Site] or [Master].
 #' @param ... method-specific arguments. The Site/Master methods take
 #'   a single `next_site`.
+#' @return the object `obj`, invisibly. Called for its side effect: `next_site`
+#'   is recorded in `obj`'s `state` environment, forming one link of the
+#'   round-robin chain.
 #' @export
 set_next_site <- new_generic("set_next_site", "obj")
 
@@ -171,6 +186,12 @@ method(set_next_site, Master) <- function(obj, next_site) {
 #'   value), `running` (the running encrypted total), and `master`
 #'   (so workers can signal failure back to the master).
 #' @keywords internal
+#' @return `NULL`, invisibly. Called for its side effect: the [Site] method
+#'   adds this site's encrypted local contribution to the running total
+#'   and forwards it to the next link in the chain, while the [Master]
+#'   method terminates the chain by storing the total in the master's
+#'   `state`. If a site's local function returns `NA`, the master is
+#'   flagged as failed and the chain stops early.
 #' @export
 add_local_and_forward <- new_generic("add_local_and_forward", "obj")
 

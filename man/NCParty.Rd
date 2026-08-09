@@ -14,6 +14,12 @@ NCParty(name = character(0), number = integer(0), state = NULL)
 \item{state}{an environment for mutable bookkeeping (the list of
 sites it manages, public key). Default: a fresh empty env.}
 }
+\value{
+an S7 object of class \code{NCParty} with properties \code{name}, \code{number} and
+\code{state}. \code{number} (1 or 2) records which of the two additive shares
+this party receives; \code{state} holds the sites it manages and the
+public key. Construct with \code{\link[=make_ncparty]{make_ncparty()}}.
+}
 \description{
 Sits between the master and the sites in the non-cooperating-parties
 topology. Two NCPs receive \emph{additive shares} of each site's

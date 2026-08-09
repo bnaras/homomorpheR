@@ -11,6 +11,13 @@ PaillierPublicKey(bits, n)
 
 \item{n}{the modulus.}
 }
+\value{
+an S7 object of class \code{PaillierPublicKey} with properties \code{bits},
+\code{n}, \code{n_squared} and \code{n_plus_one}: the modulus length, the modulus
+itself, and the two values precomputed from it that encryption
+needs. Obtain one as the \code{pubkey} component of the pair returned by
+\code{\link[=paillier_keypair]{paillier_keypair()}} rather than constructing it directly.
+}
 \description{
 Holds the modulus and precomputed values used during encryption.
 Construct via \code{\link[=paillier_keypair]{paillier_keypair()}} rather than directly.

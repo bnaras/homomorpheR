@@ -9,7 +9,7 @@
 ##   profiling to predict survival after chemotherapy for diffuse
 ##   large-B-cell lymphoma. New England Journal of Medicine 346:1937-1947.
 ##
-## Source files (https://llmpp.nih.gov/DLBCL/):
+## Source files (https://llmpp.ccr.cancer.gov/DLBCL/):
 ##   - DLBCL_patient_data_NEW.txt : 240 patients x clinical/survival +
 ##       the five published expression signatures.
 ##   - NEJM_Web_Fig1data          : Lymphochip log-ratio matrix,
@@ -46,7 +46,7 @@ src <- function(name, url) {
         utils::download.file(url, dest, mode = "wb")
     dest
 }
-base <- "https://llmpp.nih.gov/DLBCL/"
+base <- "https://llmpp.ccr.cancer.gov/DLBCL/"
 pat_file <- src("DLBCL_patient_data_NEW.txt", paste0(base, "DLBCL_patient_data_NEW.txt"))
 gex_file <- src("NEJM_Web_Fig1data",          paste0(base, "NEJM_Web_Fig1data"))
 

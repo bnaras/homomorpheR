@@ -11,6 +11,11 @@ PaillierKeyPair(pubkey = PaillierPublicKey(), privkey = PaillierPrivateKey())
 
 \item{privkey}{a \link{PaillierPrivateKey}.}
 }
+\value{
+an S7 object of class \code{PaillierKeyPair} with properties \code{pubkey} (a
+\link{PaillierPublicKey}) and \code{privkey} (a \link{PaillierPrivateKey}) — the
+two halves of one generated key. Returned by \code{\link[=paillier_keypair]{paillier_keypair()}}.
+}
 \description{
 A matched pair of public and private keys. Use \code{\link[=paillier_keypair]{paillier_keypair()}}
 to generate one.

@@ -18,9 +18,10 @@ the modulus, and returns a \link{PaillierKeyPair} containing the matching
 public and private keys.
 }
 \examples{
-\dontrun{
 keys <- paillier_keypair(1024)
 ct   <- encrypt(keys@pubkey, gmp::as.bigz(42))
+ct
+
+## Only the private key recovers the cleartext:
 decrypt(get_private_key(keys), ct)
-}
 }

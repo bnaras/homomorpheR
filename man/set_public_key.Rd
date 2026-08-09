@@ -12,6 +12,12 @@ set_public_key(obj, ...)
 \item{...}{method-specific arguments. The methods take a single
 public key \code{pubkey} of the master's backend type.}
 }
+\value{
+the object \code{obj}, invisibly. Called for its side effect: the
+master's public key is stored in the receiving actor's \code{state}
+environment, and in the \link{NCParty} method is forwarded on to every
+\link{Site} that party manages, so each site can encrypt under it.
+}
 \description{
 Distribute the public key from the master to a downstream actor
 }
