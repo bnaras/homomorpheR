@@ -1,5 +1,5 @@
 ---
-title: "Distributed Maximum Likelihood Estimation under CKKS"
+title: "Distributed Maximum Likelihood Estimation"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Distributed MLE under CKKS}
+  %\VignetteIndexEntry{Distributed Maximum Likelihood Estimation}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -54,7 +54,7 @@ logLik(fit0)
 
 Now suppose the same data is **distributed across three sites** — say,
 three hospitals counting adverse events. None will share its raw
-counts with the others or with a central coordinator, but they are
+counts with the others or with a central aggregator, but they are
 willing to *jointly* compute the same MLE provided no party learns
 anything about another party's contribution.
 
@@ -118,7 +118,8 @@ The companion `homomorphing` vignette uses Paillier, which is purely
 *additive*. Real-valued log-likelihoods had to be split into integer
 and fractional parts and rationally approximated with a denominator
 of $2^{256}$. CKKS encrypts real numbers natively and the protocol
-becomes much cleaner: each step is just `+` between two ciphertexts.
+becomes much cleaner: each step is just `+` between two encrypted
+values.
 CKKS also supports multiplication, which the Cox vignette will need.
 
 ## Implementation

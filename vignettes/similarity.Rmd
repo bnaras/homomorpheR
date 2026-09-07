@@ -62,7 +62,7 @@ homomorphic matrix–vector multiply, valid as a cosine near the
 orthogonal end), or folded into the database offline so the
 encrypted query reduces to a plain inner product. Threshold
 decryption returns the top-`k` matches, with no party able to
-decrypt intermediate ciphertexts unilaterally.
+decrypt any intermediate value unilaterally.
 
 The accompanying `similarity-sideexp.md` document describes a
 deferred experiment on a real fine-tuned model. The vignette
@@ -122,20 +122,20 @@ Three sites and one untrusted aggregator (the master):
 What the master sees, by stage:
 
 1. The encrypted query $\mathit{ct}_q$. Not decryptable alone.
-2. Per-site encrypted score ciphertexts. Not decryptable alone.
+2. Per-site encrypted scores. Not decryptable alone.
 3. Partial decryptions of the top-$k$ scores from each site.
    Not decryptable individually.
-4. After fusion, the plaintext top-$k$ scores. Released to the
-   querier as the protocol output.
+4. After fusion, the top-$k$ scores in the clear. Released to
+   the querier as the protocol output.
 
-Step 4 is the only plaintext the master ever holds, and only
+Step 4 is the only cleartext the master ever holds, and only
 for the top-$k$ scores released to the querier — not for any
 intermediate quantity.
 
 The site-private compatibility adapters $\{A_k\}$ never leave
-their sites. They are applied to ciphertexts as plaintext-matrix
-× ciphertext-vector multiplications inside the homomorphic
-evaluation (or folded into the site's database offline), so the
+their sites. Each is applied to an encrypted vector while it
+stays encrypted — an unencrypted matrix times an encrypted
+vector — or else folded into the site's database offline, so the
 adapter never appears in the clear at any party other than its
 owner.
 
@@ -163,13 +163,13 @@ offline; the query phase and result phase run for each query.
 
 **Query phase.** The querier embeds their candidate patient
 with the public model, normalizes to unit length, encrypts
-into a slot-batched ciphertext under the joint public key,
-and broadcasts the ciphertext to the master.
+into a single slot-packed encrypted vector under the joint
+public key, and broadcasts that to the master.
 
 For each site $k$:
 
 5. The site receives the encrypted query $\mathit{ct}_q$.
-6. The site applies its private $A_k$ to the ciphertext via
+6. The site applies its private $A_k$ to the encrypted query via
    diagonal-encoded matrix–vector multiplication, producing
    $\mathit{ct}_{A_k q}$ (Design 2). Near the orthogonal end of
    the family the result is unit-norm, so the score is a genuine
@@ -180,20 +180,20 @@ For each site $k$:
    embeddings $v_{k,i}$ via slot-wise multiplication followed
    by log-$p$ rotation-and-add slot summation, producing one
    encrypted scalar per local patient.
-8. The site returns its score ciphertexts to the master,
-   alongside plaintext local patient indices.
+8. The site returns its encrypted scores to the master,
+   alongside its local patient indices in the clear.
 
 **Result phase.**
 
 9. The master concatenates encrypted scores across all sites.
-   In v1, plaintext local indices are kept alongside
+   In v1, local indices are kept in the clear alongside the
    encrypted scores; encrypted top-$k$ selection in CKKS is
    feasible but adds depth and complexity orthogonal to this
    vignette's pedagogical aim.
 10. The master collects partial decryption shares from all
-    three sites for the encrypted score ciphertexts. Fusion
-    yields plaintext scores; the master sorts plaintext-side
-    and returns the top-$k$ to the querier.
+    three sites for the encrypted scores. Fusion yields the
+    scores in the clear; the master sorts them there and
+    returns the top-$k$ to the querier.
 
 ## Synthetic data
 
@@ -394,15 +394,15 @@ ever holds a usable secret unilaterally.
 
 The matrix–vector multiply step in the protocol is implemented
 as a *diagonal-encoded matvec*. For a $p \times p$ matrix $M$
-and a slot-batched ciphertext encoding a vector
-$q \in \mathbf{R}^p$:
+and an encrypted vector $q \in \mathbf{R}^p$ held one component
+per slot:
 
 $$
 M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \odot \mathrm{rot}(q, i),
 $$
 
-where $d_i$ is the $i$-th diagonal of $M$ (a $p$-vector of
-plaintexts), $\odot$ is slot-wise multiplication, and
+where $d_i$ is the $i$-th diagonal of $M$ (a $p$-vector, and
+never encrypted), $\odot$ is slot-wise multiplication, and
 $\mathrm{rot}(q, i)$ cyclically rotates the slots of $q$ by
 $i$. Each rotation requires a precomputed *rotation key*. In
 single-key CKKS these are generated from the secret key; in
@@ -446,7 +446,7 @@ for (k in 2:n_sites) {
 insert_eval_automorphism_key(rot_running, key_tag = joint_pk_tag)
 ```
 
-After insertion, any ciphertext encrypted under the joint
+After insertion, any value encrypted under the joint
 public key (i.e., under `master@joint_pubkey`) can be rotated
 by any index in `rotation_indices` via `eval_rotate(ct, idx)`.
 
@@ -518,10 +518,10 @@ for (k in seq_len(n_sites)) {
 
 ## Diagonal-encoded matrix-vector multiply
 
-The CKKS-friendly way to multiply a $p \times p$ plaintext
-matrix into a slot-batched encrypted vector is the
-*diagonal encoding*. The matrix $M$ is decomposed into its $p$
-generalized diagonals, each a length-$p$ plaintext vector:
+The CKKS-friendly way to multiply an unencrypted $p \times p$
+matrix into an encrypted vector is the *diagonal encoding*. The
+matrix $M$ is decomposed into its $p$ generalized diagonals,
+each an unencrypted length-$p$ vector:
 
 $$
 d_i[j] = M[\,j,\, (j + i) \bmod p\,], \qquad i = 0, 1, \ldots, p-1.
@@ -534,11 +534,17 @@ M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \,\odot\, \mathrm{rot}(q, i),
 $$
 
 where $\odot$ is slot-wise multiplication and $\mathrm{rot}(q, i)$
-is the $i$-step cyclic slot rotation. Each term is a single
-ciphertext × plaintext multiply followed by an encrypted-
-vector add. The total cost is $p$ rotations and $p$
-plaintext-multiplies per matrix-vector product; the
-multiplicative depth is one.
+is the $i$-step cyclic slot rotation. Each term multiplies an
+encrypted vector by an unencrypted one and adds the result to a
+running encrypted total. The cost is $p$ rotations and $p$ such
+multiplications per matrix-vector product, and it consumes a
+single level of the precision budget.
+
+Multiplying by an unencrypted vector rather than an encrypted
+one is what keeps that cost down: the adapter $A_k$ is the
+site's own, so it never needs encrypting, and the operation is
+correspondingly cheaper than multiplying two encrypted
+quantities together.
 
 ```{r}
 build_diagonals <- function(M, p) {
@@ -584,8 +590,8 @@ cat(sprintf("matvec max error (site 1): %.2e\n",
 After the matvec, the encrypted query has been mapped by the
 adapter into site $k$'s private geometry (unit-norm at the
 orthogonal endpoint used here). The cosine similarity against a
-private-database vector $v$ (also unit-norm and held in
-plaintext at the site) is just
+private-database vector $v$ (also unit-norm, and never
+encrypted since it never leaves the site) is just
 
 $$
 \cos(A_k q,\, v) \;=\; \langle A_k q,\, v \rangle
@@ -593,7 +599,7 @@ $$
 $$
 
 In CKKS this is a slot-wise multiply of the matvec output by the
-plaintext-encoded $v$, followed by a log-$p$ rotate-and-add
+unencrypted $v$, followed by a log-$p$ rotate-and-add
 *slot-summation reduction* that places the summed inner product
 in slot 0 (and uninteresting partial sums in the other slots).
 
@@ -618,7 +624,7 @@ encrypted_inner_product <- function(ct_x, v_plain, cc, p) {
 ```
 
 A smoke test against a single database vector confirms the
-inner product matches its plaintext counterpart at slot 0:
+inner product matches the unencrypted computation at slot 0:
 
 ```{r}
 v_test <- db[[1]]$z[1, ]
@@ -647,9 +653,9 @@ cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
 ## Site `local_fn`: full per-site protocol step
 
 The site-side computation closes over the site's adapter
-$A_k$ and database $D_k$, takes the encrypted query
-ciphertext as input, and returns a list of encrypted scores
-plus plaintext local indices. This is the **Design 2** branch:
+$A_k$ and database $D_k$, takes the encrypted query as input,
+and returns a list of encrypted scores plus the corresponding
+local indices in the clear. This is the **Design 2** branch:
 the adapter is applied to the encrypted query (the matvec), and
 scoring runs against the site's raw private database.
 
@@ -686,19 +692,19 @@ cat(sprintf("site 1 produced %d encrypted scores in %.2f s\n",
 ## Master orchestration and threshold-decrypted top-`k`
 
 The master broadcasts the encrypted query to every site,
-collects per-site encrypted score ciphertexts plus plaintext
-local patient indices, and runs the $n$-of-$n$ threshold
-decryption ceremony for each score so it can sort them
-plaintext-side and return the top-`k`.
+collects per-site encrypted scores plus the local patient
+indices in the clear, and runs the $n$-of-$n$ threshold
+decryption ceremony for each score so it can sort them once
+they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score
-ciphertext goes through one threshold-decrypt round
+goes through one threshold-decrypt round
 (`master_decrypt()` calls `multiparty_decrypt_lead` on site 1,
 `multiparty_decrypt_main` on each remaining site, and
 `multiparty_decrypt_fusion` to combine). For our `r sum(cohort_sizes)`
 total patients this runs in a few seconds; production
-deployments would pack many patients per ciphertext via
-slot tiling and amortize the ceremony.
+deployments would pack many patients into the slots of a
+single encrypted value and amortize the ceremony.
 
 ```{r}
 run_similarity_query <- function(ct_q, site_fns, master, top_k) {
@@ -740,11 +746,11 @@ print(top_result, row.names = FALSE)
 
 ## Reference-truth comparison
 
-The protocol output is meaningful only if the encrypted-domain
-inner products agree with their plaintext-domain counterparts
-to within CKKS noise. The reference computation runs the same
-$A_k \cdot q$ adapter application and inner-product reduction in
-plaintext on each site's database:
+The protocol output is meaningful only if the inner products
+computed under encryption agree with the same quantities computed
+in the clear, to within CKKS approximation error. The reference
+computation runs the same $A_k \cdot q$ adapter application and
+inner-product reduction unencrypted on each site's database:
 
 ```{r}
 plaintext_top_k <- function(q, site_data, A_list, top_k) {
@@ -790,9 +796,10 @@ cat(sprintf("Top-%d set match: %d of %d\n",
 The encrypted mechanics work to floating-point precision, as the
 smoke tests and reference comparison above confirm (max error
 $\sim 10^{-11}$). The substantive questions are statistical, and
-because the encrypted and plaintext scores agree to within CKKS
-noise we answer them in plaintext — fast enough to average over
-many queries and trace stable curves. Three questions:
+because the encrypted and unencrypted scores agree to within
+CKKS approximation error we answer them in the clear — fast
+enough to average over many queries and trace stable curves.
+Three questions:
 
 1. **Fidelity.** When the drift is genuinely non-isometric, does
    a near-orthogonal or least-squares adapter recover retrieval
@@ -1029,22 +1036,23 @@ par(op)
   secret material. Any subset short of the full $n$ cannot
   decrypt anything along the way.
 - **Diagonal-encoded matvec under threshold CKKS.** A
-  $p \times p$ matrix–vector multiply on a slot-batched
-  ciphertext, implemented as $p$ rotations + $p$ plaintext-
-  multiplies + $p$ ciphertext-additions at depth one. The
+  $p \times p$ matrix–vector multiply on an encrypted vector,
+  implemented as $p$ rotations, $p$ multiplications by
+  unencrypted vectors, and $p$ encrypted additions, all within
+  one level of the precision budget. The
   joint rotation keys for the cyclic-slot rotations come
   from an $n$-of-$n$ ceremony that mirrors the encryption-key
   ceremony.
 - **Inner-product reduction via $\log p$ rotation-and-add.**
-  Slot-wise multiply by the plaintext database vector
-  followed by a halve-and-fold reduction places the cosine
-  similarity in slot 0.
-- **Top-$k$ over plaintext indices, scores threshold-decrypted.**
-  Local patient indices stay plaintext at each site; only the
+  Slot-wise multiply by the site's own unencrypted database
+  vector followed by a halve-and-fold reduction places the
+  cosine similarity in slot 0.
+- **Top-$k$ over cleartext indices, scores threshold-decrypted.**
+  Local patient indices stay in the clear at each site; only the
   similarity scores are encrypted, and the threshold ceremony
-  reveals plaintext only for the released top-$k$. The
-  encrypted protocol's output agrees with its plaintext reference
-  to $\sim 10^{-11}$.
+  reveals values only for the released top-$k$. The encrypted
+  protocol's output agrees with the same computation run
+  unencrypted to $\sim 10^{-11}$.
 - **Fidelity under non-isometric drift.** When fine-tuning is a
   genuine non-isometry, the rigid orthogonal endpoint leaves
   recall on the table while a relaxed (least-squares or
@@ -1064,7 +1072,7 @@ par(op)
   family, is what pins the frame.
 
 ## Limitations
-- **Encrypted top-$k$ selection.** We sort plaintext-side
+- **Encrypted top-$k$ selection.** We sort in the clear
   after threshold decrypting the per-patient scores. Encrypted
   argmax / top-$k$ via polynomial sign approximation is
   feasible in CKKS but adds depth and complexity orthogonal
@@ -1088,10 +1096,10 @@ par(op)
   raw-database-matvec posture, with offline folding as the
   release valve — not a single forced choice.
 - **Slot-tiling for production scale.** The vignette runs at
-  $p = 32$ with one ciphertext per database vector. Production
-  at $p = 512$ would pack many database vectors per ciphertext
-  via slot tiling, amortizing the matvec and inner-product
-  cost across patients within a site.
+  $p = 32$ with one encrypted value per database vector.
+  Production at $p = 512$ would pack many database vectors into
+  the slots of a single encrypted value, amortizing the matvec
+  and inner-product cost across patients within a site.
 - **Real-model validation.** The synthetic data above drifts by
   a parameterized non-isometric $B_k = Q_k D_k$, a controllable
   stand-in for free fine-tuning. Real fine-tuned foundation
@@ -1108,8 +1116,8 @@ par(op)
 - **Malicious-secure threshold protocol.** The trust model
   here is honest-but-curious. A malicious-secure variant
   would require zero-knowledge proofs of correct partial
-  decryption and verifiable computation on the score
-  ciphertexts; that is heavy machinery and out of scope.
+  decryption and verifiable computation on the encrypted
+  scores; that is heavy machinery and out of scope.
 
 ## Where this fits
 

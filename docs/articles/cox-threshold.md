@@ -13,7 +13,7 @@ The end of the `cox` vignette flagged this:
 
 > **Threshold key generation**: in a real deployment, the secret key
 > would be split across the sites (n-of-n threshold) so that no single
-> party — not even the master — can decrypt intermediate ciphertexts
+> party — not even the master — can decrypt intermediate values
 > unilaterally.
 
 This vignette implements exactly that. Three sites jointly generate a
@@ -37,15 +37,15 @@ Three sites and one untrusted aggregator:
 - **Aggregator** holds no secret-key material. It receives encrypted
   contributions, sums them homomorphically, and broadcasts the sum back
   for partial decryption. It is *fully untrusted*: a curious or
-  compromised aggregator gains no information from the ciphertexts it
-  processes.
+  compromised aggregator gains no information from the encrypted values
+  it processes.
 
 What the aggregator sees, by stage: 1. Encrypted local contributions
 $`\mathit{ct}_i = E_{\mathit{pk}_{1..n}}(\ell_i)`$. None decryptable
 alone. 2. The encrypted sum
 $`\mathit{ct}_{\text{sum}} = \boxplus_i \mathit{ct}_i`$. Not decryptable
 alone. 3. Partial decryptions $`\rho_i`$ contributed by each site. Not
-decryptable individually. 4. After fusion, the *plaintext sum*
+decryptable individually. 4. After fusion, the *sum in the clear*
 $`\ell(\beta) = \sum_i \ell_i`$. This appears at the aggregator only
 after step 4.
 
@@ -53,8 +53,8 @@ Step 4 reveals $`\ell(\beta)`$ to the aggregator — the same thing the
 master saw in
 [`vignette("cox")`](https://bnaras.github.io/homomorpheR/articles/cox.md).
 The strict improvement is that *nobody else* can decrypt anything along
-the way: a captured log of ciphertexts or partial decryptions is useless
-without the joint fusion.
+the way: a captured log of encrypted values or partial decryptions is
+useless without the joint fusion.
 
 ## The Cox setup (same DLBCL data as `cox.Rmd`)
 
@@ -134,7 +134,7 @@ the underlying master class changed.
     ##              Estimate Std. Error
     ## GCB_sig    -0.2638698 0.11940447
     ## LN_sig     -0.2543587 0.08515178
-    ## Prolif_sig  0.3031250 0.14981284
+    ## Prolif_sig  0.3031250 0.14981283
     ## BMP6        0.3036367 0.10727837
     ## MHC2_sig   -0.3191459 0.09412946
     ## 
@@ -185,7 +185,7 @@ the underlying master class changed.
 
 | coefficient | threshold_distributed | aggregated_cleartext |  abs_diff |
 |:------------|----------------------:|---------------------:|----------:|
-| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.823e-06 |
+| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.822e-06 |
 | LN_sig      |            -0.2543587 |           -0.2543592 | 5.340e-07 |
 | Prolif_sig  |             0.3031250 |            0.3031258 | 7.480e-07 |
 | BMP6        |             0.3036367 |            0.3036375 | 7.940e-07 |

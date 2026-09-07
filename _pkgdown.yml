@@ -7,33 +7,85 @@ authors:
   Balasubramanian Narasimhan:
     href: https://naras.su.domains
 
+# Articles are grouped by what the reader is trying to do, not by the
+# encryption scheme underneath. Each vignette names its scheme in its
+# opening paragraph, which is where that detail belongs; a reader
+# choosing an article is choosing a statistical problem.
+#
+# Labels here must match each vignette's `title:` and its
+# \VignetteIndexEntry{} exactly. All three drifted apart before
+# 2026-09-06 (three different strings for the Cox vignette alone), so
+# treat them as one value stored in three places until pkgdown can be
+# told to read the titles directly.
+articles:
+- title: Start here
+  contents:
+  - introduction
+  - precision
+
+- title: Queries and aggregation
+  contents:
+  - privacy-preserving-aggregation
+  - query-count-threshold
+
+- title: Fitting models across sites
+  contents:
+  - mle
+  - cox
+  - cox-threshold
+  - cvxr-consensus-admm
+  - cvxr-cox-lasso-dlbcl
+
+- title: Prediction and retrieval
+  contents:
+  - secure-inference
+  - encrypted-regression
+  - similarity
+
+- title: Adding differential privacy
+  contents:
+  - cox-threshold-dp
+  - cvxr-consensus-admm-dp
+
 navbar:
  components:
    articles:
     text: Articles
     menu:
-    - text: Maximum Likelihood Estimation (CKKS)
-      href: articles/mle.html
-    - text: Distributed Cox Regression (CKKS)
-      href: articles/cox.html
-    - text: Distributed Cox Regression (Threshold CKKS)
-      href: articles/cox-threshold.html
-    - text: Federated Consensus ADMM (CVXR + Threshold CKKS)
-      href: articles/cvxr-consensus-admm.html
-    - text: Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)
-      href: articles/cvxr-cox-lasso-dlbcl.html
-    - text: Secure Model Inference (CKKS, two-party)
-      href: articles/secure-inference.html
-    - text: Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)
-      href: articles/similarity.html
-    - text: Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)
-      href: articles/encrypted-regression.html
-    - text: Privacy-Preserving Count Aggregation (BFV)
+    - text: Start here
+    - text: Introduction to homomorpheR
+      href: articles/introduction.html
+    - text: Precision
+      href: articles/precision.html
+    - text: ---------
+    - text: Queries and aggregation
+    - text: Privacy-Preserving Count Aggregation
       href: articles/privacy-preserving-aggregation.html
-    - text: Distributed Query Count (Threshold BFV)
+    - text: Distributed Query Count with Threshold Keys
       href: articles/query-count-threshold.html
-    - text: Threshold Cox + Output DP (Demonstration)
+    - text: ---------
+    - text: Fitting models across sites
+    - text: Distributed Maximum Likelihood Estimation
+      href: articles/mle.html
+    - text: Distributed Stratified Cox Regression
+      href: articles/cox.html
+    - text: Distributed Cox Regression with Threshold Key Generation
+      href: articles/cox-threshold.html
+    - text: Federated Consensus ADMM with CVXR
+      href: articles/cvxr-consensus-admm.html
+    - text: Federated Cox-Lasso via Consensus ADMM on DLBCL
+      href: articles/cvxr-cox-lasso-dlbcl.html
+    - text: ---------
+    - text: Prediction and retrieval
+    - text: Secure Model Inference on Encrypted Data
+      href: articles/secure-inference.html
+    - text: Encrypted Logistic Regression Prediction
+      href: articles/encrypted-regression.html
+    - text: Federated Cosine Similarity with Site-Private Fine-Tuned Models
+      href: articles/similarity.html
+    - text: ---------
+    - text: Adding differential privacy
+    - text: Threshold Cox + Output Differential Privacy (Demonstration)
       href: articles/cox-threshold-dp.html
-    - text: Consensus ADMM + Output DP (Demonstration)
+    - text: Consensus ADMM + Output Differential Privacy (Demonstration)
       href: articles/cvxr-consensus-admm-dp.html
-

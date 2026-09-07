@@ -65,7 +65,7 @@ cat("Coefficients (intercept, age, biomarker):", round(beta, 4), "\n")
 
 ## Step 2: encrypt patient data
 
-CKKS needs enough multiplicative depth for the Chebyshev
+CKKS needs enough precision budget for the Chebyshev
 polynomial. We use depth 8 and enable `Feature$ADVANCEDSHE` for
 the polynomial-evaluation primitives.
 
@@ -103,7 +103,7 @@ ct_eta <- ct_eta + beta[1]
 
 `openfhe.R` exposes Chebyshev approximations of common transcendental
 functions, including the logistic sigmoid. The interval $[a, b]$
-must cover the realisable range of $\eta$; degree 16 gives good
+must cover the realizable range of $\eta$; degree 16 gives good
 precision with depth modest enough to fit the budget we declared
 above.
 
@@ -130,8 +130,8 @@ cat(sprintf("Max absolute error vs cleartext sigmoid: %.2e\n", max_err))
    patient data. Same transport guarantee as `secure-inference`.
 2. **The sigmoid evaluated entirely under encryption.** No
    intermediate decryption, no protocol back-and-forth — the
-   whole logistic prediction completes inside the ciphertext
-   domain.
+   whole logistic prediction completes while the data stays
+   encrypted.
 3. **CKKS precision is more than enough for medical
    prediction.** The maximum absolute error against the
    cleartext sigmoid is `r signif(max_err, 2)`, well below any
@@ -159,8 +159,8 @@ With CKKS via `openfhe.R`:
 
 ## Limitations
 
-- **Multiplicative depth**: each multiplication consumes one
-  level of the ciphertext. Deeper computations require larger
+- **Precision budget**: each multiplication consumes one level of
+  the encrypted value's budget. Deeper computations require larger
   parameters and more memory.
 - **Approximation error**: CKKS is approximate. For deployment,
   validate that the precision is sufficient for your use case.

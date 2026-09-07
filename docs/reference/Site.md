@@ -33,3 +33,12 @@ Site(name = character(0), data = NULL, local_fn = NULL, state = NULL)
 
   an environment for mutable bookkeeping (next site, public key, master
   back-reference). Default: a fresh empty env.
+
+## Value
+
+an S7 object of class `Site` with properties `name`, `data`, `local_fn`
+and `state`, representing one data-holding party. The `state`
+environment carries the mutable wiring the protocol fills in — the
+public key to encrypt under, and the back-reference the site uses to
+signal a non-evaluable parameter. Construct with
+[`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md).

@@ -1,4 +1,4 @@
-# Distributed Stratified Cox Regression under CKKS
+# Distributed Stratified Cox Regression
 
 ## The statistical problem
 
@@ -97,9 +97,9 @@ second is at the MLE. The privacy goal: reproduce these estimates
 We use the same master/worker topology as the MLE vignette: master
 broadcasts $`\beta`$, each worker computes its local Cox partial
 log-likelihood at $`\beta`$, encrypts it under the master’s public key,
-and returns the ciphertext. The master sums the encrypted contributions
-homomorphically and decrypts the total. Mathematically nothing changes
-from the MLE case; only the local computation differs.
+and returns the encrypted value. The master sums the encrypted
+contributions homomorphically and decrypts the total. Mathematically
+nothing changes from the MLE case; only the local computation differs.
 
 The local computation exploits a well-known feature of
 [`coxph()`](https://rdrr.io/pkg/survival/man/coxph.html): `iter.max = 0`
@@ -197,7 +197,7 @@ revealing its raw patient data.
 
 | coefficient | encrypted_distributed | aggregated_cleartext |  abs_diff |
 |:------------|----------------------:|---------------------:|----------:|
-| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.822e-06 |
+| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.823e-06 |
 | LN_sig      |            -0.2543587 |           -0.2543592 | 5.340e-07 |
 | Prolif_sig  |             0.3031250 |            0.3031258 | 7.480e-07 |
 | BMP6        |             0.3036367 |            0.3036375 | 7.940e-07 |
@@ -248,7 +248,7 @@ sizes we use.
     Paillier-based vignettes in this package have to split each value
     into integer and fractional parts and rationally approximate the
     fractional part with a denominator of $`2^{256}`$. With CKKS, the
-    protocol becomes pure ciphertext arithmetic.
+    protocol becomes ordinary arithmetic on encrypted real numbers.
 4.  **The master/worker classes are reusable.** The same exported `Site`
     / `Master` classes and
     [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
@@ -258,7 +258,7 @@ sizes we use.
 ## Caveats and extensions
 
 - **Performance**: each function evaluation requires three CKKS
-  encryptions, three ciphertext additions, and one decryption. CKKS
+  encryptions, three encrypted additions, and one decryption. CKKS
   encrypt/decrypt dominates the wall-clock cost.
 - **Information leakage**: the master sees the *value* of the joint
   log-likelihood at each $`\beta`$, which is more information than
@@ -268,7 +268,7 @@ sizes we use.
   domain — feasible with CKKS but considerably more complex.
 - **Threshold key generation**: in a real deployment, the secret key
   would be split across the sites (n-of-n threshold) so that no single
-  party — not even the master — can decrypt intermediate ciphertexts
+  party — not even the master — can decrypt intermediate values
   unilaterally. The next vignette
   ([`vignette("cox-threshold")`](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md))
   builds on this one and adds threshold key generation.

@@ -34,3 +34,14 @@ CKKSMaster(
 - keypair:
 
   an `openfhe.R` `KeyPair`.
+
+## Value
+
+an S7 object of class `CKKSMaster`, inheriting from
+[Master](https://bnaras.github.io/homomorpheR/reference/Master.md), with
+properties `name`, `crypto_context`, `keypair` and `state`. It holds a
+single CKKS key pair, so it is the appropriate master when one party is
+allowed to hold the secret key; when no party may, use
+[ThresholdMaster](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md).
+Construct with
+[`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md).

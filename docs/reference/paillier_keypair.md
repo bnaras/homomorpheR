@@ -25,9 +25,13 @@ a
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 keys <- paillier_keypair(1024)
 ct   <- encrypt(keys@pubkey, gmp::as.bigz(42))
+ct
+#> <PaillierCiphertext> (under 1024-bit key)
+
+## Only the private key recovers the cleartext:
 decrypt(get_private_key(keys), ct)
-} # }
+#> Big Integer ('bigz') :
+#> [1] 42
 ```

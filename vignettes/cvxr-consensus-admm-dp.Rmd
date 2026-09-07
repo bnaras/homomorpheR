@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Consensus ADMM + Output DP (Demonstration)}
+  %\VignetteIndexEntry{Consensus ADMM + Output Differential Privacy (Demonstration)}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -30,8 +30,8 @@ This vignette is a **demonstration**, not a recommendation.
 `vignette("cvxr-consensus-admm")` shows the lossless consensus-ADMM
 protocol over the threshold-FHE channel: bit-identical to the
 centralized CVXR fit, no single decrypter, residuals drive
-convergence. The aggregator sees the full trajectory $\{z^k\}$ as
-plaintext after each iteration's threshold fusion.
+convergence. The aggregator sees the full trajectory $\{z^k\}$ in
+the clear after each iteration's threshold fusion.
 
 A natural question is whether one can compose that lossless
 channel with **output differential privacy** to bound the
@@ -73,7 +73,7 @@ Distributing the noise across sites (rather than centralizing it
 at the aggregator) means:
 
 1. No single point ever holds the noiseless value. Even if the
-   aggregator is compromised it sees only ciphertexts of *noised*
+   aggregator is compromised it sees only encrypted *noised*
    contributions until the final fusion.
 2. The trust model matches `cox-threshold-dp`: each site is its
    own randomness boundary.

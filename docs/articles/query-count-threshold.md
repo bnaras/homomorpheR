@@ -1,14 +1,14 @@
-# Distributed Query Count under Threshold BFV
+# Distributed Query Count with Threshold Keys
 
 ## The problem
 
-Several sites each hold a private table of patient records. A
-coordinator wants the answer to a single aggregate query — *how many
-patients across all sites satisfy some condition?* — without any site
-revealing its own records, and without the coordinator learning any
-individual site’s count. Only the grand total should ever become
-visible, and it should be **exact**: a count is an integer, and an
-answer of “about 4” is not a count.
+Several sites each hold a private table of patient records. A aggregator
+wants the answer to a single aggregate query — *how many patients across
+all sites satisfy some condition?* — without any site revealing its own
+records, and without the aggregator learning any individual site’s
+count. Only the grand total should ever become visible, and it should be
+**exact**: a count is an integer, and an answer of “about 4” is not a
+count.
 
 We simulate three sites, each with `sex`, `age`, and a biomarker `bm`.
 
@@ -43,7 +43,7 @@ The historical difficulty was not the arithmetic but the *trust model*.
 The Paillier cryptosystem (Paillier 1999), which `homomorpheR`
 originally used for exactly this kind of aggregation, has a **single
 private key**. Whoever holds it can decrypt anything — including a lone
-$`E(c_i)`$. So if the coordinator holds the key, it can read each site’s
+$`E(c_i)`$. So if the aggregator holds the key, it can read each site’s
 count individually, defeating the purpose.
 
 The workaround was two **non-cooperating parties**, NCP1 and NCP2, who
@@ -58,8 +58,8 @@ E(c_i + r_i) \;\longrightarrow\; \text{NCP2}.
 
 NCP1 sums its shares to get $`E\!\left(\sum_i (c_i - r_i)\right)`$ and
 NCP2 gets $`E\!\left(\sum_i (c_i + r_i)\right)`$; neither total means
-anything on its own because of the random masks. The coordinator adds
-the two encrypted totals, the masks cancel, and it decrypts
+anything on its own because of the random masks. The aggregator adds the
+two encrypted totals, the masks cancel, and it decrypts
 
 ``` math
 \textstyle\sum_i (c_i - r_i) + \sum_i (c_i + r_i)
@@ -81,12 +81,12 @@ generation is chained across the sites: each site holds only a secret
 *share* $`sk_i`$, and the joint public key $`pk_{1..n}`$ is built by
 passing the running public key from one site to the next. Everything is
 encrypted under $`pk_{1..n}`$, but **decryption requires every site to
-contribute a partial decryption** — no one, coordinator included, can
+contribute a partial decryption** — no one, aggregator included, can
 decrypt anything alone.
 
 Under this model a lone $`E(c_i)`$ is simply not decryptable by any
 single party, so the random masks and the two non-cooperating parties
-are no longer needed. The coordinator sums the encrypted per-site counts
+are no longer needed. The aggregator sums the encrypted per-site counts
 and asks the sites to jointly decrypt only the total. Individual counts
 are protected not because they are hidden behind random noise, but
 because the ability to decrypt them does not exist in any one place.
@@ -100,9 +100,10 @@ point, so BFV is the right instrument.
 
 ## The threshold-BFV implementation
 
-The crypto context is BFV with the `MULTIPARTY` feature enabled. The
-plaintext modulus only has to exceed the largest total the query could
-return, so the default is comfortable for counts.
+The encryption context is BFV with the `MULTIPARTY` feature enabled. BFV
+works with integers modulo a fixed bound, and that bound only has to
+exceed the largest total the query could return, so the default is
+comfortable for counts.
 
 [`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` ``cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"BFV"``,`` `` plaintext_modulus ``=`` ``65537L``,`` `` multiplicative_depth ``=`` ``1L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
@@ -113,7 +114,7 @@ same master class drives CKKS or BFV — it reads the scheme back from the
 context — so the only thing that changed from the real-valued vignettes
 is the context above.
 
-`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Coordinator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``3``)`
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``3``)`
 
 Each site is a worker whose local function evaluates the query against
 its own private data and returns a count. The master broadcasts the
@@ -150,7 +151,7 @@ tolerance to argue about — the equality is bit-for-bit, not approximate.
 ## Discussion
 
 - **The trust improvement is structural.** No single party holds a
-  decryption key, so no single party — coordinator or site — can decrypt
+  decryption key, so no single party — aggregator or site — can decrypt
   an individual site’s count. This is a stronger guarantee than the
   Paillier scheme’s, and it is achieved without the two non-cooperating
   parties, the non-collusion assumption, or the random masking the

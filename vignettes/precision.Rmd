@@ -1,0 +1,246 @@
+---
+title: "Precision"
+author: "Balasubramanian Narasimhan"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+  fig_caption: yes
+  theme: cerulean
+  toc: yes
+  toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Precision}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r echo=F}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+```
+
+"The encrypted computation gives the right answer" means different
+things in different vignettes, and being clear about which is the
+difference between a meaningful check and a misleading one.
+
+```{r}
+library(openfhe.R)
+set_num_threads(2L)
+```
+
+## Exact, for integer schemes
+
+BFV does exact integer arithmetic. A count computed under encryption
+is *the same integer* as the count computed in the clear — not a
+value near it.
+
+```{r}
+cc  <- fhe_context("BFV", plaintext_modulus = 65537L,
+                   multiplicative_depth = 1L, batch_size = 8L)
+key <- key_gen(cc)
+
+counts <- c(46L, 15L, 52L)
+cts    <- lapply(counts, function(n)
+  encrypt(key@public, make_packed_plaintext(cc, n), cc = cc))
+
+total <- decrypt(Reduce(`+`, cts), key@secret, cc = cc)
+set_length(total, 1L)
+get_packed_value(total)[1] == sum(counts)
+```
+
+`vignette("privacy-preserving-aggregation")` and
+`vignette("query-count-threshold")` assert equality exactly like
+this. A tolerance there would be hiding a bug rather than
+accommodating one.
+
+## Approximate, for CKKS
+
+CKKS encrypts real numbers and trades exactness for that ability.
+Results carry an approximation error that grows with the depth of the
+computation and shrinks as the scaling factor widens.
+
+```{r}
+ckks_error <- function(depth, scaling_mod_size, values, weights = NULL) {
+  cc  <- fhe_context("CKKS", multiplicative_depth = depth,
+                     scaling_mod_size = scaling_mod_size,
+                     first_mod_size = 60L, batch_size = 8L)
+  key <- key_gen(cc, eval_mult = TRUE)
+
+  cts <- lapply(values, function(v)
+    encrypt(key@public, make_ckks_packed_plaintext(cc, v), cc = cc))
+
+  if (is.null(weights)) {
+    ct       <- Reduce(`+`, cts)
+    expected <- Reduce(`+`, values)
+  } else {
+    ct       <- Reduce(`+`, Map(function(c, w) c * w, cts, weights))
+    expected <- Reduce(`+`, Map(function(v, w) v * w, values, weights))
+  }
+
+  res <- decrypt(ct, key@secret, cc = cc)
+  set_length(res, length(expected))
+  got <- get_real_packed_value(res)[seq_along(expected)]
+
+  absolute <- max(abs(got - expected))
+  c(absolute = absolute, relative = absolute / max(abs(expected)))
+}
+
+## The three settings at a given magnitude are run on the SAME draw, so
+## the comparison between them is controlled: only the parameter under
+## study changes. Redrawing per row would confound the setting with the
+## sample.
+settings <- list(
+  list(name = "sum",                         depth = 1L, sms = 50L, w = NULL),
+  list(name = "sum, wider scale",            depth = 1L, sms = 59L, w = NULL),
+  list(name = "weighted sum (one multiply)", depth = 2L, sms = 50L,
+       w = list(0.35, -0.20, 0.50)))
+
+set.seed(1)
+rows <- do.call(rbind, lapply(c(1, 1e2, 1e4), function(m) {
+  values <- replicate(3, rnorm(8, m, m / 10), simplify = FALSE)
+  do.call(rbind, lapply(settings, function(s) {
+    e <- ckks_error(s$depth, s$sms, values, s$w)
+    data.frame(computation = s$name, magnitude = m,
+               depth = s$depth, scaling_mod_size = s$sms,
+               absolute = e[["absolute"]], relative = e[["relative"]])
+  }))
+}))
+```
+
+```{r echo=FALSE}
+## Scientific notation explicitly: these span ten orders of magnitude,
+## and any fixed number of decimal places renders most of them as zero.
+shown <- transform(rows,
+                   absolute = sprintf("%.2e", absolute),
+                   relative = sprintf("%.2e", relative))
+knitr::kable(shown,
+             caption = "CKKS error against the same computation in the clear.")
+```
+
+```{r echo=FALSE}
+## Every ratio quoted below is computed from `rows`, never typed. A
+## hand-written "about two orders" beside a table that says otherwise
+## is the drift this package works to avoid.
+pick  <- function(comp, m, col = "absolute")
+  rows[[col]][rows$computation == comp & rows$magnitude == m]
+gain  <- function(m) pick("sum", m) / pick("sum, wider scale", m)
+mult  <- function(m, col) pick("weighted sum (one multiply)", m, col) /
+                          pick("sum", m, col)
+fmt   <- function(x) signif(x, 2)
+```
+
+Three things to read off that table.
+
+**State tolerances relatively, not absolutely.** For the plain sum the
+absolute error rises from `r sprintf("%.1e", pick("sum", 1))` at
+magnitude 1 to `r sprintf("%.1e", pick("sum", 1e4))` at magnitude
+$10^4$, a factor of about `r fmt(pick("sum", 1e4) / pick("sum", 1))`,
+while the relative error *falls* — from
+`r sprintf("%.1e", pick("sum", 1, "relative"))` to
+`r sprintf("%.1e", pick("sum", 1e4, "relative"))`. At magnitude 1 a
+fixed noise floor is large compared to the answer; by magnitude $10^4$
+it is negligible against it. A tolerance calibrated on standardized
+covariates is therefore far too tight for a log-likelihood in the
+hundreds, which is why the Cox vignettes raise `scaling_mod_size`
+above the default rather than loosening a comparison.
+
+**Widening the scaling factor helps only where that floor binds.** At
+magnitude 1 it improves the absolute error by a factor of
+`r fmt(gain(1))`. At magnitude $10^4$ the same change gives a factor of
+`r fmt(gain(1e4))` — that is, nothing, and the two settings land within
+a small multiple of each other in either direction. Once the floor is
+no longer what limits the answer, a wider scale stops buying accuracy
+while still consuming modulus budget. It is a targeted fix for
+small-magnitude work, not a general accuracy dial.
+
+**Each multiplication costs precision as well as budget.** The depth-2
+row is worse than the depth-1 sum at every magnitude: by a factor of
+`r fmt(mult(1, "absolute"))` in absolute terms at magnitude 1, and
+`r fmt(mult(1e4, "relative"))` in relative terms at magnitude $10^4$.
+The budget is consumed whether or not the extra precision is missed.
+
+These are comparisons of the encrypted result against *the same
+computation performed in the clear on the same data*. That is the
+actual cryptographic claim, and it is the tightest bound any vignette
+here can make.
+
+## Statistical, for fitted estimates
+
+When an optimizer runs through the encrypted channel, what comes back
+is compared against a centralized fit. The relevant tolerance is then
+not CKKS precision but a *statistical* one: two optimizers with
+different stopping rules do not halt at the same point even on
+identical data, and a difference between them is meaningless if it is
+small relative to the standard error.
+
+`vignette("cox")` states its agreement in standard-error units for
+exactly that reason. A difference of a thousandth of one standard
+error is invisible in any reported result, and quoting it as a bare
+number would invite the reader to compare it against a CKKS error
+bound — a category mistake.
+
+## What cannot be compared
+
+**Differentially private runs.** `vignette("cox-threshold-dp")` and
+`vignette("cvxr-consensus-admm-dp")` draw fresh noise on every query,
+so two runs of the same code on the same data disagree by
+construction. Only distributional behavior is comparable: how the
+error grows with $\sigma$, and which optimizers degrade first.
+
+**Iteration counts.** A loop that stops when a residual first falls
+below a threshold is reporting where a continuous quantity crossed a
+line. CKKS noise alone can move it by one, and redrawing the data
+moves it further. It is a property of the sample, not of the method.
+
+## Where the data comes from
+
+**Measured data ships with the package.** The DLBCL cohort is real,
+so every vignette that uses it reads the same values each time and
+its numbers are reproducible in the strict sense.
+
+**Simulated data is drawn fresh.** The other vignettes generate their
+cohorts on each run. The claim they make is that the encrypted
+protocol reproduces the cleartext answer *on whatever data it was
+given*, which is a stronger claim than reproducing one fixed dataset.
+
+**Expensive fits are precomputed.** `data(cvxr_consensus)` carries the
+~150-iteration ADMM results that `vignette("cvxr-cox-lasso-dlbcl")`
+would otherwise recompute on every build. The script that produced it
+ships with the package, so the artifact is regenerable rather than
+merely asserted.
+
+## Categorical order is protocol semantics
+
+Sites are visited in a fixed order, and the first is the lead
+decryptor in the threshold ceremony. In the Cox vignettes the sites
+come from splitting the cohort on a factor, so that factor's *level*
+order determines which site leads:
+
+```{r}
+data(DLBCL, package = "homomorpheR")
+levels(DLBCL$Subgroup)
+```
+
+That is not alphabetical:
+
+```{r}
+sort(unique(as.character(DLBCL$Subgroup)))
+```
+
+`split()` orders its output by factor levels, so the protocol visits
+GCB first. Had `Subgroup` been stored as a character vector, `split()`
+would have sorted it and put ABC first instead — silently swapping
+which site holds the lead decryption role. The column is a factor with
+a deliberate level order for that reason, and it is worth knowing
+before anyone "tidies" it.
+
+```{r echo=FALSE}
+## Detach openfhe.R so its encrypt/decrypt generics do not bleed into
+## other vignettes built later in the same R session.
+detach("package:openfhe.R", unload = FALSE, force = TRUE)
+```

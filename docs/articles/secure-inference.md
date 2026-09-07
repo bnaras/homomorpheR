@@ -8,14 +8,14 @@ but cannot send raw patient data to the lab in cleartext. The lab does
 not want to send its model coefficients to the hospital in cleartext
 either.
 
-With FHE the hospital encrypts patient biomarkers, sends the ciphertexts
-to the lab, the lab applies its weighted-sum scoring directly on
-ciphertexts, and the hospital decrypts the scores. The biomarker values
-never appear in cleartext on the lab’s machine, and the lab’s
-coefficients are never sent to the hospital. These are the *transport*
-guarantees and they are what the pipeline below illustrates. They are
-not the whole story of deploying a model-as-a-service — see *Threat
-model: model extraction from the hospital side* below.
+With FHE the hospital encrypts patient biomarkers, sends the encrypted
+values to the lab, the lab applies its weighted-sum scoring to them
+while they stay encrypted, and the hospital decrypts the scores. The
+biomarker values never appear in cleartext on the lab’s machine, and the
+lab’s coefficients are never sent to the hospital. These are the
+*transport* guarantees and they are what the pipeline below illustrates.
+They are not the whole story of deploying a model-as-a-service — see
+*Threat model: model extraction from the hospital side* below.
 
 This vignette is the two-party companion to the multi-site master/worker
 pattern
@@ -65,7 +65,7 @@ model — without ever seeing patient values.
 
 `cleartext_scores`` ``<-`` ``w``[``1``]`` ``*`` ``biomarker1`` ``+`` ``w``[``2``]`` ``*`` ``biomarker2`` ``+`` `` ``w``[``3``]`` ``*`` ``biomarker3`` ``+`` ``w``[``4``]`` ``*`` ``biomarker4`` ``+`` ``b`` ``max_error`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``scores`` ``-`` ``cleartext_scores``)``)`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Maximum error vs cleartext: %.2e"``, ``max_error``)`
 
-    ## [1] "Maximum error vs cleartext: 7.19e-14"
+    ## [1] "Maximum error vs cleartext: 1.44e-13"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.
@@ -75,16 +75,16 @@ floating-point precision.
 The pipeline above delivers two concrete protections:
 
 1.  **Biomarker values never appear in cleartext outside the hospital.**
-    The lab’s view of the protocol consists of the ciphertexts it
-    received and the ciphertext it returned.
+    The lab’s view of the protocol consists of the encrypted values it
+    received and the encrypted score it returned.
 2.  **The lab’s coefficients $`w`$ and $`b`$ are never sent to the
     hospital in cleartext.** They are used only to construct the
-    returned ciphertext inside the lab’s R session.
+    returned encrypted score inside the lab’s R session.
 
 | Party | Cleartext view |
 |----|----|
 | Hospital | Patient biomarkers (local), decrypted scores |
-| Lab | Ciphertexts only — no cleartext biomarker values, no cleartext scores |
+| Lab | Encrypted values only — no cleartext biomarker values, no cleartext scores |
 
 These are necessary conditions for any model-as-a-service deployment
 that does not trust the lab with cleartext patient data. They are not
@@ -92,11 +92,11 @@ sufficient conditions, as the next section shows.
 
 ## Threat model: model extraction from the hospital side
 
-The hospital holds the secret key and decides what goes into the query
-ciphertexts. Nothing in the FHE pipeline restricts the biomarker values
-the hospital encrypts. For a linear model with four biomarkers and a
-bias, the hospital can recover every coefficient with five queries by
-submitting the standard basis:
+The hospital holds the secret key and decides what goes into the
+encrypted queries. Nothing in the FHE pipeline restricts the biomarker
+values the hospital encrypts. For a linear model with four biomarkers
+and a bias, the hospital can recover every coefficient with five queries
+by submitting the standard basis:
 
 - $`\mathbf{e}_0 = (0,0,0,0)\ \Rightarrow\ \text{score} = b`$
 - $`\mathbf{e}_1 = (1,0,0,0)\ \Rightarrow\ \text{score} = w_1 + b`$
@@ -107,8 +107,8 @@ submitting the standard basis:
 Subtracting the first score from each of the others recovers the four
 weights exactly. We can run this attack in the same R session: wrap the
 lab’s scoring pipeline as a function that closes over $`w`$ and $`b`$
-without revealing them, then pack the five probes across SIMD slots 1–5
-of the four biomarker ciphertexts.
+without revealing them, then pack the five probes across slots 1–5 of
+the four encrypted biomarker vectors.
 
 `` ## Lab pipeline wrapped as a function. Closes over `w` and `b`; ``` ``## the caller (hospital) never reads either.`` ``lab_score`` ``<-`` ``function``(``ct_bio``)`` ``{`` `` ``ct_bio``[[``1``]``]`` ``*`` ``w``[``1``]`` ``+`` ``ct_bio``[[``2``]``]`` ``*`` ``w``[``2``]`` ``+`` `` ``ct_bio``[[``3``]``]`` ``*`` ``w``[``3``]`` ``+`` ``ct_bio``[[``4``]``]`` ``*`` ``w``[``4``]`` ``+`` ``b`` ``}`` `` ``## Hospital crafts five probes packed across slots 1..5.`` ``## Slot 1 is e_0 (all zeros, probes b). Slot j+1 is e_j (a one in`` ``## position j, probes w_j + b).`` ``probe_bio1`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``, ``0``, ``0``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio2`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``1``, ``0``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio3`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``0``, ``1``, ``0``, ``0``, ``0``, ``0``)`` ``probe_bio4`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``0``, ``0``, ``1``, ``0``, ``0``, ``0``)`` `` ``ct_probe`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio1``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio2``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio3``)``, cc ``=`` ``cc``)``,`` `` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio4``)``, cc ``=`` ``cc``)`` ``)`` `` ``ct_probe_score`` ``<-`` ``lab_score``(``ct_probe``)`` ``probe_result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_probe_score``, ``keys``@``secret``, cc ``=`` ``cc``)`` `[`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``probe_result``, ``5L``)`` ``probe_scores`` ``<-`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``probe_result``)``[``1``:``5``]`` `` ``b_hat`` ``<-`` ``probe_scores``[``1``]`` ``w_hat`` ``<-`` ``probe_scores``[``2``:``5``]`` ``-`` ``b_hat`` `` ``recovered`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(`` `` true ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``b``, ``w``)``,`` `` recovered ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``b_hat``, ``w_hat``)`` ``)`` `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``recovered``)`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``"b"``, ``"w1"``, ``"w2"``, ``"w3"``, ``"w4"``)`` `[`round`](https://rdrr.io/r/base/Round.html)`(``recovered``, ``6``)`
 

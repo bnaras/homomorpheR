@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/encrypted-regression.Rmd" class="external-link"><code>vignettes/encrypted-regression.Rmd</code></a></small>
       <div class="d-none name"><code>encrypted-regression.Rmd</code></div>
@@ -125,8 +136,8 @@ the model coefficients. The same two-party shape as
 <div class="section level2">
 <h2 id="step-2-encrypt-patient-data">Step 2: encrypt patient data<a class="anchor" aria-label="anchor" href="#step-2-encrypt-patient-data"></a>
 </h2>
-<p>CKKS needs enough multiplicative depth for the Chebyshev polynomial.
-We use depth 8 and enable <code>Feature$ADVANCEDSHE</code> for the
+<p>CKKS needs enough precision budget for the Chebyshev polynomial. We
+use depth 8 and enable <code>Feature$ADVANCEDSHE</code> for the
 polynomial-evaluation primitives.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/" class="external-link">openfhe.R</a></span><span class="op">)</span></span>
@@ -162,7 +173,7 @@ all arithmetic on encrypted data:</p>
 <p><code>openfhe.R</code> exposes Chebyshev approximations of common
 transcendental functions, including the logistic sigmoid. The interval
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[a, b]</annotation></semantics></math>
-must cover the realisable range of
+must cover the realizable range of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>;
 degree 16 gives good precision with depth modest enough to fit the
 budget we declared above.</p>
@@ -193,7 +204,7 @@ data. Same transport guarantee as <code>secure-inference</code>.</li>
 <li>
 <strong>The sigmoid evaluated entirely under encryption.</strong> No
 intermediate decryption, no protocol back-and-forth — the whole logistic
-prediction completes inside the ciphertext domain.</li>
+prediction completes while the data stays encrypted.</li>
 <li>
 <strong>CKKS precision is more than enough for medical
 prediction.</strong> The maximum absolute error against the cleartext
@@ -228,9 +239,9 @@ directly under encryption,</li>
 </h2>
 <ul>
 <li>
-<strong>Multiplicative depth</strong>: each multiplication consumes
-one level of the ciphertext. Deeper computations require larger
-parameters and more memory.</li>
+<strong>Precision budget</strong>: each multiplication consumes one
+level of the encrypted value’s budget. Deeper computations require
+larger parameters and more memory.</li>
 <li>
 <strong>Approximation error</strong>: CKKS is approximate. For
 deployment, validate that the precision is sufficient for your use
@@ -260,7 +271,7 @@ threshold FHE) on top of the FHE transport.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

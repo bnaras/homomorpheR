@@ -1,5 +1,5 @@
 ---
-title: "Distributed Stratified Cox Regression under CKKS"
+title: "Distributed Stratified Cox Regression"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Distributed Cox under CKKS}
+  %\VignetteIndexEntry{Distributed Stratified Cox Regression}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -136,7 +136,7 @@ second is at the MLE. The privacy goal: reproduce these estimates
 We use the same master/worker topology as the MLE vignette: master
 broadcasts $\beta$, each worker computes its local Cox partial
 log-likelihood at $\beta$, encrypts it under the master's public
-key, and returns the ciphertext. The master sums the encrypted
+key, and returns the encrypted value. The master sums the encrypted
 contributions homomorphically and decrypts the total. Mathematically
 nothing changes from the MLE case; only the local computation
 differs.
@@ -277,7 +277,8 @@ introduces no measurable error at the parameter sizes we use.
    The Paillier-based vignettes in this package have to split each
    value into integer and fractional parts and rationally
    approximate the fractional part with a denominator of $2^{256}$.
-   With CKKS, the protocol becomes pure ciphertext arithmetic.
+   With CKKS, the protocol becomes ordinary arithmetic on
+   encrypted real numbers.
 4. **The master/worker classes are reusable.** The same exported
    `Site` / `Master` classes and `master_aggregate()` runner
    drive both this Cox vignette and the Poisson MLE vignette —
@@ -286,7 +287,7 @@ introduces no measurable error at the parameter sizes we use.
 ## Caveats and extensions
 
 - **Performance**: each function evaluation requires three CKKS
-  encryptions, three ciphertext additions, and one decryption.
+  encryptions, three encrypted additions, and one decryption.
   CKKS encrypt/decrypt dominates the wall-clock cost.
 - **Information leakage**: the master sees the *value* of the
   joint log-likelihood at each $\beta$, which is more information
@@ -297,7 +298,7 @@ introduces no measurable error at the parameter sizes we use.
 - **Threshold key generation**: in a real deployment, the secret
   key would be split across the sites (n-of-n threshold) so that
   no single party — not even the master — can decrypt
-  intermediate ciphertexts unilaterally. The next vignette
+  intermediate values unilaterally. The next vignette
   (`vignette("cox-threshold")`) builds on this one and adds
   threshold key generation.
 - **Beyond Cox**: any likelihood whose log decomposes additively

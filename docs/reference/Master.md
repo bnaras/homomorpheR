@@ -31,3 +31,16 @@ Master(name = character(0), state = NULL)
 - state:
 
   an environment for mutable bookkeeping.
+
+## Value
+
+nothing — this class is abstract, so calling it raises an error instead
+of returning an object. It exists so that
+[`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md),
+[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+and
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
+dispatch on a common parent. Construct a concrete master with
+[`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
+or
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md).

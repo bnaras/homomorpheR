@@ -1,4 +1,4 @@
-# Federated Consensus ADMM with CVXR over Threshold CKKS
+# Federated Consensus ADMM with CVXR
 
 ## Introduction
 
@@ -100,11 +100,11 @@ state, so we define `ConsensusSite` inline.
 
 The consensus update needs to compute
 $`z^{k+1} = \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k)`$. This is a
-length-$`p`$ vector average: pack each site’s $`x_i + u_i`$ into a
-length-$`p`$ packed plaintext, encrypt under the joint public key, sum
-the ciphertexts, multiply by the plaintext constant $`1/N`$ (one
-ciphertext-plaintext multiplication, depth 1), and threshold-decrypt the
-result.
+length-$`p`$ vector average: pack each site’s $`x_i + u_i`$ into the
+slots of one value, encrypt under the joint public key, sum the
+encrypted vectors, multiply by the unencrypted constant $`1/N`$ (one
+multiplication by a cleartext value, costing a single level of the
+precision budget), and threshold-decrypt the result.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` enabled and
@@ -123,7 +123,7 @@ is handled inside the master class.
 
 What this protocol hides and reveals: every ADMM iteration the
 aggregator recovers the *new consensus* $`z^k`$ exactly. The per-site
-$`(x_i + u_i)`$ vectors never appear in plaintext anywhere — additions
+$`(x_i + u_i)`$ vectors never appear in the clear anywhere — additions
 and the scalar multiply happen under encryption, and the decryption is
 n-of-n. A subpoena to the aggregator yields the trajectory $`\{z^k\}`$
 but no individual site’s contribution. A subpoena to any one site yields
@@ -184,15 +184,15 @@ main loop:
 | coefficient | threshold_distributed | centralized_cvxr | abs_diff |
 |:------------|----------------------:|-----------------:|---------:|
 | beta_1      |              0.419682 |         0.419687 |    5e-06 |
-| beta_2      |             -0.939203 |        -0.939209 |    5e-06 |
+| beta_2      |             -0.939203 |        -0.939209 |    6e-06 |
 | beta_3      |              0.384038 |         0.384041 |    4e-06 |
-| beta_4      |              0.659836 |         0.659840 |    4e-06 |
+| beta_4      |              0.659835 |         0.659840 |    5e-06 |
 
 Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 
 `max_diff`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_curr`` ``-`` ``beta_central``)``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Max absolute coefficient difference vs. centralized fit: %.2e\n"``,`` `` ``max_diff``)``)`
 
-    ## Max absolute coefficient difference vs. centralized fit: 5.40e-06
+    ## Max absolute coefficient difference vs. centralized fit: 5.58e-06
 
 `if`` ``(``max_diff`` ``>`` ``10`` ``*`` ``reltol``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "``,`` `` ``"investigate before publishing this run."``)`
 
@@ -222,7 +222,7 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
   commitments / zero-knowledge proofs that this vignette does not
   implement.
 - **The aggregator sees the trajectory $`\{z^k\}`$.** Per-iteration
-  consensus values are revealed in plaintext (after fusion) so the
+  consensus values are revealed in the clear (after fusion) so the
   optimizer can decide convergence. A subpoena to the aggregator yields
   this trajectory.
 - **No output privacy.** The released $`\hat\beta = z^\star`$ is the

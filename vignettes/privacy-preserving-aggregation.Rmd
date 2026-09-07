@@ -1,5 +1,5 @@
 ---
-title: "Privacy-Preserving Count Aggregation under BFV"
+title: "Privacy-Preserving Count Aggregation"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Privacy-Preserving Count Aggregation under BFV}
+  %\VignetteIndexEntry{Privacy-Preserving Count Aggregation}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -31,7 +31,7 @@ Multiple research sites each hold patient data and want to know
 the *total count* of patients matching a criterion (say
 "`age < 50` and `sex == 'F'` and `biomarker < 0.2`") without
 revealing the individual per-site counts to anyone, including the
-coordinator running the aggregation.
+aggregator running the aggregation.
 
 This is the same pattern the Paillier vignette
 `vignette("QueryNCP")` demonstrates with non-cooperating parties.
@@ -60,7 +60,7 @@ site_data <- lapply(c(1000, 500, 1500), function(n) {
 })
 ```
 
-## The coordinator sets up encryption
+## The aggregator sets up encryption
 
 ```{r}
 ## BFV: exact integer arithmetic mod plaintext_modulus.
@@ -73,9 +73,9 @@ pk <- keys@public
 sk <- keys@secret
 ```
 
-In a real deployment the coordinator distributes the public key
+In a real deployment the aggregator distributes the public key
 (and the serialized context) to each site. The secret key stays
-with the coordinator. We simulate this in one R session by
+with the aggregator. We simulate this in one R session by
 sharing `cc` and `pk` locally.
 
 ## Each site computes locally and encrypts
@@ -94,16 +94,16 @@ ct_site2 <- site_encrypt(site_data[[2]], cc, pk)
 ct_site3 <- site_encrypt(site_data[[3]], cc, pk)
 ```
 
-These ciphertexts are opaque to the coordinator — they learn
-nothing about individual site counts.
+These encrypted counts are opaque to the aggregator — it learns
+nothing about any individual site's count.
 
-## The coordinator aggregates
+## The aggregator aggregates
 
 ```{r}
-## Homomorphic addition: the coordinator never decrypts intermediate values.
+## Homomorphic addition: the aggregator never decrypts intermediate values.
 ct_total <- ct_site1 + ct_site2 + ct_site3
 
-## Only the coordinator holds the secret key.
+## Only the aggregator holds the secret key.
 result      <- decrypt(ct_total, sk, cc = cc)
 total_count <- get_packed_value(result)[1]
 total_count
@@ -120,27 +120,28 @@ true_count
 stopifnot(total_count == true_count)
 ```
 
-The aggregated count matches the cleartext computation exactly —
-BFV is *exact* over its integer plaintext space.
+The aggregated count matches the cleartext computation exactly.
+BFV is an *exact* scheme over the integers: unlike the real-valued
+arithmetic used elsewhere in this package, it introduces no
+approximation error at all.
 
 ## What just happened
 
-1. The coordinator created an encryption context and distributed
+1. The aggregator created an encryption context and distributed
    the **public key** to all sites.
 2. Each site computed its local count in the clear, encrypted
-   it, and sent the ciphertext to the coordinator.
-3. The coordinator added the encrypted counts using `+` — BFV's
-   homomorphic addition makes this equivalent to adding the
-   plaintexts.
-4. Only the coordinator, holding the **secret key**, could
+   it, and sent the encrypted count to the aggregator.
+3. The aggregator added the encrypted counts using `+`, which
+   gives the same answer as adding the counts themselves.
+4. Only the aggregator, holding the **secret key**, could
    decrypt the total.
 
-No site revealed its individual count. The coordinator never
+No site revealed its individual count. The aggregator never
 saw any patient-level data. The total is exact.
 
 ## Serializing for a real distributed protocol
 
-In a real deployment each site needs the coordinator's context
+In a real deployment each site needs the aggregator's context
 and public key. `openfhe.R` provides serialization:
 
 ```{r}
@@ -172,9 +173,10 @@ With `openfhe.R`'s BFV:
   variances, more complex integer-valued aggregates.
 - **Performance** — OpenFHE's optimized C++ backend is orders of
   magnitude faster than pure-R Paillier on `gmp::bigz`.
-- **SIMD packing** — BFV encrypts integer vectors; multiple
-  per-site counts can ride in the slots of a single ciphertext
-  for parallel aggregation.
+- **Packing** — BFV encrypts whole integer vectors, and one
+  arithmetic operation acts on every position at once. Several
+  per-site counts can therefore ride in the slots of a single
+  encrypted value and be aggregated together.
 - **Threshold FHE** — `multiparty_key_gen()` lets the secret key
   be split across parties so no single party can decrypt
   unilaterally. (See `vignette("cox-threshold")` for the

@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/similarity.Rmd" class="external-link"><code>vignettes/similarity.Rmd</code></a></small>
       <div class="d-none name"><code>similarity.Rmd</code></div>
@@ -122,7 +133,7 @@ applied to the encrypted query (the homomorphic matrix–vector multiply,
 valid as a cosine near the orthogonal end), or folded into the database
 offline so the encrypted query reduces to a plain inner product.
 Threshold decryption returns the top-<code>k</code> matches, with no
-party able to decrypt intermediate ciphertexts unilaterally.</p>
+party able to decrypt any intermediate value unilaterally.</p>
 <p>The accompanying <code>similarity-sideexp.md</code> document
 describes a deferred experiment on a real fine-tuned model. The vignette
 uses synthetic data so it renders quickly during package build.</p>
@@ -205,24 +216,24 @@ system; this leakage is acknowledged but not eliminated.</li>
 <li>The encrypted query
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mi>q</mi></msub><annotation encoding="application/x-tex">\mathit{ct}_q</annotation></semantics></math>.
 Not decryptable alone.</li>
-<li>Per-site encrypted score ciphertexts. Not decryptable alone.</li>
+<li>Per-site encrypted scores. Not decryptable alone.</li>
 <li>Partial decryptions of the
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
 scores from each site. Not decryptable individually.</li>
-<li>After fusion, the plaintext
+<li>After fusion, the
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-scores. Released to the querier as the protocol output.</li>
+scores in the clear. Released to the querier as the protocol
+output.</li>
 </ol>
-<p>Step 4 is the only plaintext the master ever holds, and only for the
+<p>Step 4 is the only cleartext the master ever holds, and only for the
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
 scores released to the querier — not for any intermediate quantity.</p>
 <p>The site-private compatibility adapters
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>A</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{A_k\}</annotation></semantics></math>
-never leave their sites. They are applied to ciphertexts as
-plaintext-matrix × ciphertext-vector multiplications inside the
-homomorphic evaluation (or folded into the site’s database offline), so
-the adapter never appears in the clear at any party other than its
-owner.</p>
+never leave their sites. Each is applied to an encrypted vector while it
+stays encrypted — an unencrypted matrix times an encrypted vector — or
+else folded into the site’s database offline, so the adapter never
+appears in the clear at any party other than its owner.</p>
 </div>
 <div class="section level2">
 <h2 id="the-protocol">The protocol<a class="anchor" aria-label="anchor" href="#the-protocol"></a>
@@ -257,8 +268,8 @@ the public-compatible images of those vectors.</li>
 </ol>
 <p><strong>Query phase.</strong> The querier embeds their candidate
 patient with the public model, normalizes to unit length, encrypts into
-a slot-batched ciphertext under the joint public key, and broadcasts the
-ciphertext to the master.</p>
+a single slot-packed encrypted vector under the joint public key, and
+broadcasts that to the master.</p>
 <p>For each site
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>:</p>
 <ol start="5" style="list-style-type: decimal">
@@ -266,8 +277,8 @@ ciphertext to the master.</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mi>q</mi></msub><annotation encoding="application/x-tex">\mathit{ct}_q</annotation></semantics></math>.</li>
 <li>The site applies its private
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>k</mi></msub><annotation encoding="application/x-tex">A_k</annotation></semantics></math>
-to the ciphertext via diagonal-encoded matrix–vector multiplication,
-producing
+to the encrypted query via diagonal-encoded matrix–vector
+multiplication, producing
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mrow><msub><mi>A</mi><mi>k</mi></msub><mi>q</mi></mrow></msub><annotation encoding="application/x-tex">\mathit{ct}_{A_k q}</annotation></semantics></math>
 (Design 2). Near the orthogonal end of the family the result is
 unit-norm, so the score is a genuine cosine; alternatively the site
@@ -280,19 +291,20 @@ via slot-wise multiplication followed by
 log-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
 rotation-and-add slot summation, producing one encrypted scalar per
 local patient.</li>
-<li>The site returns its score ciphertexts to the master, alongside
-plaintext local patient indices.</li>
+<li>The site returns its encrypted scores to the master, alongside its
+local patient indices in the clear.</li>
 </ol>
 <p><strong>Result phase.</strong></p>
 <ol start="9" style="list-style-type: decimal">
 <li>The master concatenates encrypted scores across all sites. In v1,
-plaintext local indices are kept alongside encrypted scores; encrypted
+local indices are kept in the clear alongside the encrypted scores;
+encrypted
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
 selection in CKKS is feasible but adds depth and complexity orthogonal
 to this vignette’s pedagogical aim.</li>
 <li>The master collects partial decryption shares from all three sites
-for the encrypted score ciphertexts. Fusion yields plaintext scores; the
-master sorts plaintext-side and returns the
+for the encrypted scores. Fusion yields the scores in the clear; the
+master sorts them there and returns the
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
 to the querier.</li>
 </ol>
@@ -510,8 +522,9 @@ secret unilaterally.</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>×</mo><mi>p</mi></mrow><annotation encoding="application/x-tex">p \times p</annotation></semantics></math>
 matrix
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math>
-and a slot-batched ciphertext encoding a vector
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>∈</mo><msup><mi mathvariant="bold-italic">𝑹</mi><mi>p</mi></msup></mrow><annotation encoding="application/x-tex">q \in \mathbf{R}^p</annotation></semantics></math>:</p>
+and an encrypted vector
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>∈</mo><msup><mi mathvariant="bold-italic">𝑹</mi><mi>p</mi></msup></mrow><annotation encoding="application/x-tex">q \in \mathbf{R}^p</annotation></semantics></math>
+held one component per slot:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mo>⋅</mo><mi>q</mi><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>p</mi><mo>−</mo><mn>1</mn></mrow></munderover><msub><mi>d</mi><mi>i</mi></msub><mo>⊙</mo><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo>,</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
 M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \odot \mathrm{rot}(q, i),
 </annotation></semantics></math></p>
@@ -522,8 +535,8 @@ is the
 diagonal of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math>
 (a
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>-vector
-of plaintexts),
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>-vector,
+and never encrypted),
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>⊙</mi><annotation encoding="application/x-tex">\odot</annotation></semantics></math>
 is slot-wise multiplication, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo>,</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{rot}(q, i)</annotation></semantics></math>
@@ -573,7 +586,7 @@ and rely on the subset that each step needs.</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/insert_eval_automorphism_key.html" class="external-link">insert_eval_automorphism_key</a></span><span class="op">(</span><span class="va">rot_running</span>, key_tag <span class="op">=</span> <span class="va">joint_pk_tag</span><span class="op">)</span></span></code></pre></div>
-<p>After insertion, any ciphertext encrypted under the joint public key
+<p>After insertion, any value encrypted under the joint public key
 (i.e., under <code>master@joint_pubkey</code>) can be rotated by any
 index in <code>rotation_indices</code> via
 <code>eval_rotate(ct, idx)</code>.</p>
@@ -594,7 +607,7 @@ now holds
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">recovered</span> <span class="op">-</span> <span class="va">expected</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-6</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"rotation round-trip max error:"</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.2e\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">recovered</span> <span class="op">-</span> <span class="va">expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## rotation round-trip max error: 7.85e-12</span></span></code></pre>
+<pre><code><span><span class="co">## rotation round-trip max error: 8.26e-12</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="per-site-adapter-fit-and-database-setup">Per-site adapter fit and database setup<a class="anchor" aria-label="anchor" href="#per-site-adapter-fit-and-database-setup"></a>
@@ -657,16 +670,16 @@ is fit post hoc on the public anchor cohort.</p>
 <div class="section level2">
 <h2 id="diagonal-encoded-matrix-vector-multiply">Diagonal-encoded matrix-vector multiply<a class="anchor" aria-label="anchor" href="#diagonal-encoded-matrix-vector-multiply"></a>
 </h2>
-<p>The CKKS-friendly way to multiply a
+<p>The CKKS-friendly way to multiply an unencrypted
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>×</mo><mi>p</mi></mrow><annotation encoding="application/x-tex">p \times p</annotation></semantics></math>
-plaintext matrix into a slot-batched encrypted vector is the
-<em>diagonal encoding</em>. The matrix
+matrix into an encrypted vector is the <em>diagonal encoding</em>. The
+matrix
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>M</mi><annotation encoding="application/x-tex">M</annotation></semantics></math>
 is decomposed into its
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-generalized diagonals, each a
+generalized diagonals, each an unencrypted
 length-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-plaintext vector:</p>
+vector:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">[</mo><mi>j</mi><mo stretchy="false" form="postfix">]</mo><mo>=</mo><mi>M</mi><mo stretchy="false" form="prefix">[</mo><mspace width="0.167em"></mspace><mi>j</mi><mo>,</mo><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo>+</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo><mrow><mspace width="0.222em"></mspace><mrow><mi mathvariant="normal">mod</mi><mo>⁡</mo></mrow><mspace width="0.222em"></mspace><mi>p</mi></mrow><mspace width="0.167em"></mspace><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>i</mi><mo>=</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>p</mi><mo>−</mo><mn>1</mn><mi>.</mi></mrow><annotation encoding="application/x-tex">
 d_i[j] = M[\,j,\, (j + i) \bmod p\,], \qquad i = 0, 1, \ldots, p-1.
 </annotation></semantics></math></p>
@@ -680,13 +693,20 @@ is slot-wise multiplication and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo>,</mo><mi>i</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{rot}(q, i)</annotation></semantics></math>
 is the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>-step
-cyclic slot rotation. Each term is a single ciphertext × plaintext
-multiply followed by an encrypted- vector add. The total cost is
+cyclic slot rotation. Each term multiplies an encrypted vector by an
+unencrypted one and adds the result to a running encrypted total. The
+cost is
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
 rotations and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-plaintext-multiplies per matrix-vector product; the multiplicative depth
-is one.</p>
+such multiplications per matrix-vector product, and it consumes a single
+level of the precision budget.</p>
+<p>Multiplying by an unencrypted vector rather than an encrypted one is
+what keeps that cost down: the adapter
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>k</mi></msub><annotation encoding="application/x-tex">A_k</annotation></semantics></math>
+is the site’s own, so it never needs encrypting, and the operation is
+correspondingly cheaper than multiplying two encrypted quantities
+together.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">build_diagonals</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">M</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co">## d_i[j] = M[j, ((j-1 + i) %% p) + 1]   (1-based R indexing)</span></span>
@@ -723,7 +743,7 @@ to floating-point precision:</p>
 <span><span class="va">Aq_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">A_hat</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">q_demo</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"matvec max error (site 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">Aq_recovered</span> <span class="op">-</span> <span class="va">Aq_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## matvec max error (site 1): 2.89e-11</span></span></code></pre>
+<pre><code><span><span class="co">## matvec max error (site 1): 2.07e-11</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="inner-product-against-the-local-database">Inner product against the local database<a class="anchor" aria-label="anchor" href="#inner-product-against-the-local-database"></a>
@@ -734,13 +754,14 @@ into site
 private geometry (unit-norm at the orthogonal endpoint used here). The
 cosine similarity against a private-database vector
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>v</mi><annotation encoding="application/x-tex">v</annotation></semantics></math>
-(also unit-norm and held in plaintext at the site) is just</p>
+(also unit-norm, and never encrypted since it never leaves the site) is
+just</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">cos</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>A</mi><mi>k</mi></msub><mi>q</mi><mo>,</mo><mspace width="0.167em"></mspace><mi>v</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mo stretchy="false" form="prefix">⟨</mo><msub><mi>A</mi><mi>k</mi></msub><mi>q</mi><mo>,</mo><mspace width="0.167em"></mspace><mi>v</mi><mo stretchy="false" form="postfix">⟩</mo><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>p</mi></munderover><mo stretchy="false" form="prefix">(</mo><msub><mi>A</mi><mi>k</mi></msub><mi>q</mi><msub><mo stretchy="false" form="postfix">)</mo><mi>j</mi></msub><mo>⋅</mo><msub><mi>v</mi><mi>j</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
 \cos(A_k q,\, v) \;=\; \langle A_k q,\, v \rangle
 \;=\; \sum_{j=1}^{p} (A_k q)_j \cdot v_j.
 </annotation></semantics></math></p>
 <p>In CKKS this is a slot-wise multiply of the matvec output by the
-plaintext-encoded
+unencrypted
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>v</mi><annotation encoding="application/x-tex">v</annotation></semantics></math>,
 followed by a
 log-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
@@ -766,7 +787,7 @@ slots).</p>
 <span>  <span class="fu">slot_sum_reduction</span><span class="op">(</span><span class="va">ct_prod</span>, <span class="va">p</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>A smoke test against a single database vector confirms the inner
-product matches its plaintext counterpart at slot 0:</p>
+product matches the unencrypted computation at slot 0:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">v_test</span> <span class="op">&lt;-</span> <span class="va">db</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">z</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span>
 <span><span class="va">ct_score</span> <span class="op">&lt;-</span> <span class="fu">encrypted_inner_product</span><span class="op">(</span><span class="va">ct_Aq</span>, <span class="va">v_test</span>, <span class="va">cc</span>, <span class="va">p</span><span class="op">)</span></span>
@@ -774,7 +795,7 @@ product matches its plaintext counterpart at slot 0:</p>
 <span><span class="va">score_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Aq_expected</span> <span class="op">*</span> <span class="va">v_test</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"inner-product error (site 1, patient 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">score_recovered</span> <span class="op">-</span> <span class="va">score_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## inner-product error (site 1, patient 1): 2.38e-11</span></span></code></pre>
+<pre><code><span><span class="co">## inner-product error (site 1, patient 1): 1.34e-12</span></span></code></pre>
 <p>The same <code>encrypted_inner_product</code> serves the
 <strong>Design 1</strong> deployment without any matvec: the encrypted
 <em>public-model</em> query is scored directly against the folded,
@@ -787,7 +808,7 @@ route that stays a valid cosine.</p>
 <span><span class="va">fold_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">q_demo</span> <span class="op">*</span> <span class="va">db_fold</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">z</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Design-1 inner-product error (site 1, patient 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fold_recovered</span> <span class="op">-</span> <span class="va">fold_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Design-1 inner-product error (site 1, patient 1): 1.20e-12</span></span></code></pre>
+<pre><code><span><span class="co">## Design-1 inner-product error (site 1, patient 1): 6.13e-12</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="site-local_fn-full-per-site-protocol-step">Site <code>local_fn</code>: full per-site protocol step<a class="anchor" aria-label="anchor" href="#site-local_fn-full-per-site-protocol-step"></a>
@@ -796,8 +817,8 @@ route that stays a valid cosine.</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>k</mi></msub><annotation encoding="application/x-tex">A_k</annotation></semantics></math>
 and database
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>k</mi></msub><annotation encoding="application/x-tex">D_k</annotation></semantics></math>,
-takes the encrypted query ciphertext as input, and returns a list of
-encrypted scores plus plaintext local indices. This is the
+takes the encrypted query as input, and returns a list of encrypted
+scores plus the corresponding local indices in the clear. This is the
 <strong>Design 2</strong> branch: the adapter is applied to the
 encrypted query (the matvec), and scoring runs against the site’s raw
 private database.</p>
@@ -826,26 +847,25 @@ encrypted score per local patient:</p>
 <span><span class="va">elapsed</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/proc.time.html" class="external-link">proc.time</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="va">t0</span><span class="op">)</span><span class="op">[[</span><span class="st">"elapsed"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"site 1 produced %d encrypted scores in %.2f s\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">site1_out</span><span class="op">$</span><span class="va">scores</span><span class="op">)</span>, <span class="va">elapsed</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## site 1 produced 80 encrypted scores in 0.85 s</span></span></code></pre>
+<pre><code><span><span class="co">## site 1 produced 80 encrypted scores in 1.11 s</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="master-orchestration-and-threshold-decrypted-top-k">Master orchestration and threshold-decrypted top-<code>k</code><a class="anchor" aria-label="anchor" href="#master-orchestration-and-threshold-decrypted-top-k"></a>
 </h2>
 <p>The master broadcasts the encrypted query to every site, collects
-per-site encrypted score ciphertexts plus plaintext local patient
-indices, and runs the
+per-site encrypted scores plus the local patient indices in the clear,
+and runs the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>-of-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-threshold decryption ceremony for each score so it can sort them
-plaintext-side and return the top-<code>k</code>.</p>
-<p>The decryption pattern is per-patient: each encrypted score
-ciphertext goes through one threshold-decrypt round
-(<code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> calls
+threshold decryption ceremony for each score so it can sort them once
+they are in the clear and return the top-<code>k</code>.</p>
+<p>The decryption pattern is per-patient: each encrypted score goes
+through one threshold-decrypt round (<code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> calls
 <code>multiparty_decrypt_lead</code> on site 1,
 <code>multiparty_decrypt_main</code> on each remaining site, and
 <code>multiparty_decrypt_fusion</code> to combine). For our 240 total
 patients this runs in a few seconds; production deployments would pack
-many patients per ciphertext via slot tiling and amortize the
-ceremony.</p>
+many patients into the slots of a single encrypted value and amortize
+the ceremony.</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">run_similarity_query</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">ct_q</span>, <span class="va">site_fns</span>, <span class="va">master</span>, <span class="va">top_k</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co">## Fan out to every site.</span></span>
@@ -880,7 +900,7 @@ ceremony.</p>
 <span><span class="va">elapsed</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/proc.time.html" class="external-link">proc.time</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="va">t0</span><span class="op">)</span><span class="op">[[</span><span class="st">"elapsed"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d retrieval over %d sites and %d patients in %.1f s\n"</span>,</span>
 <span>            <span class="va">top_k</span>, <span class="va">n_sites</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">cohort_sizes</span><span class="op">)</span>, <span class="va">elapsed</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Top-5 retrieval over 3 sites and 240 patients in 6.0 s</span></span></code></pre>
+<pre><code><span><span class="co">## Top-5 retrieval over 3 sites and 240 patients in 7.9 s</span></span></code></pre>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Query phenotype label: %d\n"</span>, <span class="va">public_query</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Query phenotype label: 4</span></span></code></pre>
@@ -896,11 +916,12 @@ ceremony.</p>
 <div class="section level2">
 <h2 id="reference-truth-comparison">Reference-truth comparison<a class="anchor" aria-label="anchor" href="#reference-truth-comparison"></a>
 </h2>
-<p>The protocol output is meaningful only if the encrypted-domain inner
-products agree with their plaintext-domain counterparts to within CKKS
-noise. The reference computation runs the same
+<p>The protocol output is meaningful only if the inner products computed
+under encryption agree with the same quantities computed in the clear,
+to within CKKS approximation error. The reference computation runs the
+same
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mi>k</mi></msub><mo>⋅</mo><mi>q</mi></mrow><annotation encoding="application/x-tex">A_k \cdot q</annotation></semantics></math>
-adapter application and inner-product reduction in plaintext on each
+adapter application and inner-product reduction unencrypted on each
 site’s database:</p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plaintext_top_k</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">q</span>, <span class="va">site_data</span>, <span class="va">A_list</span>, <span class="va">top_k</span><span class="op">)</span> <span class="op">{</span></span>
@@ -932,7 +953,7 @@ site’s database:</p>
 <span><span class="va">score_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">compare</span><span class="op">$</span><span class="va">score_enc</span> <span class="op">-</span> <span class="va">compare</span><span class="op">$</span><span class="va">score_plain</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d encrypted vs plaintext score max error: %.2e\n"</span>,</span>
 <span>            <span class="va">top_k</span>, <span class="va">score_err</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Top-5 encrypted vs plaintext score max error: 3.87e-11</span></span></code></pre>
+<pre><code><span><span class="co">## Top-5 encrypted vs plaintext score max error: 2.37e-11</span></span></code></pre>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Whether the encrypted-domain top-k contains the same</span></span>
 <span><span class="co">## (site_id, local_index) pairs as the plaintext reference.</span></span>
@@ -949,9 +970,9 @@ site’s database:</p>
 smoke tests and reference comparison above confirm (max error
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∼</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>11</mn></mrow></msup></mrow><annotation encoding="application/x-tex">\sim 10^{-11}</annotation></semantics></math>).
 The substantive questions are statistical, and because the encrypted and
-plaintext scores agree to within CKKS noise we answer them in plaintext
-— fast enough to average over many queries and trace stable curves.
-Three questions:</p>
+unencrypted scores agree to within CKKS approximation error we answer
+them in the clear — fast enough to average over many queries and trace
+stable curves. Three questions:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Fidelity.</strong> When the drift is genuinely
@@ -1245,30 +1266,31 @@ cannot decrypt anything along the way.</li>
 <li>
 <strong>Diagonal-encoded matvec under threshold CKKS.</strong> A
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>×</mo><mi>p</mi></mrow><annotation encoding="application/x-tex">p \times p</annotation></semantics></math>
-matrix–vector multiply on a slot-batched ciphertext, implemented as
+matrix–vector multiply on an encrypted vector, implemented as
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-rotations +
+rotations,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-plaintext- multiplies +
+multiplications by unencrypted vectors, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-ciphertext-additions at depth one. The joint rotation keys for the
-cyclic-slot rotations come from an
+encrypted additions, all within one level of the precision budget. The
+joint rotation keys for the cyclic-slot rotations come from an
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>-of-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
 ceremony that mirrors the encryption-key ceremony.</li>
 <li>
 <strong>Inner-product reduction via
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">\log p</annotation></semantics></math>
-rotation-and-add.</strong> Slot-wise multiply by the plaintext database
-vector followed by a halve-and-fold reduction places the cosine
-similarity in slot 0.</li>
+rotation-and-add.</strong> Slot-wise multiply by the site’s own
+unencrypted database vector followed by a halve-and-fold reduction
+places the cosine similarity in slot 0.</li>
 <li>
 <strong>Top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-over plaintext indices, scores threshold-decrypted.</strong> Local
-patient indices stay plaintext at each site; only the similarity scores
-are encrypted, and the threshold ceremony reveals plaintext only for the
-released
+over cleartext indices, scores threshold-decrypted.</strong> Local
+patient indices stay in the clear at each site; only the similarity
+scores are encrypted, and the threshold ceremony reveals values only for
+the released
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>.
-The encrypted protocol’s output agrees with its plaintext reference to
+The encrypted protocol’s output agrees with the same computation run
+unencrypted to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∼</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>11</mn></mrow></msup></mrow><annotation encoding="application/x-tex">\sim 10^{-11}</annotation></semantics></math>.</li>
 <li>
 <strong>Fidelity under non-isometric drift.</strong> When
@@ -1301,8 +1323,8 @@ family, is what pins the frame.</li>
 <li>
 <strong>Encrypted
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-selection.</strong> We sort plaintext-side after threshold decrypting
-the per-patient scores. Encrypted argmax /
+selection.</strong> We sort in the clear after threshold decrypting the
+per-patient scores. Encrypted argmax /
 top-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
 via polynomial sign approximation is feasible in CKKS but adds depth and
 complexity orthogonal to this vignette’s pedagogical aim. With encrypted
@@ -1337,11 +1359,11 @@ folding as the release valve — not a single forced choice.</li>
 <strong>Slot-tiling for production scale.</strong> The vignette runs
 at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>32</mn></mrow><annotation encoding="application/x-tex">p = 32</annotation></semantics></math>
-with one ciphertext per database vector. Production at
+with one encrypted value per database vector. Production at
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>512</mn></mrow><annotation encoding="application/x-tex">p = 512</annotation></semantics></math>
-would pack many database vectors per ciphertext via slot tiling,
-amortizing the matvec and inner-product cost across patients within a
-site.</li>
+would pack many database vectors into the slots of a single encrypted
+value, amortizing the matvec and inner-product cost across patients
+within a site.</li>
 <li>
 <strong>Real-model validation.</strong> The synthetic data above
 drifts by a parameterized non-isometric
@@ -1361,7 +1383,7 @@ acknowledge it as the cost of any released-function output.</li>
 <strong>Malicious-secure threshold protocol.</strong> The trust
 model here is honest-but-curious. A malicious-secure variant would
 require zero-knowledge proofs of correct partial decryption and
-verifiable computation on the score ciphertexts; that is heavy machinery
+verifiable computation on the encrypted scores; that is heavy machinery
 and out of scope.</li>
 </ul>
 </div>
@@ -1409,7 +1431,7 @@ does not appear to have been studied as a unified pipeline.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -3,7 +3,7 @@
 ## Authors
 
 - **[Balasubramanian Narasimhan](https://naras.su.domains)**. Author,
-  maintainer.
+  maintainer, copyright holder.
 
 ## Citation
 

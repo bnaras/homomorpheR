@@ -1,4 +1,4 @@
-# Distributed Maximum Likelihood Estimation under CKKS
+# Distributed Maximum Likelihood Estimation
 
 ## The statistical problem
 
@@ -36,7 +36,7 @@ In R, this is a one-liner using
 
 Now suppose the same data is **distributed across three sites** — say,
 three hospitals counting adverse events. None will share its raw counts
-with the others or with a central coordinator, but they are willing to
+with the others or with a central aggregator, but they are willing to
 *jointly* compute the same MLE provided no party learns anything about
 another party’s contribution.
 
@@ -96,8 +96,9 @@ The companion `homomorphing` vignette uses Paillier, which is purely
 *additive*. Real-valued log-likelihoods had to be split into integer and
 fractional parts and rationally approximated with a denominator of
 $`2^{256}`$. CKKS encrypts real numbers natively and the protocol
-becomes much cleaner: each step is just `+` between two ciphertexts.
-CKKS also supports multiplication, which the Cox vignette will need.
+becomes much cleaner: each step is just `+` between two encrypted
+values. CKKS also supports multiplication, which the Cox vignette will
+need.
 
 ## Implementation
 

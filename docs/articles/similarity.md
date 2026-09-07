@@ -34,7 +34,7 @@ is deployed in either of two ways — applied to the encrypted query (the
 homomorphic matrix–vector multiply, valid as a cosine near the
 orthogonal end), or folded into the database offline so the encrypted
 query reduces to a plain inner product. Threshold decryption returns the
-top-`k` matches, with no party able to decrypt intermediate ciphertexts
+top-`k` matches, with no party able to decrypt any intermediate value
 unilaterally.
 
 The accompanying `similarity-sideexp.md` document describes a deferred
@@ -90,21 +90,21 @@ Three sites and one untrusted aggregator (the master):
 What the master sees, by stage:
 
 1.  The encrypted query $`\mathit{ct}_q`$. Not decryptable alone.
-2.  Per-site encrypted score ciphertexts. Not decryptable alone.
+2.  Per-site encrypted scores. Not decryptable alone.
 3.  Partial decryptions of the top-$`k`$ scores from each site. Not
     decryptable individually.
-4.  After fusion, the plaintext top-$`k`$ scores. Released to the
+4.  After fusion, the top-$`k`$ scores in the clear. Released to the
     querier as the protocol output.
 
-Step 4 is the only plaintext the master ever holds, and only for the
+Step 4 is the only cleartext the master ever holds, and only for the
 top-$`k`$ scores released to the querier — not for any intermediate
 quantity.
 
 The site-private compatibility adapters $`\{A_k\}`$ never leave their
-sites. They are applied to ciphertexts as plaintext-matrix ×
-ciphertext-vector multiplications inside the homomorphic evaluation (or
-folded into the site’s database offline), so the adapter never appears
-in the clear at any party other than its owner.
+sites. Each is applied to an encrypted vector while it stays encrypted —
+an unencrypted matrix times an encrypted vector — or else folded into
+the site’s database offline, so the adapter never appears in the clear
+at any party other than its owner.
 
 ## The protocol
 
@@ -128,14 +128,14 @@ query phase and result phase run for each query.
     deployment, the public-compatible images of those vectors.
 
 **Query phase.** The querier embeds their candidate patient with the
-public model, normalizes to unit length, encrypts into a slot-batched
-ciphertext under the joint public key, and broadcasts the ciphertext to
-the master.
+public model, normalizes to unit length, encrypts into a single
+slot-packed encrypted vector under the joint public key, and broadcasts
+that to the master.
 
 For each site $`k`$:
 
 5.  The site receives the encrypted query $`\mathit{ct}_q`$.
-6.  The site applies its private $`A_k`$ to the ciphertext via
+6.  The site applies its private $`A_k`$ to the encrypted query via
     diagonal-encoded matrix–vector multiplication, producing
     $`\mathit{ct}_{A_k q}`$ (Design 2). Near the orthogonal end of the
     family the result is unit-norm, so the score is a genuine cosine;
@@ -145,19 +145,18 @@ For each site $`k`$:
     embeddings $`v_{k,i}`$ via slot-wise multiplication followed by
     log-$`p`$ rotation-and-add slot summation, producing one encrypted
     scalar per local patient.
-8.  The site returns its score ciphertexts to the master, alongside
-    plaintext local patient indices.
+8.  The site returns its encrypted scores to the master, alongside its
+    local patient indices in the clear.
 
 **Result phase.**
 
 9.  The master concatenates encrypted scores across all sites. In v1,
-    plaintext local indices are kept alongside encrypted scores;
+    local indices are kept in the clear alongside the encrypted scores;
     encrypted top-$`k`$ selection in CKKS is feasible but adds depth and
     complexity orthogonal to this vignette’s pedagogical aim.
 10. The master collects partial decryption shares from all three sites
-    for the encrypted score ciphertexts. Fusion yields plaintext scores;
-    the master sorts plaintext-side and returns the top-$`k`$ to the
-    querier.
+    for the encrypted scores. Fusion yields the scores in the clear; the
+    master sorts them there and returns the top-$`k`$ to the querier.
 
 ## Synthetic data
 
@@ -263,15 +262,15 @@ secret unilaterally.
 ## Joint rotation keys
 
 The matrix–vector multiply step in the protocol is implemented as a
-*diagonal-encoded matvec*. For a $`p \times p`$ matrix $`M`$ and a
-slot-batched ciphertext encoding a vector $`q \in \mathbf{R}^p`$:
+*diagonal-encoded matvec*. For a $`p \times p`$ matrix $`M`$ and an
+encrypted vector $`q \in \mathbf{R}^p`$ held one component per slot:
 
 ``` math
 M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \odot \mathrm{rot}(q, i),
 ```
 
-where $`d_i`$ is the $`i`$-th diagonal of $`M`$ (a $`p`$-vector of
-plaintexts), $`\odot`$ is slot-wise multiplication, and
+where $`d_i`$ is the $`i`$-th diagonal of $`M`$ (a $`p`$-vector, and
+never encrypted), $`\odot`$ is slot-wise multiplication, and
 $`\mathrm{rot}(q, i)`$ cyclically rotates the slots of $`q`$ by $`i`$.
 Each rotation requires a precomputed *rotation key*. In single-key CKKS
 these are generated from the secret key; in threshold CKKS they are
@@ -286,8 +285,8 @@ the subset that each step needs.
 
 `rotation_indices`` ``<-`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p`` ``-`` ``1L``)`` ``sks`` ``<-`` ``master``@``secret_keys`` ``pks`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``master``@``joint_pubkey``)`` ``# daisy-chain pubkey at step 1`` ``joint_pk_tag`` ``<-`` `[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``master``@``joint_pubkey``)`` `` ``## Lead-party rotation-key generation. Populates the crypto`` ``## context's automorphism-key registry under the lead party's`` ``## secret-key tag.`` `[`eval_rotate_key_gen`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate_key_gen.html)`(``cc``, ``sks``[[``1``]``]``, ``rotation_indices``)`` `` ``lead_tag`` ``<-`` `[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``sks``[[``1``]``]``)`` ``rot_running`` ``<-`` `[`get_eval_automorphism_key_map`](https://openfheorg.github.io/openfhe.R/reference/get_eval_automorphism_key_map.html)`(``lead_tag``)`` `` ``## Sites 2..n contribute their rotation-key shares in turn.`` ``## At each step, the running joint share is registered under`` ``` ## the cumulative-pubkey tag — which for our `make_threshold_master` ``` ``` ## is the same `joint_pk_tag` at every step (the master daisy-chains ``` ``## pubkeys forward but only retains the final joint pubkey).`` ``for`` ``(``k`` ``in`` ``2``:``n_sites``)`` ``{`` `` ``share_k`` ``<-`` `[`multi_eval_at_index_key_gen`](https://openfheorg.github.io/openfhe.R/reference/multi_eval_at_index_key_gen.html)`(`` `` ``cc``, ``sks``[[``k``]``]``, ``rot_running``,`` `` index_list ``=`` ``rotation_indices``,`` `` key_tag ``=`` ``joint_pk_tag``)`` `` ``rot_running`` ``<-`` `[`multi_add_eval_automorphism_keys`](https://openfheorg.github.io/openfhe.R/reference/multi_add_eval_automorphism_keys.html)`(`` `` ``cc``, ``rot_running``, ``share_k``, key_tag ``=`` ``joint_pk_tag``)`` ``}`` `` `[`insert_eval_automorphism_key`](https://openfheorg.github.io/openfhe.R/reference/insert_eval_automorphism_key.html)`(``rot_running``, key_tag ``=`` ``joint_pk_tag``)`
 
-After insertion, any ciphertext encrypted under the joint public key
-(i.e., under `master@joint_pubkey`) can be rotated by any index in
+After insertion, any value encrypted under the joint public key (i.e.,
+under `master@joint_pubkey`) can be rotated by any index in
 `rotation_indices` via `eval_rotate(ct, idx)`.
 
 A round-trip smoke test confirms the joint rotation key works. We
@@ -297,7 +296,7 @@ $`x_{(i+3) \bmod p}`$:
 
 `x`` ``<-`` ``1``:``p`` ``ct_x`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``x``)`` ``ct_rot`` ``<-`` `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_x``, ``3L``)`` ``recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_rot``, len ``=`` ``p``)`` `` ``expected`` ``<-`` ``x``[``(``(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)`` ``-`` ``1L`` ``+`` ``3L``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]`` `[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)`` ``<`` ``1e-6``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(``"rotation round-trip max error:"``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.2e\n"``, `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)``)``)`
 
-    ## rotation round-trip max error: 7.85e-12
+    ## rotation round-trip max error: 8.26e-12
 
 ## Per-site adapter fit and database setup
 
@@ -321,10 +320,10 @@ the adapter $`A_k`$ is fit post hoc on the public anchor cohort.
 
 ## Diagonal-encoded matrix-vector multiply
 
-The CKKS-friendly way to multiply a $`p \times p`$ plaintext matrix into
-a slot-batched encrypted vector is the *diagonal encoding*. The matrix
-$`M`$ is decomposed into its $`p`$ generalized diagonals, each a
-length-$`p`$ plaintext vector:
+The CKKS-friendly way to multiply an unencrypted $`p \times p`$ matrix
+into an encrypted vector is the *diagonal encoding*. The matrix $`M`$ is
+decomposed into its $`p`$ generalized diagonals, each an unencrypted
+length-$`p`$ vector:
 
 ``` math
 d_i[j] = M[\,j,\, (j + i) \bmod p\,], \qquad i = 0, 1, \ldots, p-1.
@@ -337,10 +336,16 @@ M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \,\odot\, \mathrm{rot}(q, i),
 ```
 
 where $`\odot`$ is slot-wise multiplication and $`\mathrm{rot}(q, i)`$
-is the $`i`$-step cyclic slot rotation. Each term is a single ciphertext
-× plaintext multiply followed by an encrypted- vector add. The total
-cost is $`p`$ rotations and $`p`$ plaintext-multiplies per matrix-vector
-product; the multiplicative depth is one.
+is the $`i`$-step cyclic slot rotation. Each term multiplies an
+encrypted vector by an unencrypted one and adds the result to a running
+encrypted total. The cost is $`p`$ rotations and $`p`$ such
+multiplications per matrix-vector product, and it consumes a single
+level of the precision budget.
+
+Multiplying by an unencrypted vector rather than an encrypted one is
+what keeps that cost down: the adapter $`A_k`$ is the site’s own, so it
+never needs encrypting, and the operation is correspondingly cheaper
+than multiplying two encrypted quantities together.
 
 `build_diagonals`` ``<-`` ``function``(``M``, ``p``)`` ``{`` `` ``## d_i[j] = M[j, ((j-1 + i) %% p) + 1] (1-based R indexing)`` `` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``0``:``(``p`` ``-`` ``1L``)``, ``function``(``i``)`` ``{`` `` `[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)``,`` `` ``function``(``j``)`` ``M``[``j``, ``(``(``j`` ``-`` ``1L`` ``+`` ``i``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]``,`` `` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1L``)``)`` `` ``}``)`` ``}`` `` ``encrypted_matvec`` ``<-`` ``function``(``ct_q``, ``M``, ``cc``, ``p``)`` ``{`` `` ``diags`` ``<-`` ``build_diagonals``(``M``, ``p``)`` `` ``ct_acc`` ``<-`` ``NULL`` `` ``for`` ``(``i`` ``in`` ``0``:``(``p`` ``-`` ``1L``)``)`` ``{`` `` ``d_pt`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``diags``[[``i`` ``+`` ``1L``]``]``)`` `` ``ct_term`` ``<-`` ``if`` ``(``i`` ``==`` ``0L``)`` ``{`` `` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_q``, ``d_pt``)`` `` ``}`` ``else`` ``{`` `` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(`[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_q``, ``i``)``, ``d_pt``)`` `` ``}`` `` ``ct_acc`` ``<-`` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``ct_acc``)``)`` ``ct_term`` ``else`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct_acc``, ``ct_term``)`` `` ``}`` `` ``ct_acc`` ``}`
 
@@ -349,14 +354,15 @@ recovers $`A_1 \cdot q`$ to floating-point precision:
 
 `q_demo`` ``<-`` ``public_query``$``z``[``1``, ``]`` ``ct_q`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``q_demo``)`` ``ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_hat``[[``1``]``]``, ``cc``, ``p``)`` ``Aq_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_Aq``, len ``=`` ``p``)`` ``Aq_expected`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_hat``[[``1``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q_demo``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"matvec max error (site 1): %.2e\n"``,`` `` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Aq_recovered`` ``-`` ``Aq_expected``)``)``)``)`
 
-    ## matvec max error (site 1): 2.89e-11
+    ## matvec max error (site 1): 2.07e-11
 
 ## Inner product against the local database
 
 After the matvec, the encrypted query has been mapped by the adapter
 into site $`k`$’s private geometry (unit-norm at the orthogonal endpoint
 used here). The cosine similarity against a private-database vector
-$`v`$ (also unit-norm and held in plaintext at the site) is just
+$`v`$ (also unit-norm, and never encrypted since it never leaves the
+site) is just
 
 ``` math
 \cos(A_k q,\, v) \;=\; \langle A_k q,\, v \rangle
@@ -364,18 +370,18 @@ $`v`$ (also unit-norm and held in plaintext at the site) is just
 ```
 
 In CKKS this is a slot-wise multiply of the matvec output by the
-plaintext-encoded $`v`$, followed by a log-$`p`$ rotate-and-add
+unencrypted $`v`$, followed by a log-$`p`$ rotate-and-add
 *slot-summation reduction* that places the summed inner product in slot
 0 (and uninteresting partial sums in the other slots).
 
 `slot_sum_reduction`` ``<-`` ``function``(``ct``, ``p``)`` ``{`` `` ``## Standard CKKS log-p reduction. After the loop, slot 0 of`` `` ``## the result holds sum_{j=1}^{p} ct[j]; other slots hold`` `` ``## partial sums and are not used.`` `` ``step`` ``<-`` ``p`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`` `` ``while`` ``(``step`` ``>=`` ``1L``)`` ``{`` `` ``ct`` ``<-`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct``, `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct``, ``step``)``)`` `` ``step`` ``<-`` ``step`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`` `` ``}`` `` ``ct`` ``}`` `` ``encrypted_inner_product`` ``<-`` ``function``(``ct_x``, ``v_plain``, ``cc``, ``p``)`` ``{`` `` ``pt_v`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``v_plain``)`` `` ``ct_prod`` ``<-`` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_x``, ``pt_v``)`` `` ``slot_sum_reduction``(``ct_prod``, ``p``)`` ``}`
 
 A smoke test against a single database vector confirms the inner product
-matches its plaintext counterpart at slot 0:
+matches the unencrypted computation at slot 0:
 
 `v_test`` ``<-`` ``db``[[``1``]``]``$``z``[``1``, ``]`` ``ct_score`` ``<-`` ``encrypted_inner_product``(``ct_Aq``, ``v_test``, ``cc``, ``p``)`` ``score_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score``, len ``=`` ``1L``)`` ``score_expected`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``Aq_expected`` ``*`` ``v_test``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"inner-product error (site 1, patient 1): %.2e\n"``,`` `` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``score_recovered`` ``-`` ``score_expected``)``)``)`
 
-    ## inner-product error (site 1, patient 1): 2.38e-11
+    ## inner-product error (site 1, patient 1): 1.34e-12
 
 The same `encrypted_inner_product` serves the **Design 1** deployment
 without any matvec: the encrypted *public-model* query is scored
@@ -385,15 +391,16 @@ non-isometric adapter it is the route that stays a valid cosine.
 
 `ct_score_fold`` ``<-`` ``encrypted_inner_product``(``ct_q``, ``db_fold``[[``1``]``]``$``z``[``1``, ``]``, ``cc``, ``p``)`` ``fold_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score_fold``, len ``=`` ``1L``)`` ``fold_expected`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``q_demo`` ``*`` ``db_fold``[[``1``]``]``$``z``[``1``, ``]``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Design-1 inner-product error (site 1, patient 1): %.2e\n"``,`` `` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fold_recovered`` ``-`` ``fold_expected``)``)``)`
 
-    ## Design-1 inner-product error (site 1, patient 1): 1.20e-12
+    ## Design-1 inner-product error (site 1, patient 1): 6.13e-12
 
 ## Site `local_fn`: full per-site protocol step
 
 The site-side computation closes over the site’s adapter $`A_k`$ and
-database $`D_k`$, takes the encrypted query ciphertext as input, and
-returns a list of encrypted scores plus plaintext local indices. This is
-the **Design 2** branch: the adapter is applied to the encrypted query
-(the matvec), and scoring runs against the site’s raw private database.
+database $`D_k`$, takes the encrypted query as input, and returns a list
+of encrypted scores plus the corresponding local indices in the clear.
+This is the **Design 2** branch: the adapter is applied to the encrypted
+query (the matvec), and scoring runs against the site’s raw private
+database.
 
 `make_similarity_site_fn`` ``<-`` ``function``(``A_k``, ``db_k``, ``cc``, ``p``)`` ``{`` `` ``function``(``ct_q``)`` ``{`` `` ``ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_k``, ``cc``, ``p``)`` `` ``n_local`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``db_k``$``z``)`` `` ``ct_scores`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``, ``function``(``i``)`` ``{`` `` ``encrypted_inner_product``(``ct_Aq``, ``db_k``$``z``[``i``, ``]``, ``cc``, ``p``)`` `` ``}``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``scores ``=`` ``ct_scores``,`` `` local_index ``=`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``,`` `` label ``=`` ``db_k``$``label``)`` `` ``}`` ``}`` `` ``site_fns`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`` `` ``make_similarity_site_fn``(``A_hat``[[``k``]``]``, ``db``[[``k``]``]``, ``cc``, ``p``)`` ``}``)`
 
@@ -402,27 +409,27 @@ encrypted score per local patient:
 
 `t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``site1_out`` ``<-`` ``site_fns``[[``1``]``]``(``ct_q``)`` ``elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"site 1 produced %d encrypted scores in %.2f s\n"``,`` `` `[`length`](https://rdrr.io/r/base/length.html)`(``site1_out``$``scores``)``, ``elapsed``)``)`
 
-    ## site 1 produced 80 encrypted scores in 0.85 s
+    ## site 1 produced 80 encrypted scores in 1.11 s
 
 ## Master orchestration and threshold-decrypted top-`k`
 
 The master broadcasts the encrypted query to every site, collects
-per-site encrypted score ciphertexts plus plaintext local patient
-indices, and runs the $`n`$-of-$`n`$ threshold decryption ceremony for
-each score so it can sort them plaintext-side and return the top-`k`.
+per-site encrypted scores plus the local patient indices in the clear,
+and runs the $`n`$-of-$`n`$ threshold decryption ceremony for each score
+so it can sort them once they are in the clear and return the top-`k`.
 
-The decryption pattern is per-patient: each encrypted score ciphertext
-goes through one threshold-decrypt round
+The decryption pattern is per-patient: each encrypted score goes through
+one threshold-decrypt round
 ([`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
 calls `multiparty_decrypt_lead` on site 1, `multiparty_decrypt_main` on
 each remaining site, and `multiparty_decrypt_fusion` to combine). For
 our 240 total patients this runs in a few seconds; production
-deployments would pack many patients per ciphertext via slot tiling and
-amortize the ceremony.
+deployments would pack many patients into the slots of a single
+encrypted value and amortize the ceremony.
 
 `run_similarity_query`` ``<-`` ``function``(``ct_q``, ``site_fns``, ``master``, ``top_k``)`` ``{`` `` ``## Fan out to every site.`` `` ``site_results`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_fns``)``, ``function``(``k``)`` ``{`` `` ``out`` ``<-`` ``site_fns``[[``k``]``]``(``ct_q``)`` `` ``out``$``site_id`` ``<-`` ``k`` `` ``out`` `` ``}``)`` `` `` ``## Threshold-decrypt each per-patient inner-product`` `` ``## ciphertext. v1 runs one ceremony per patient; a packed`` `` ``## variant that fuses multiple inner products into a single`` `` ``## ciphertext (via slot tiling) is a natural extension.`` `` ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``s`` ``in`` ``site_results``)`` ``{`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``s``$``scores``)``)`` ``{`` `` ``score`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``s``$``scores``[[``i``]``]``, len ``=`` ``1L``)`` `` ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` site_id ``=`` ``s``$``site_id``,`` `` local_index ``=`` ``s``$``local_index``[``i``]``,`` `` label ``=`` ``s``$``label``[``i``]``,`` `` score ``=`` ``score``)`` `` ``}`` `` ``}`` `` ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`` `` ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`` ``}`` `` ``t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``top_result`` ``<-`` ``run_similarity_query``(``ct_q``, ``site_fns``, ``master``, top_k ``=`` ``top_k``)`` ``elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d retrieval over %d sites and %d patients in %.1f s\n"``,`` `` ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`
 
-    ## Top-5 retrieval over 3 sites and 240 patients in 6.0 s
+    ## Top-5 retrieval over 3 sites and 240 patients in 7.9 s
 
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`
 
@@ -439,15 +446,15 @@ amortize the ceremony.
 
 ## Reference-truth comparison
 
-The protocol output is meaningful only if the encrypted-domain inner
-products agree with their plaintext-domain counterparts to within CKKS
-noise. The reference computation runs the same $`A_k \cdot q`$ adapter
-application and inner-product reduction in plaintext on each site’s
-database:
+The protocol output is meaningful only if the inner products computed
+under encryption agree with the same quantities computed in the clear,
+to within CKKS approximation error. The reference computation runs the
+same $`A_k \cdot q`$ adapter application and inner-product reduction
+unencrypted on each site’s database:
 
 `plaintext_top_k`` ``<-`` ``function``(``q``, ``site_data``, ``A_list``, ``top_k``)`` ``{`` `` ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``k`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_data``)``)`` ``{`` `` ``Aq`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_list``[[``k``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)`` `` ``s_k`` ``<-`` ``site_data``[[``k``]``]`` `` ``scores`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``s_k``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``Aq``)`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``scores``)``)`` ``{`` `` ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` site_id ``=`` ``k``,`` `` local_index ``=`` ``i``,`` `` label ``=`` ``s_k``$``label``[``i``]``,`` `` score ``=`` ``scores``[``i``]``)`` `` ``}`` `` ``}`` `` ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`` `` ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`` ``}`` `` ``plain_top`` ``<-`` ``plaintext_top_k``(``q_demo``, ``db``, ``A_hat``, ``top_k``)`` `` ``## Compare encrypted-domain top-k against the plaintext reference`` ``## by joining on (site_id, local_index).`` ``compare`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``top_result``, ``plain_top``,`` `` by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"site_id"``, ``"local_index"``)``,`` `` suffixes ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"_enc"``, ``"_plain"``)``)`` ``score_err`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``compare``$``score_enc`` ``-`` ``compare``$``score_plain``)``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs plaintext score max error: %.2e\n"``,`` `` ``top_k``, ``score_err``)``)`
 
-    ## Top-5 encrypted vs plaintext score max error: 3.87e-11
+    ## Top-5 encrypted vs plaintext score max error: 2.37e-11
 
 `## Whether the encrypted-domain top-k contains the same`` ``## (site_id, local_index) pairs as the plaintext reference.`` ``enc_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``top_result``$``site_id``, ``top_result``$``local_index``, sep ``=`` ``":"``)`` ``plain_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``plain_top``$``site_id``, ``plain_top``$``local_index``, sep ``=`` ``":"``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d set match: %d of %d\n"``,`` `` ``top_k``, `[`length`](https://rdrr.io/r/base/length.html)`(`[`intersect`](https://rdrr.io/r/base/sets.html)`(``enc_set``, ``plain_set``)``)``, ``top_k``)``)`
 
@@ -458,9 +465,9 @@ database:
 The encrypted mechanics work to floating-point precision, as the smoke
 tests and reference comparison above confirm (max error
 $`\sim 10^{-11}`$). The substantive questions are statistical, and
-because the encrypted and plaintext scores agree to within CKKS noise we
-answer them in plaintext — fast enough to average over many queries and
-trace stable curves. Three questions:
+because the encrypted and unencrypted scores agree to within CKKS
+approximation error we answer them in the clear — fast enough to average
+over many queries and trace stable curves. Three questions:
 
 1.  **Fidelity.** When the drift is genuinely non-isometric, does a
     near-orthogonal or least-squares adapter recover retrieval that the
@@ -566,19 +573,20 @@ is the wrong tool for a public-query retrieval (see the discussion).
   Any subset short of the full $`n`$ cannot decrypt anything along the
   way.
 - **Diagonal-encoded matvec under threshold CKKS.** A $`p \times p`$
-  matrix–vector multiply on a slot-batched ciphertext, implemented as
-  $`p`$ rotations + $`p`$ plaintext- multiplies + $`p`$
-  ciphertext-additions at depth one. The joint rotation keys for the
-  cyclic-slot rotations come from an $`n`$-of-$`n`$ ceremony that
-  mirrors the encryption-key ceremony.
+  matrix–vector multiply on an encrypted vector, implemented as $`p`$
+  rotations, $`p`$ multiplications by unencrypted vectors, and $`p`$
+  encrypted additions, all within one level of the precision budget. The
+  joint rotation keys for the cyclic-slot rotations come from an
+  $`n`$-of-$`n`$ ceremony that mirrors the encryption-key ceremony.
 - **Inner-product reduction via $`\log p`$ rotation-and-add.** Slot-wise
-  multiply by the plaintext database vector followed by a halve-and-fold
-  reduction places the cosine similarity in slot 0.
-- **Top-$`k`$ over plaintext indices, scores threshold-decrypted.**
-  Local patient indices stay plaintext at each site; only the similarity
-  scores are encrypted, and the threshold ceremony reveals plaintext
-  only for the released top-$`k`$. The encrypted protocol’s output
-  agrees with its plaintext reference to $`\sim 10^{-11}`$.
+  multiply by the site’s own unencrypted database vector followed by a
+  halve-and-fold reduction places the cosine similarity in slot 0.
+- **Top-$`k`$ over cleartext indices, scores threshold-decrypted.**
+  Local patient indices stay in the clear at each site; only the
+  similarity scores are encrypted, and the threshold ceremony reveals
+  values only for the released top-$`k`$. The encrypted protocol’s
+  output agrees with the same computation run unencrypted to
+  $`\sim 10^{-11}`$.
 - **Fidelity under non-isometric drift.** When fine-tuning is a genuine
   non-isometry, the rigid orthogonal endpoint leaves recall on the table
   while a relaxed (least-squares or near-orthogonal) adapter tracks the
@@ -597,7 +605,7 @@ is the wrong tool for a public-query retrieval (see the discussion).
 
 ## Limitations
 
-- **Encrypted top-$`k`$ selection.** We sort plaintext-side after
+- **Encrypted top-$`k`$ selection.** We sort in the clear after
   threshold decrypting the per-patient scores. Encrypted argmax /
   top-$`k`$ via polynomial sign approximation is feasible in CKKS but
   adds depth and complexity orthogonal to this vignette’s pedagogical
@@ -619,10 +627,10 @@ is the wrong tool for a public-query retrieval (see the discussion).
   posture, with offline folding as the release valve — not a single
   forced choice.
 - **Slot-tiling for production scale.** The vignette runs at $`p = 32`$
-  with one ciphertext per database vector. Production at $`p = 512`$
-  would pack many database vectors per ciphertext via slot tiling,
-  amortizing the matvec and inner-product cost across patients within a
-  site.
+  with one encrypted value per database vector. Production at
+  $`p = 512`$ would pack many database vectors into the slots of a
+  single encrypted value, amortizing the matvec and inner-product cost
+  across patients within a site.
 - **Real-model validation.** The synthetic data above drifts by a
   parameterized non-isometric $`B_k = Q_k D_k`$, a controllable stand-in
   for free fine-tuning. Real fine-tuned foundation models (BiomedCLIP
@@ -638,7 +646,7 @@ is the wrong tool for a public-query retrieval (see the discussion).
 - **Malicious-secure threshold protocol.** The trust model here is
   honest-but-curious. A malicious-secure variant would require
   zero-knowledge proofs of correct partial decryption and verifiable
-  computation on the score ciphertexts; that is heavy machinery and out
+  computation on the encrypted scores; that is heavy machinery and out
   of scope.
 
 ## Where this fits

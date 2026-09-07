@@ -7,7 +7,7 @@ This vignette is a **demonstration**, not a recommendation.
 shows the lossless consensus-ADMM protocol over the threshold-FHE
 channel: bit-identical to the centralized CVXR fit, no single decrypter,
 residuals drive convergence. The aggregator sees the full trajectory
-$`\{z^k\}`$ as plaintext after each iteration’s threshold fusion.
+$`\{z^k\}`$ in the clear after each iteration’s threshold fusion.
 
 A natural question is whether one can compose that lossless channel with
 **output differential privacy** to bound the trajectory leakage
@@ -50,7 +50,7 @@ Distributing the noise across sites (rather than centralizing it at the
 aggregator) means:
 
 1.  No single point ever holds the noiseless value. Even if the
-    aggregator is compromised it sees only ciphertexts of *noised*
+    aggregator is compromised it sees only encrypted *noised*
     contributions until the final fusion.
 2.  The trust model matches `cox-threshold-dp`: each site is its own
     randomness boundary.
@@ -132,7 +132,7 @@ sanity check that the DP mechanism is a no-op when off.
 
 `clean_dev`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``sweep_results``[[``1``]``]``$``z`` ``-`` ``beta_central``)``)`` ``agree_tol`` ``<-`` ``10`` ``*`` ``tol`` ``if`` ``(``clean_dev`` ``>`` ``agree_tol``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"DP-ADMM at sigma = 0 disagrees with the centralized fit."``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"``,`` `` ``clean_dev``, ``agree_tol``)``)`
 
-    ## Sigma = 0 max coefficient deviation: 8.65e-05 (tol 1e-02)
+    ## Sigma = 0 max coefficient deviation: 8.66e-05 (tol 1e-02)
 
 ## Summary table
 
@@ -140,12 +140,12 @@ sanity check that the DP mechanism is a no-op when off.
 
 |              | sigma | intercept |       age |       bmi |      sex |  max_dev |
 |:-------------|------:|----------:|----------:|----------:|---------:|---------:|
-| sigma=0      | 0e+00 | -0.591018 |  0.402617 | -0.325959 | 0.641609 | 0.000086 |
-| sigma=0.0001 | 1e-04 | -0.591025 |  0.402669 | -0.325837 | 0.641469 | 0.000146 |
-| sigma=0.001  | 1e-03 | -0.591691 |  0.401580 | -0.326374 | 0.643028 | 0.001464 |
-| sigma=0.01   | 1e-02 | -0.605935 |  0.407191 | -0.318838 | 0.657241 | 0.015677 |
-| sigma=0.1    | 1e-01 | -0.777970 |  0.401483 | -0.382908 | 0.519775 | 0.186865 |
-| sigma=1      | 1e+00 | -0.461572 | -0.677927 | -0.499757 | 1.302194 | 1.080601 |
+| sigma=0      | 0e+00 | -0.591018 |  0.402617 | -0.325959 | 0.641609 | 0.000087 |
+| sigma=0.0001 | 1e-04 | -0.591025 |  0.402670 | -0.325838 | 0.641469 | 0.000145 |
+| sigma=0.001  | 1e-03 | -0.591691 |  0.401580 | -0.326375 | 0.643028 | 0.001464 |
+| sigma=0.01   | 1e-02 | -0.605935 |  0.407191 | -0.318839 | 0.657241 | 0.015677 |
+| sigma=0.1    | 1e-01 | -0.777970 |  0.401483 | -0.382908 | 0.519775 | 0.186866 |
+| sigma=1      | 1e+00 | -0.461572 | -0.677929 | -0.499757 | 1.302195 | 1.080603 |
 | centralized  |    NA | -0.591104 |  0.402674 | -0.325983 | 0.641564 | 0.000000 |
 
 DP-ADMM coefficients vs centralized CVXR {.table style="width:100%;"}

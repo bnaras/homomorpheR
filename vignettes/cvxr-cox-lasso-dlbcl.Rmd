@@ -1,5 +1,5 @@
 ---
-title: "Federated Cox-Lasso via Consensus ADMM on DLBCL (Threshold CKKS)"
+title: "Federated Cox-Lasso via Consensus ADMM on DLBCL"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Federated Cox-Lasso via Consensus ADMM on DLBCL (Threshold CKKS)}
+  %\VignetteIndexEntry{Federated Cox-Lasso via Consensus ADMM on DLBCL}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -87,12 +87,12 @@ iteration but the symbolic structure does not.
 
 We develop the fit in two passes. First we run the whole thing **in the
 clear** to fix the target: standardize, screen, and solve the consensus
-ADMM with an ordinary plaintext average, checking against the
+ADMM with an ordinary unencrypted average, checking against the
 centralized [CVXR][] solve. Then we put it **under threshold FHE**,
 replacing each cross-site sum — the standardization moments, the
 screening statistics, and the per-iteration consensus average — with
 one round of the encrypted-summation primitive, and confirm the
-encrypted fit reproduces the plaintext reference.
+encrypted fit reproduces the in-the-clear reference.
 
 > **Reproducibility and verification.** The code chunks in this
 > vignette *are* the pipeline; they are gated `eval = RECOMPUTE` and do
@@ -324,8 +324,8 @@ deliberately agnostic to *how* the cross-site average is formed: the
 `consensus` argument is a function of the per-site $(x_k,u_k)$ vectors,
 and everything else — the local [CVXR][] solves, the soft-threshold
 $z$-update, the dual update, the stopping rule — is ordinary R. We call
-it once now with a plaintext average and, unchanged, once more under
-encryption.
+it once now with an unencrypted average and, unchanged, once more
+under encryption.
 
 A note on the constants. We fix $\rho = `r RHO`$ and a cap of
 `r MAX_ITER` iterations. The dual residual $\rho\lVert z^{t+1}-z^t\rVert$
@@ -372,7 +372,7 @@ z_ref <- ref$z
 ```
 
 In the clear the consensus is a single line — the average of the
-$(x_k+u_k)$ vectors. The plaintext ADMM converges in `r n_iter_ref`
+$(x_k+u_k)$ vectors. The unencrypted ADMM converges in `r n_iter_ref`
 iterations and matches the centralized [CVXR][] fit to
 `r signif(max(abs(z_ref - agg_beta)), 2)` in maximum absolute
 coefficient difference, so `agg_beta` — equivalently `z_ref` — is the
@@ -386,7 +386,7 @@ at each ADMM iteration, the consensus sum $\sum_k(x_k+u_k)$. Each is a
 sum over sites, so each becomes one round of the same threshold-FHE
 summation primitive the master/worker fits use: every site encrypts its
 contribution under the joint public key, the aggregator adds the
-ciphertexts, and the total is recovered by $n$-of-$n$ partial
+encrypted contributions, and the total is recovered by $n$-of-$n$ partial
 decryption. The local [CVXR][] work and `run_admm` are untouched.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
@@ -424,7 +424,7 @@ encrypt_pool <- function(master, sites, n_total, p_raw) {
 fhe_pool <- encrypt_pool(master, sites_raw, N_total, P_raw)
 ```
 
-The encrypted moments agree with the plaintext `pool` to
+The encrypted moments agree with the unencrypted `pool` to
 `r signif(cvxr_consensus$pool_agree$mu, 2)` (mean) and
 `r signif(cvxr_consensus$pool_agree$sigma, 2)` (SD) — essentially
 machine precision, since these are exact sums under CKKS. The screening
@@ -449,8 +449,9 @@ stopifnot(setequal(fhe_top, top_idx))   # same probes as the plaintext screen
 
 With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`: encrypt each $(x_k+u_k)$, sum the ciphertexts, scale
-by $1/N$ under encryption (one ciphertext-plaintext multiply, depth 1),
+`plain_consensus`: encrypt each $(x_k+u_k)$, sum the encrypted
+vectors, scale by $1/N$ under encryption (one multiplication by an
+unencrypted constant, which costs one level of the precision budget),
 and threshold-decrypt the length-$K$ average. Soft-thresholding stays in
 the clear at the aggregator.
 
@@ -488,7 +489,7 @@ cvxr_consensus <- list(
 
 Passing `encrypted_consensus` in place of `plain_consensus` is the
 *entire* change. The encrypted ADMM ran for `r n_iter_enc` iterations
-and lands on the same coefficients as the plaintext run, differing by
+and lands on the same coefficients as the unencrypted run, differing by
 only `r signif(max(abs(z_enc - z_ref)), 2)` — the CKKS approximation
 noise.
 
@@ -561,7 +562,7 @@ recover any intermediate quantity unilaterally.
    `Problem(Minimize(...))` is used verbatim, and `run_admm` is called
    with `encrypted_consensus` instead of `plain_consensus`.
 2. **The encrypted layer is lossless to working precision.** The
-   encrypted fit reproduces the plaintext ADMM to
+   encrypted fit reproduces the unencrypted ADMM to
    `r signif(max(abs(z_enc - z_ref)), 2)` and recovers the identical
    active set; the residual gap to the one-shot centralized solve
    (`r signif(max(abs(z_ref - agg_beta)), 2)`) is the ADMM iteration
@@ -580,7 +581,7 @@ recover any intermediate quantity unilaterally.
   $(x_k+u_k)$ can corrupt the consensus; detecting this needs
   commitments / zero-knowledge proofs not implemented here.
 - **The aggregator sees the trajectory $\{z^t\}$.** Per-iteration
-  consensus values are revealed in plaintext (after fusion) so the loop
+  consensus values are revealed in the clear (after fusion) so the loop
   can decide convergence.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the same
   coefficient vector as the centralized fit; output-level protection is

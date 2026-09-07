@@ -46,6 +46,16 @@ ThresholdMaster(
   a list of per-site secret keys, in site order (the first is the lead
   site whose `sk` started the chain).
 
+## Value
+
+an S7 object of class `ThresholdMaster`, inheriting from
+[Master](https://bnaras.github.io/homomorpheR/reference/Master.md), with
+properties `name`, `crypto_context`, `joint_pubkey`, `secret_keys` and
+`state`. There is no single secret key: `secret_keys` holds one share
+per site and decryption fuses partial decryptions from all of them, so
+no party can decrypt alone. Construct with
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md).
+
 ## Details
 
 Constructed by

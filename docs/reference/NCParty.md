@@ -30,6 +30,14 @@ NCParty(name = character(0), number = integer(0), state = NULL)
   an environment for mutable bookkeeping (the list of sites it manages,
   public key). Default: a fresh empty env.
 
+## Value
+
+an S7 object of class `NCParty` with properties `name`, `number` and
+`state`. `number` (1 or 2) records which of the two additive shares this
+party receives; `state` holds the sites it manages and the public key.
+Construct with
+[`make_ncparty()`](https://bnaras.github.io/homomorpheR/reference/make_ncparty.md).
+
 ## Details
 
 Part of the frozen Paillier-era legacy surface: the NCP masking

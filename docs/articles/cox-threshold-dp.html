@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold-dp.Rmd" class="external-link"><code>vignettes/cox-threshold-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold-dp.Rmd</code></div>
@@ -272,7 +283,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638716</td>
 <td align="right">-0.2638698</td>
-<td align="right">1.823e-06</td>
+<td align="right">1.822e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
@@ -370,24 +381,24 @@ threshold-DP encrypted nLL.</p>
 <tr class="even">
 <td align="left">sigma_0.001</td>
 <td align="right">1e-03</td>
-<td align="right">95</td>
-<td align="right">-0.255596</td>
-<td align="right">-0.257797</td>
-<td align="right">0.284336</td>
-<td align="right">0.305723</td>
-<td align="right">-0.320768</td>
-<td align="right">0.018790</td>
+<td align="right">188</td>
+<td align="right">-0.261850</td>
+<td align="right">-0.257345</td>
+<td align="right">0.297219</td>
+<td align="right">0.307649</td>
+<td align="right">-0.320030</td>
+<td align="right">0.005907</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="right">1e-02</td>
-<td align="right">300</td>
-<td align="right">-0.240806</td>
-<td align="right">-0.266638</td>
-<td align="right">0.296517</td>
-<td align="right">0.312648</td>
-<td align="right">-0.340970</td>
-<td align="right">0.023065</td>
+<td align="right">192</td>
+<td align="right">-0.208114</td>
+<td align="right">-0.227125</td>
+<td align="right">0.345950</td>
+<td align="right">0.328699</td>
+<td align="right">-0.350792</td>
+<td align="right">0.055757</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -581,19 +592,19 @@ zCDP composition gives:</p>
 <td align="left">sigma_0.001</td>
 <td align="left">BFGS</td>
 <td align="right">1e-03</td>
-<td align="right">95</td>
+<td align="right">188</td>
 <td align="right">5e+05</td>
-<td align="right">4.750e+07</td>
-<td align="right">4.754677e+07</td>
+<td align="right">9.400e+07</td>
+<td align="right">9.406579e+07</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="left">BFGS</td>
 <td align="right">1e-02</td>
-<td align="right">300</td>
+<td align="right">192</td>
 <td align="right">5e+03</td>
-<td align="right">1.500e+06</td>
-<td align="right">1.508311e+06</td>
+<td align="right">9.600e+05</td>
+<td align="right">9.666490e+05</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -743,7 +754,7 @@ Privacy.</em> CCS. The DP-SGD paper.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

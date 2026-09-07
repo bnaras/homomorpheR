@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Threshold Cox + Output DP (Demonstration)}
+  %\VignetteIndexEntry{Threshold Cox + Output Differential Privacy (Demonstration)}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

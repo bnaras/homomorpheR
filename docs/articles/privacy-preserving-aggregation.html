@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Privacy-Preserving Count Aggregation under BFV • homomorpheR</title>
+<title>Privacy-Preserving Count Aggregation • homomorpheR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Privacy-Preserving Count Aggregation under BFV">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Privacy-Preserving Count Aggregation">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -71,11 +82,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Privacy-Preserving Count Aggregation under BFV</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Privacy-Preserving Count Aggregation</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/privacy-preserving-aggregation.Rmd" class="external-link"><code>vignettes/privacy-preserving-aggregation.Rmd</code></a></small>
       <div class="d-none name"><code>privacy-preserving-aggregation.Rmd</code></div>
@@ -90,7 +101,7 @@ Narasimhan</h4>
 <em>total count</em> of patients matching a criterion (say
 “<code>age &lt; 50</code> and <code>sex == 'F'</code> and
 <code>biomarker &lt; 0.2</code>”) without revealing the individual
-per-site counts to anyone, including the coordinator running the
+per-site counts to anyone, including the aggregator running the
 aggregation.</p>
 <p>This is the same pattern the Paillier vignette
 <code>vignette("QueryNCP")</code> demonstrates with non-cooperating
@@ -119,7 +130,7 @@ sufficient statistics CKKS is the right choice.</p>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="the-coordinator-sets-up-encryption">The coordinator sets up encryption<a class="anchor" aria-label="anchor" href="#the-coordinator-sets-up-encryption"></a>
+<h2 id="the-aggregator-sets-up-encryption">The aggregator sets up encryption<a class="anchor" aria-label="anchor" href="#the-aggregator-sets-up-encryption"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## BFV: exact integer arithmetic mod plaintext_modulus.</span></span>
@@ -130,10 +141,10 @@ sufficient statistics CKKS is the right choice.</p>
 <span></span>
 <span><span class="va">pk</span> <span class="op">&lt;-</span> <span class="va">keys</span><span class="op">@</span><span class="va">public</span></span>
 <span><span class="va">sk</span> <span class="op">&lt;-</span> <span class="va">keys</span><span class="op">@</span><span class="va">secret</span></span></code></pre></div>
-<p>In a real deployment the coordinator distributes the public key (and
+<p>In a real deployment the aggregator distributes the public key (and
 the serialized context) to each site. The secret key stays with the
-coordinator. We simulate this in one R session by sharing
-<code>cc</code> and <code>pk</code> locally.</p>
+aggregator. We simulate this in one R session by sharing <code>cc</code>
+and <code>pk</code> locally.</p>
 </div>
 <div class="section level2">
 <h2 id="each-site-computes-locally-and-encrypts">Each site computes locally and encrypts<a class="anchor" aria-label="anchor" href="#each-site-computes-locally-and-encrypts"></a>
@@ -150,17 +161,17 @@ coordinator. We simulate this in one R session by sharing
 <span><span class="va">ct_site1</span> <span class="op">&lt;-</span> <span class="fu">site_encrypt</span><span class="op">(</span><span class="va">site_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">cc</span>, <span class="va">pk</span><span class="op">)</span></span>
 <span><span class="va">ct_site2</span> <span class="op">&lt;-</span> <span class="fu">site_encrypt</span><span class="op">(</span><span class="va">site_data</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>, <span class="va">cc</span>, <span class="va">pk</span><span class="op">)</span></span>
 <span><span class="va">ct_site3</span> <span class="op">&lt;-</span> <span class="fu">site_encrypt</span><span class="op">(</span><span class="va">site_data</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span>, <span class="va">cc</span>, <span class="va">pk</span><span class="op">)</span></span></code></pre></div>
-<p>These ciphertexts are opaque to the coordinator — they learn nothing
-about individual site counts.</p>
+<p>These encrypted counts are opaque to the aggregator — it learns
+nothing about any individual site’s count.</p>
 </div>
 <div class="section level2">
-<h2 id="the-coordinator-aggregates">The coordinator aggregates<a class="anchor" aria-label="anchor" href="#the-coordinator-aggregates"></a>
+<h2 id="the-aggregator-aggregates">The aggregator aggregates<a class="anchor" aria-label="anchor" href="#the-aggregator-aggregates"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Homomorphic addition: the coordinator never decrypts intermediate values.</span></span>
+<code class="sourceCode R"><span><span class="co">## Homomorphic addition: the aggregator never decrypts intermediate values.</span></span>
 <span><span class="va">ct_total</span> <span class="op">&lt;-</span> <span class="va">ct_site1</span> <span class="op">+</span> <span class="va">ct_site2</span> <span class="op">+</span> <span class="va">ct_site3</span></span>
 <span></span>
-<span><span class="co">## Only the coordinator holds the secret key.</span></span>
+<span><span class="co">## Only the aggregator holds the secret key.</span></span>
 <span><span class="va">result</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_total</span>, <span class="va">sk</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="va">total_count</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html" class="external-link">get_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">total_count</span></span></code></pre></div>
@@ -177,30 +188,31 @@ about individual site counts.</p>
 <pre><code><span><span class="co">## [1] 105</span></span></code></pre>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">total_count</span> <span class="op">==</span> <span class="va">true_count</span><span class="op">)</span></span></code></pre></div>
-<p>The aggregated count matches the cleartext computation exactly — BFV
-is <em>exact</em> over its integer plaintext space.</p>
+<p>The aggregated count matches the cleartext computation exactly. BFV
+is an <em>exact</em> scheme over the integers: unlike the real-valued
+arithmetic used elsewhere in this package, it introduces no
+approximation error at all.</p>
 </div>
 <div class="section level2">
 <h2 id="what-just-happened">What just happened<a class="anchor" aria-label="anchor" href="#what-just-happened"></a>
 </h2>
 <ol style="list-style-type: decimal">
-<li>The coordinator created an encryption context and distributed the
+<li>The aggregator created an encryption context and distributed the
 <strong>public key</strong> to all sites.</li>
 <li>Each site computed its local count in the clear, encrypted it, and
-sent the ciphertext to the coordinator.</li>
-<li>The coordinator added the encrypted counts using <code>+</code> —
-BFV’s homomorphic addition makes this equivalent to adding the
-plaintexts.</li>
-<li>Only the coordinator, holding the <strong>secret key</strong>, could
+sent the encrypted count to the aggregator.</li>
+<li>The aggregator added the encrypted counts using <code>+</code>,
+which gives the same answer as adding the counts themselves.</li>
+<li>Only the aggregator, holding the <strong>secret key</strong>, could
 decrypt the total.</li>
 </ol>
-<p>No site revealed its individual count. The coordinator never saw any
+<p>No site revealed its individual count. The aggregator never saw any
 patient-level data. The total is exact.</p>
 </div>
 <div class="section level2">
 <h2 id="serializing-for-a-real-distributed-protocol">Serializing for a real distributed protocol<a class="anchor" aria-label="anchor" href="#serializing-for-a-real-distributed-protocol"></a>
 </h2>
-<p>In a real deployment each site needs the coordinator’s context and
+<p>In a real deployment each site needs the aggregator’s context and
 public key. <code>openfhe.R</code> provides serialization:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tdir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -236,9 +248,10 @@ variances, more complex integer-valued aggregates.</li>
 orders of magnitude faster than pure-R Paillier on
 <code><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">gmp::bigz</a></code>.</li>
 <li>
-<strong>SIMD packing</strong> — BFV encrypts integer vectors;
-multiple per-site counts can ride in the slots of a single ciphertext
-for parallel aggregation.</li>
+<strong>Packing</strong> — BFV encrypts whole integer vectors, and
+one arithmetic operation acts on every position at once. Several
+per-site counts can therefore ride in the slots of a single encrypted
+value and be aggregated together.</li>
 <li>
 <strong>Threshold FHE</strong> — <code><a href="https://openfheorg.github.io/openfhe.R/reference/multiparty_key_gen.html" class="external-link">multiparty_key_gen()</a></code>
 lets the secret key be split across parties so no single party can
@@ -257,7 +270,7 @@ the master/worker analogue under CKKS.)</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

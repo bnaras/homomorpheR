@@ -39,7 +39,7 @@ The end of the `cox` vignette flagged this:
 > **Threshold key generation**: in a real deployment, the secret key
 > would be split across the sites (n-of-n threshold) so that no
 > single party — not even the master — can decrypt intermediate
-> ciphertexts unilaterally.
+> values unilaterally.
 
 This vignette implements exactly that. Three sites jointly generate
 a CKKS key pair so that no single party holds the joint secret key.
@@ -62,18 +62,18 @@ Three sites and one untrusted aggregator:
   contributions, sums them homomorphically, and broadcasts the sum
   back for partial decryption. It is *fully untrusted*: a curious
   or compromised aggregator gains no information from the
-  ciphertexts it processes.
+  encrypted values it processes.
 
 What the aggregator sees, by stage:
 1. Encrypted local contributions $\mathit{ct}_i = E_{\mathit{pk}_{1..n}}(\ell_i)$. None decryptable alone.
 2. The encrypted sum $\mathit{ct}_{\text{sum}} = \boxplus_i \mathit{ct}_i$. Not decryptable alone.
 3. Partial decryptions $\rho_i$ contributed by each site. Not decryptable individually.
-4. After fusion, the *plaintext sum* $\ell(\beta) = \sum_i \ell_i$. This appears at the aggregator only after step 4.
+4. After fusion, the *sum in the clear* $\ell(\beta) = \sum_i \ell_i$. This appears at the aggregator only after step 4.
 
 Step 4 reveals $\ell(\beta)$ to the aggregator — the same thing the
 master saw in `vignette("cox")`. The strict improvement is that
 *nobody else* can decrypt anything along the way: a captured log of
-ciphertexts or partial decryptions is useless without the joint
+encrypted values or partial decryptions is useless without the joint
 fusion.
 
 ## The Cox setup (same DLBCL data as `cox.Rmd`)

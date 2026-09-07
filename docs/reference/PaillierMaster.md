@@ -41,3 +41,13 @@ PaillierMaster(
   denominator used to scale fractional parts when encrypting real
   numbers via
   [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md).
+
+## Value
+
+an S7 object of class `PaillierMaster`, inheriting from
+[Master](https://bnaras.github.io/homomorpheR/reference/Master.md), with
+properties `name`, `keypair`, `den` and `state`: the
+[PaillierKeyPair](https://bnaras.github.io/homomorpheR/reference/PaillierKeyPair.md)
+the protocol encrypts under, and the denominator used to scale
+fractional parts when encrypting reals. Construct with
+[`make_master()`](https://bnaras.github.io/homomorpheR/reference/make_master.md).

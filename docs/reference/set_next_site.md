@@ -22,3 +22,9 @@ set_next_site(obj, ...)
 
   method-specific arguments. The Site/Master methods take a single
   `next_site`.
+
+## Value
+
+the object `obj`, invisibly. Called for its side effect: `next_site` is
+recorded in `obj`'s `state` environment, forming one link of the
+round-robin chain.

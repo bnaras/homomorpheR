@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Federated Consensus ADMM with CVXR over Threshold CKKS • homomorpheR</title>
+<title>Federated Consensus ADMM with CVXR • homomorpheR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Federated Consensus ADMM with CVXR over Threshold CKKS">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Federated Consensus ADMM with CVXR">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -71,11 +82,11 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Federated Consensus ADMM with CVXR over Threshold CKKS</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Federated Consensus ADMM with CVXR</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm.Rmd</code></div>
@@ -298,13 +309,11 @@ This is a
 length-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
 vector average: pack each site’s
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">x_i + u_i</annotation></semantics></math>
-into a
-length-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
-packed plaintext, encrypt under the joint public key, sum the
-ciphertexts, multiply by the plaintext constant
+into the slots of one value, encrypt under the joint public key, sum the
+encrypted vectors, multiply by the unencrypted constant
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">1/N</annotation></semantics></math>
-(one ciphertext-plaintext multiplication, depth 1), and
-threshold-decrypt the result.</p>
+(one multiplication by a cleartext value, costing a single level of the
+precision budget), and threshold-decrypt the result.</p>
 <p>We use the same threshold infrastructure as
 <code>cox-threshold.Rmd</code>: a CKKS context with
 <code>Feature$MULTIPARTY</code> enabled and
@@ -339,7 +348,7 @@ aggregator recovers the <em>new consensus</em>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>z</mi><mi>k</mi></msup><annotation encoding="application/x-tex">z^k</annotation></semantics></math>
 exactly. The per-site
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_i + u_i)</annotation></semantics></math>
-vectors never appear in plaintext anywhere — additions and the scalar
+vectors never appear in the clear anywhere — additions and the scalar
 multiply happen under encryption, and the decryption is n-of-n. A
 subpoena to the aggregator yields the trajectory
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msup><mi>z</mi><mi>k</mi></msup><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{z^k\}</annotation></semantics></math>
@@ -536,7 +545,7 @@ then the main loop:</p>
 <td align="left">beta_2</td>
 <td align="right">-0.939203</td>
 <td align="right">-0.939209</td>
-<td align="right">5e-06</td>
+<td align="right">6e-06</td>
 </tr>
 <tr class="odd">
 <td align="left">beta_3</td>
@@ -546,9 +555,9 @@ then the main loop:</p>
 </tr>
 <tr class="even">
 <td align="left">beta_4</td>
-<td align="right">0.659836</td>
+<td align="right">0.659835</td>
 <td align="right">0.659840</td>
-<td align="right">4e-06</td>
+<td align="right">5e-06</td>
 </tr>
 </tbody>
 </table>
@@ -556,7 +565,7 @@ then the main loop:</p>
 <code class="sourceCode R"><span><span class="va">max_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_curr</span> <span class="op">-</span> <span class="va">beta_central</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Max absolute coefficient difference vs. centralized fit: %.2e\n"</span>,</span>
 <span>            <span class="va">max_diff</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.40e-06</span></span></code></pre>
+<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.58e-06</span></span></code></pre>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">max_diff</span> <span class="op">&gt;</span> <span class="fl">10</span> <span class="op">*</span> <span class="va">reltol</span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "</span>,</span>
@@ -599,7 +608,7 @@ zero-knowledge proofs that this vignette does not implement.</li>
 <li>
 <strong>The aggregator sees the trajectory
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msup><mi>z</mi><mi>k</mi></msup><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{z^k\}</annotation></semantics></math>.</strong>
-Per-iteration consensus values are revealed in plaintext (after fusion)
+Per-iteration consensus values are revealed in the clear (after fusion)
 so the optimizer can decide convergence. A subpoena to the aggregator
 yields this trajectory.</li>
 <li>
@@ -621,7 +630,7 @@ ported) demonstrate output DP composition.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

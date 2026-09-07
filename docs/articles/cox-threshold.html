@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold.Rmd" class="external-link"><code>vignettes/cox-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold.Rmd</code></div>
@@ -97,8 +108,8 @@ it shouldn’t.</p>
 <blockquote>
 <p><strong>Threshold key generation</strong>: in a real deployment, the
 secret key would be split across the sites (n-of-n threshold) so that no
-single party — not even the master — can decrypt intermediate
-ciphertexts unilaterally.</p>
+single party — not even the master — can decrypt intermediate values
+unilaterally.</p>
 </blockquote>
 <p>This vignette implements exactly that. Three sites jointly generate a
 CKKS key pair so that no single party holds the joint secret key. The
@@ -126,7 +137,7 @@ aggregator.</li>
 receives encrypted contributions, sums them homomorphically, and
 broadcasts the sum back for partial decryption. It is <em>fully
 untrusted</em>: a curious or compromised aggregator gains no information
-from the ciphertexts it processes.</li>
+from the encrypted values it processes.</li>
 </ul>
 <p>What the aggregator sees, by stage: 1. Encrypted local contributions
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mi>i</mi></msub><mo>=</mo><msub><mi>E</mi><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mrow><mn>1</mn><mi>.</mi><mi>.</mi><mi>n</mi></mrow></msub></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>ℓ</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathit{ct}_i = E_{\mathit{pk}_{1..n}}(\ell_i)</annotation></semantics></math>.
@@ -135,7 +146,7 @@ None decryptable alone. 2. The encrypted sum
 Not decryptable alone. 3. Partial decryptions
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ρ</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\rho_i</annotation></semantics></math>
 contributed by each site. Not decryptable individually. 4. After fusion,
-the <em>plaintext sum</em>
+the <em>sum in the clear</em>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>ℓ</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\ell(\beta) = \sum_i \ell_i</annotation></semantics></math>.
 This appears at the aggregator only after step 4.</p>
 <p>Step 4 reveals
@@ -143,7 +154,7 @@ This appears at the aggregator only after step 4.</p>
 to the aggregator — the same thing the master saw in
 <code><a href="../articles/cox.html">vignette("cox")</a></code>. The strict improvement is that <em>nobody
 else</em> can decrypt anything along the way: a captured log of
-ciphertexts or partial decryptions is useless without the joint
+encrypted values or partial decryptions is useless without the joint
 fusion.</p>
 </div>
 <div class="section level2">
@@ -278,7 +289,7 @@ changed.</p>
 <span><span class="co">##              Estimate Std. Error</span></span>
 <span><span class="co">## GCB_sig    -0.2638698 0.11940447</span></span>
 <span><span class="co">## LN_sig     -0.2543587 0.08515178</span></span>
-<span><span class="co">## Prolif_sig  0.3031250 0.14981284</span></span>
+<span><span class="co">## Prolif_sig  0.3031250 0.14981283</span></span>
 <span><span class="co">## BMP6        0.3036367 0.10727837</span></span>
 <span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span>
 <span><span class="co">## </span></span>
@@ -340,7 +351,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638698</td>
 <td align="right">-0.2638716</td>
-<td align="right">1.823e-06</td>
+<td align="right">1.822e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
@@ -444,7 +455,7 @@ model.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -1,4 +1,4 @@
-# Federated Cox-Lasso via Consensus ADMM on DLBCL (Threshold CKKS)
+# Federated Cox-Lasso via Consensus ADMM on DLBCL
 
 ## Introduction
 
@@ -30,12 +30,12 @@ structure does not.
 
 We develop the fit in two passes. First we run the whole thing **in the
 clear** to fix the target: standardize, screen, and solve the consensus
-ADMM with an ordinary plaintext average, checking against the
+ADMM with an ordinary unencrypted average, checking against the
 centralized [CVXR](https://cvxr.rbind.io) solve. Then we put it **under
 threshold FHE**, replacing each cross-site sum — the standardization
 moments, the screening statistics, and the per-iteration consensus
 average — with one round of the encrypted-summation primitive, and
-confirm the encrypted fit reproduces the plaintext reference.
+confirm the encrypted fit reproduces the in-the-clear reference.
 
 > **Reproducibility and verification.** The code chunks in this vignette
 > *are* the pipeline; they are gated `eval = RECOMPUTE` and do not run
@@ -160,8 +160,8 @@ deliberately agnostic to *how* the cross-site average is formed: the
 `consensus` argument is a function of the per-site $`(x_k,u_k)`$
 vectors, and everything else — the local [CVXR](https://cvxr.rbind.io)
 solves, the soft-threshold $`z`$-update, the dual update, the stopping
-rule — is ordinary R. We call it once now with a plaintext average and,
-unchanged, once more under encryption.
+rule — is ordinary R. We call it once now with an unencrypted average
+and, unchanged, once more under encryption.
 
 A note on the constants. We fix $`\rho = 50`$ and a cap of 200
 iterations. The dual residual $`\rho\lVert z^{t+1}-z^t\rVert`$ is the
@@ -174,7 +174,7 @@ tightest agreement with the centralized solve.
 `MAX_ITER`` ``<-`` ``200L``; ``TOL`` ``<-`` ``5e-3`` ``soft_threshold`` ``<-`` ``function``(``v``, ``tau``)`` `[`sign`](https://rdrr.io/r/base/sign.html)`(``v``)`` ``*`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``v``)`` ``-`` ``tau``, ``0``)`` `` ``run_admm`` ``<-`` ``function``(``sites_problem``, ``consensus``)`` ``{`` `` ``site_x`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`` `` ``site_u`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`` `` ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``; ``trajectory`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``iter`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``MAX_ITER``)``)`` ``{`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N_sites``)``)`` ``{`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``zp``)`` ``<-`` ``z_curr`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``up``)`` ``<-`` ``site_u``[[``i``]``]`` `` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``sites_problem``[[``i``]``]``$``prob``, solver ``=`` ``"CLARABEL"``,`` `` verbose ``=`` ``FALSE``)``)``)`` `` ``site_x``[[``i``]``]`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``x``)``)`` `` ``}`` `` ``w_avg`` ``<-`` ``consensus``(``site_x``, ``site_u``)`` `` ``z_new`` ``<-`` ``soft_threshold``(``w_avg``, ``LAMBDA`` ``/`` ``(``N_sites`` ``*`` ``RHO``)``)`` `` ``site_u`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``function``(``u``, ``x``)`` ``u`` ``+`` ``(``x`` ``-`` ``z_new``)``, ``site_u``, ``site_x``)`` `` ``primal`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``site_x``, ``function``(``x``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``x`` ``-`` ``z_new``)``^``2``)``, ``0``)``)``)`` `` ``dual`` ``<-`` ``RHO`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`` `` ``z_curr`` ``<-`` ``z_new``; ``trajectory``[[``iter``]``]`` ``<-`` ``z_new`` `` ``if`` ``(``primal`` ``<`` ``TOL`` ``&&`` ``dual`` ``<`` ``TOL``)`` ``break`` `` ``}`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z_curr``, trajectory ``=`` ``trajectory``)`` ``}`` `` ``plain_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` `` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`Map`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``site_x``, ``site_u``)``)`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)`` `` ``ref`` ``<-`` ``run_admm``(``sites_problem``, ``plain_consensus``)`` ``z_ref`` ``<-`` ``ref``$``z`
 
 In the clear the consensus is a single line — the average of the
-$`(x_k+u_k)`$ vectors. The plaintext ADMM converges in 147 iterations
+$`(x_k+u_k)`$ vectors. The unencrypted ADMM converges in 147 iterations
 and matches the centralized [CVXR](https://cvxr.rbind.io) fit to
 8.3^{-4} in maximum absolute coefficient difference, so `agg_beta` —
 equivalently `z_ref` — is the target the encrypted protocol must
@@ -188,9 +188,9 @@ and, at each ADMM iteration, the consensus sum $`\sum_k(x_k+u_k)`$. Each
 is a sum over sites, so each becomes one round of the same threshold-FHE
 summation primitive the master/worker fits use: every site encrypts its
 contribution under the joint public key, the aggregator adds the
-ciphertexts, and the total is recovered by $`n`$-of-$`n`$ partial
-decryption. The local [CVXR](https://cvxr.rbind.io) work and `run_admm`
-are untouched.
+encrypted contributions, and the total is recovered by $`n`$-of-$`n`$
+partial decryption. The local [CVXR](https://cvxr.rbind.io) work and
+`run_admm` are untouched.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` and
@@ -209,7 +209,7 @@ per-site head-counts is one more sum of the same kind.)
 
 `encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`` `` ``s_ct`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``)`` `` ``q_ct`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`` `` ``pooled_sum`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``s_ct``)``, len ``=`` ``p_raw``)`` `` ``pooled_sumsq`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``q_ct``)``, len ``=`` ``p_raw``)`` `` ``mu`` ``<-`` ``pooled_sum`` ``/`` ``n_total`` `` ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``pooled_sumsq`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``mu ``=`` ``mu``, sigma ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``sigma2``)``)`` ``}`` ``fhe_pool`` ``<-`` ``encrypt_pool``(``master``, ``sites_raw``, ``N_total``, ``P_raw``)`
 
-The encrypted moments agree with the plaintext `pool` to 4.4^{-16}
+The encrypted moments agree with the unencrypted `pool` to 4.4^{-16}
 (mean) and 3.1^{-15} (SD) — essentially machine precision, since these
 are exact sums under CKKS. The screening round is structurally
 identical, the same `score_info_at_zero` summands $`(U^{(k)},I^{(k)})`$
@@ -220,17 +220,18 @@ it selects the same probes.
 
 With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`: encrypt each $`(x_k+u_k)`$, sum the ciphertexts,
-scale by $`1/N`$ under encryption (one ciphertext-plaintext multiply,
-depth 1), and threshold-decrypt the length-$`K`$ average.
-Soft-thresholding stays in the clear at the aggregator.
+`plain_consensus`: encrypt each $`(x_k+u_k)`$, sum the encrypted
+vectors, scale by $`1/N`$ under encryption (one multiplication by an
+unencrypted constant, which costs one level of the precision budget),
+and threshold-decrypt the length-$`K`$ average. Soft-thresholding stays
+in the clear at the aggregator.
 
 `encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`` `` ``cts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_x``)``, ``function``(``i``)`` `` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``site_x``[[``i``]``]`` ``+`` ``site_u``[[``i``]``]``)``)`` `` ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)``)`` `` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_avg``, len ``=`` ``K``)`` ``}`` ``fhe`` ``<-`` ``run_admm``(``sites_problem``, ``encrypted_consensus``)`` ``z_curr`` ``<-`` ``fhe``$``z`` ``trajectory`` ``<-`` ``fhe``$``trajectory`
 
 Passing `encrypted_consensus` in place of `plain_consensus` is the
 *entire* change. The encrypted ADMM ran for 147 iterations and lands on
-the same coefficients as the plaintext run, differing by only 1.4^{-7} —
-the CKKS approximation noise.
+the same coefficients as the unencrypted run, differing by only 1.4^{-7}
+— the CKKS approximation noise.
 
 ## Comparison with the centralized fit
 
@@ -295,8 +296,8 @@ included — can recover any intermediate quantity unilaterally.
     verbatim, and `run_admm` is called with `encrypted_consensus`
     instead of `plain_consensus`.
 2.  **The encrypted layer is lossless to working precision.** The
-    encrypted fit reproduces the plaintext ADMM to 1.4^{-7} and recovers
-    the identical active set; the residual gap to the one-shot
+    encrypted fit reproduces the unencrypted ADMM to 1.4^{-7} and
+    recovers the identical active set; the residual gap to the one-shot
     centralized solve (8.3^{-4}) is the ADMM iteration budget, not the
     cryptography.
 3.  **No single party holds the secret key.**
@@ -314,7 +315,7 @@ included — can recover any intermediate quantity unilaterally.
   $`(x_k+u_k)`$ can corrupt the consensus; detecting this needs
   commitments / zero-knowledge proofs not implemented here.
 - **The aggregator sees the trajectory $`\{z^t\}`$.** Per-iteration
-  consensus values are revealed in plaintext (after fusion) so the loop
+  consensus values are revealed in the clear (after fusion) so the loop
   can decide convergence.
 - **No output privacy.** The released $`\hat\beta = z^\star`$ is the
   same coefficient vector as the centralized fit; output-level

@@ -38,18 +38,29 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/mle.html">Maximum Likelihood Estimation (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Cox Regression (CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression (Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso on DLBCL (CVXR + Threshold CKKS)</a></li>
-    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference (CKKS, two-party)</a></li>
-    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity (Threshold CKKS, Procrustes alignment)</a></li>
-    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction (CKKS Chebyshev sigmoid)</a></li>
-    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation (BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count (Threshold BFV)</a></li>
-    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output DP (Demonstration)</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output DP (Demonstration)</a></li>
+<li><h6 class="dropdown-header" data-toc-skip>Start here</h6></li>
+    <li><a class="dropdown-item" href="../articles/introduction.html">Introduction to homomorpheR</a></li>
+    <li><a class="dropdown-item" href="../articles/precision.html">Precision</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Queries and aggregation</h6></li>
+    <li><a class="dropdown-item" href="../articles/privacy-preserving-aggregation.html">Privacy-Preserving Count Aggregation</a></li>
+    <li><a class="dropdown-item" href="../articles/query-count-threshold.html">Distributed Query Count with Threshold Keys</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Fitting models across sites</h6></li>
+    <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
+    <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
+    <li><a class="dropdown-item" href="../articles/secure-inference.html">Secure Model Inference on Encrypted Data</a></li>
+    <li><a class="dropdown-item" href="../articles/encrypted-regression.html">Encrypted Logistic Regression Prediction</a></li>
+    <li><a class="dropdown-item" href="../articles/similarity.html">Federated Cosine Similarity with Site-Private Fine-Tuned Models</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Adding differential privacy</h6></li>
+    <li><a class="dropdown-item" href="../articles/cox-threshold-dp.html">Threshold Cox + Output Differential Privacy (Demonstration)</a></li>
+    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm-dp.html">Consensus ADMM + Output Differential Privacy (Demonstration)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-09-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/secure-inference.Rmd" class="external-link"><code>vignettes/secure-inference.Rmd</code></a></small>
       <div class="d-none name"><code>secure-inference.Rmd</code></div>
@@ -92,10 +103,10 @@ patients but cannot send raw patient data to the lab in cleartext. The
 lab does not want to send its model coefficients to the hospital in
 cleartext either.</p>
 <p>With FHE the hospital encrypts patient biomarkers, sends the
-ciphertexts to the lab, the lab applies its weighted-sum scoring
-directly on ciphertexts, and the hospital decrypts the scores. The
-biomarker values never appear in cleartext on the lab’s machine, and the
-lab’s coefficients are never sent to the hospital. These are the
+encrypted values to the lab, the lab applies its weighted-sum scoring to
+them while they stay encrypted, and the hospital decrypts the scores.
+The biomarker values never appear in cleartext on the lab’s machine, and
+the lab’s coefficients are never sent to the hospital. These are the
 <em>transport</em> guarantees and they are what the pipeline below
 illustrates. They are not the whole story of deploying a
 model-as-a-service — see <em>Threat model: model extraction from the
@@ -188,7 +199,7 @@ model — without ever seeing patient values.</p>
 <span>                    <span class="va">w</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker3</span> <span class="op">+</span> <span class="va">w</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker4</span> <span class="op">+</span> <span class="va">b</span></span>
 <span><span class="va">max_error</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">scores</span> <span class="op">-</span> <span class="va">cleartext_scores</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Maximum error vs cleartext: %.2e"</span>, <span class="va">max_error</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 7.19e-14"</span></span></code></pre>
+<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 1.44e-13"</span></span></code></pre>
 <p>CKKS gives essentially the same answer as cleartext, within
 floating-point precision.</p>
 </div>
@@ -200,14 +211,15 @@ floating-point precision.</p>
 <li>
 <strong>Biomarker values never appear in cleartext outside the
 hospital.</strong> The lab’s view of the protocol consists of the
-ciphertexts it received and the ciphertext it returned.</li>
+encrypted values it received and the encrypted score it returned.</li>
 <li>
 <strong>The lab’s coefficients
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>
 are never sent to the hospital in cleartext.</strong> They are used only
-to construct the returned ciphertext inside the lab’s R session.</li>
+to construct the returned encrypted score inside the lab’s R
+session.</li>
 </ol>
 <table class="table">
 <colgroup>
@@ -225,7 +237,7 @@ to construct the returned ciphertext inside the lab’s R session.</li>
 </tr>
 <tr class="even">
 <td>Lab</td>
-<td>Ciphertexts only — no cleartext biomarker values, no cleartext
+<td>Encrypted values only — no cleartext biomarker values, no cleartext
 scores</td>
 </tr>
 </tbody>
@@ -238,7 +250,7 @@ sufficient conditions, as the next section shows.</p>
 <h2 id="threat-model-model-extraction-from-the-hospital-side">Threat model: model extraction from the hospital side<a class="anchor" aria-label="anchor" href="#threat-model-model-extraction-from-the-hospital-side"></a>
 </h2>
 <p>The hospital holds the secret key and decides what goes into the
-query ciphertexts. Nothing in the FHE pipeline restricts the biomarker
+encrypted queries. Nothing in the FHE pipeline restricts the biomarker
 values the hospital encrypts. For a linear model with four biomarkers
 and a bias, the hospital can recover every coefficient with five queries
 by submitting the standard basis:</p>
@@ -255,8 +267,8 @@ lab’s scoring pipeline as a function that closes over
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>
-without revealing them, then pack the five probes across SIMD slots 1–5
-of the four biomarker ciphertexts.</p>
+without revealing them, then pack the five probes across slots 1–5 of
+the four encrypted biomarker vectors.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Lab pipeline wrapped as a function. Closes over `w` and `b`;</span></span>
 <span><span class="co">## the caller (hospital) never reads either.</span></span>
@@ -384,7 +396,7 @@ objects serialize for network transport:</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

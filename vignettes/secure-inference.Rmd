@@ -34,8 +34,9 @@ The lab does not want to send its model coefficients to the
 hospital in cleartext either.
 
 With FHE the hospital encrypts patient biomarkers, sends the
-ciphertexts to the lab, the lab applies its weighted-sum scoring
-directly on ciphertexts, and the hospital decrypts the scores.
+encrypted values to the lab, the lab applies its weighted-sum
+scoring to them while they stay encrypted, and the hospital
+decrypts the scores.
 The biomarker values never appear in cleartext on the lab's
 machine, and the lab's coefficients are never sent to the
 hospital. These are the *transport* guarantees and they are what
@@ -131,15 +132,16 @@ The pipeline above delivers two concrete protections:
 
 1. **Biomarker values never appear in cleartext outside the
    hospital.** The lab's view of the protocol consists of the
-   ciphertexts it received and the ciphertext it returned.
+   encrypted values it received and the encrypted score it
+   returned.
 2. **The lab's coefficients $w$ and $b$ are never sent to the
    hospital in cleartext.** They are used only to construct the
-   returned ciphertext inside the lab's R session.
+   returned encrypted score inside the lab's R session.
 
 | Party | Cleartext view |
 |-------|----------------|
 | Hospital | Patient biomarkers (local), decrypted scores |
-| Lab | Ciphertexts only — no cleartext biomarker values, no cleartext scores |
+| Lab | Encrypted values only — no cleartext biomarker values, no cleartext scores |
 
 These are necessary conditions for any model-as-a-service
 deployment that does not trust the lab with cleartext patient
@@ -149,7 +151,7 @@ shows.
 ## Threat model: model extraction from the hospital side
 
 The hospital holds the secret key and decides what goes into the
-query ciphertexts. Nothing in the FHE pipeline restricts the
+encrypted queries. Nothing in the FHE pipeline restricts the
 biomarker values the hospital encrypts. For a linear model with
 four biomarkers and a bias, the hospital can recover every
 coefficient with five queries by submitting the standard basis:
@@ -164,8 +166,8 @@ Subtracting the first score from each of the others recovers the
 four weights exactly. We can run this attack in the same R
 session: wrap the lab's scoring pipeline as a function that
 closes over $w$ and $b$ without revealing them, then pack the
-five probes across SIMD slots 1–5 of the four biomarker
-ciphertexts.
+five probes across slots 1–5 of the four encrypted biomarker
+vectors.
 
 ```{r}
 ## Lab pipeline wrapped as a function. Closes over `w` and `b`;

@@ -1,5 +1,5 @@
 ---
-title: "Federated Consensus ADMM with CVXR over Threshold CKKS"
+title: "Federated Consensus ADMM with CVXR"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Federated Consensus ADMM under Threshold CKKS}
+  %\VignetteIndexEntry{Federated Consensus ADMM with CVXR}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -189,11 +189,11 @@ local_update <- function(site, z_curr) {
 
 The consensus update needs to compute
 $z^{k+1} = \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k)$. This is a
-length-$p$ vector average: pack each site's $x_i + u_i$ into a
-length-$p$ packed plaintext, encrypt under the joint public key,
-sum the ciphertexts, multiply by the plaintext constant $1/N$
-(one ciphertext-plaintext multiplication, depth 1), and
-threshold-decrypt the result.
+length-$p$ vector average: pack each site's $x_i + u_i$ into the
+slots of one value, encrypt under the joint public key, sum the
+encrypted vectors, multiply by the unencrypted constant $1/N$
+(one multiplication by a cleartext value, costing a single level
+of the precision budget), and threshold-decrypt the result.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`:
 a CKKS context with `Feature$MULTIPARTY` enabled and
@@ -229,7 +229,7 @@ encrypted_consensus <- function(threshold_master, sites) {
 
 What this protocol hides and reveals: every ADMM iteration the
 aggregator recovers the *new consensus* $z^k$ exactly. The
-per-site $(x_i + u_i)$ vectors never appear in plaintext anywhere
+per-site $(x_i + u_i)$ vectors never appear in the clear anywhere
 — additions and the scalar multiply happen under encryption, and
 the decryption is n-of-n. A subpoena to the aggregator yields the
 trajectory $\{z^k\}$ but no individual site's contribution. A
@@ -412,7 +412,7 @@ if (max_diff > 10 * reltol)
   commitments / zero-knowledge proofs that this vignette does
   not implement.
 - **The aggregator sees the trajectory $\{z^k\}$.** Per-iteration
-  consensus values are revealed in plaintext (after fusion) so
+  consensus values are revealed in the clear (after fusion) so
   the optimizer can decide convergence. A subpoena to the
   aggregator yields this trajectory.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the

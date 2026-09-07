@@ -35,6 +35,20 @@ PaillierEncryptedReal(
   the denominator used to scale the fractional part (a
   [gmp::bigq](https://rdrr.io/pkg/gmp/man/bigrational.html)).
 
+## Value
+
+an S7 object of class `PaillierEncryptedReal` with properties `int`,
+`frac` and `den`: the
+[PaillierCiphertext](https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.md)
+carrying the integer part, the
+[PaillierCiphertext](https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.md)
+carrying the fractional part scaled by `den`, and the denominator
+itself. It adds and subtracts with `+` and `-`;
+[`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+recombines the two parts and re-centers the result into `(-n/2, n/2)` so
+that signed values round-trip. Produced by
+[`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md).
+
 ## Signed-arithmetic convention
 
 Paillier's plaintext space is `Z_n` (a residue class modulo `n`, the

@@ -32,9 +32,9 @@ with a non-linear scorer.
 
 ## Step 2: encrypt patient data
 
-CKKS needs enough multiplicative depth for the Chebyshev polynomial. We
-use depth 8 and enable `Feature$ADVANCEDSHE` for the
-polynomial-evaluation primitives.
+CKKS needs enough precision budget for the Chebyshev polynomial. We use
+depth 8 and enable `Feature$ADVANCEDSHE` for the polynomial-evaluation
+primitives.
 
 [`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`` `` ``cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``8L``,`` `` scaling_mod_size ``=`` ``50L``,`` `` batch_size ``=`` ``16L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Feature``$``ADVANCEDSHE``)``)`` ``keys`` ``<-`` `[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``, eval_mult ``=`` ``TRUE``)`` `` ``new_age`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``45``, ``52``, ``60``, ``38``, ``70``, ``55``, ``48``, ``63``,`` `` ``41``, ``57``, ``66``, ``44``, ``72``, ``50``, ``59``, ``35``)`` ``new_bm`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``-``0.5``, ``0.3``, ``1.2``, ``-``1.0``, ``0.8``, ``0.1``, ``-``0.3``, ``1.5``,`` `` ``-``0.8``, ``0.6``, ``0.9``, ``-``0.4``, ``1.1``, ``0.0``, ``0.7``, ``-``1.2``)`` `` ``ct_age`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``new_age``)``, cc ``=`` ``cc``)`` ``ct_bm`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``new_bm``)``, cc ``=`` ``cc``)`
 
@@ -49,7 +49,7 @@ all arithmetic on encrypted data:
 
 `openfhe.R` exposes Chebyshev approximations of common transcendental
 functions, including the logistic sigmoid. The interval $`[a, b]`$ must
-cover the realisable range of $`\eta`$; degree 16 gives good precision
+cover the realizable range of $`\eta`$; degree 16 gives good precision
 with depth modest enough to fit the budget we declared above.
 
 `ct_prob`` ``<-`` `[`eval_logistic`](https://openfheorg.github.io/openfhe.R/reference/eval_logistic.html)`(``ct_eta``, a ``=`` ``-``4``, b ``=`` ``4``, degree ``=`` ``16``)`
@@ -67,7 +67,7 @@ with depth modest enough to fit the budget we declared above.
     transport guarantee as `secure-inference`.
 2.  **The sigmoid evaluated entirely under encryption.** No intermediate
     decryption, no protocol back-and-forth — the whole logistic
-    prediction completes inside the ciphertext domain.
+    prediction completes while the data stays encrypted.
 3.  **CKKS precision is more than enough for medical prediction.** The
     maximum absolute error against the cleartext sigmoid is 5.8^{-6},
     well below any threshold that would matter for a clinical decision.
@@ -93,9 +93,9 @@ With CKKS via `openfhe.R`:
 
 ## Limitations
 
-- **Multiplicative depth**: each multiplication consumes one level of
-  the ciphertext. Deeper computations require larger parameters and more
-  memory.
+- **Precision budget**: each multiplication consumes one level of the
+  encrypted value’s budget. Deeper computations require larger
+  parameters and more memory.
 - **Approximation error**: CKKS is approximate. For deployment, validate
   that the precision is sufficient for your use case.
 - **Performance**: encrypted computation is orders of magnitude slower
