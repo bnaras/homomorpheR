@@ -119,10 +119,16 @@ If all data were in one place, fitting the stratified Cox model is
 trivial:
 
 ```{r}
+## ties = "breslow" rather than coxph()'s Efron default. The
+## consensus-ADMM vignettes write the partial likelihood in Breslow
+## form, so using it here too lets coefficients be compared across
+## vignettes. The cohort is heavily tied, so the two conventions
+## are not interchangeable.
 agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
                        Prolif_sig + BMP6 + MHC2_sig +
                        strata(Subgroup),
-                   data = DLBCL)
+                   data = DLBCL,
+                   ties = "breslow")
 agg_model
 agg_model$loglik
 ```
@@ -154,6 +160,7 @@ local_cox_nll <- function(data, beta) {
                   BMP6 + MHC2_sig,
               data    = data,
               init    = beta,
+              ties    = "breslow",   # match agg_model above
               control = cph_control),
         error = function(e) NULL)
     if (is.null(fit)) NA_real_ else -fit$loglik[1]
