@@ -89,15 +89,10 @@ cox_data <- split(
             "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
   DLBCL$Subgroup)
 
-## ties = "breslow" rather than coxph()'s Efron default, matching
-## the `cox` and `cox-threshold` vignettes. The cohort is heavily
-## tied, so the conventions are not interchangeable; the sigma = 0
-## check below is only meaningful if both sides use the same one.
 agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
                        Prolif_sig + BMP6 + MHC2_sig +
                        strata(Subgroup),
-                   data = DLBCL,
-                   ties = "breslow")
+                   data = DLBCL)
 agg_coef <- coef(agg_model)
 
 cph_control <- replace(coxph.control(), "iter.max", 0)
@@ -108,7 +103,6 @@ local_cox_nll <- function(data, beta) {
                   BMP6 + MHC2_sig,
               data    = data,
               init    = beta,
-              ties    = "breslow",   # match agg_model above
               control = cph_control),
         error = function(e) NULL)
     if (is.null(fit)) NA_real_ else -fit$loglik[1]
