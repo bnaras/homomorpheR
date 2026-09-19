@@ -4,12 +4,15 @@ export(CKKSMaster)
 export(LocalSite)
 export(Master)
 export(NCParty)
+export(OpenFHEParams)
 export(PaillierCiphertext)
 export(PaillierEncryptedReal)
 export(PaillierKeyPair)
 export(PaillierMaster)
+export(PaillierParams)
 export(PaillierPrivateKey)
 export(PaillierPublicKey)
+export(PublicParams)
 export(RemoteSite)
 export(Site)
 export(ThresholdMaster)
@@ -37,22 +40,29 @@ export(round_robin_chain)
 export(run_round_robin)
 export(set_next_site)
 export(set_public_key)
+export(set_public_params)
 export(set_workers)
+export(site_params)
 export(site_unavailable)
 importFrom(S7,
   "method<-",
+  S7_dispatch,
   S7_inherits,
   S7_object,
   class_any,
   class_character,
+  class_environment,
+  class_function,
   class_integer,
-  class_numeric,
   method,
   new_class,
   new_generic,
   new_object
 )
-importFrom(cli,cli_abort)
+importFrom(cli,
+  cli_abort,
+  format_inline
+)
 importFrom(gmp,
   add.bigz,
   as.bigq,
@@ -67,17 +77,6 @@ importFrom(gmp,
   powm,
   sizeinbase,
   sub.bigz
-)
-importFrom(openfhe.R,
-  get_packed_value,
-  get_real_packed_value,
-  get_scheme_id,
-  make_ckks_packed_plaintext,
-  make_packed_plaintext,
-  multiparty_decrypt_fusion,
-  multiparty_decrypt_lead,
-  multiparty_decrypt_main,
-  multiparty_key_gen
 )
 importFrom(sodium,random)
 importFrom(stats,runif)

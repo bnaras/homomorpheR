@@ -17,10 +17,10 @@
 ## that R's arithmetic operators dispatch through the S3 Ops handler
 ## registered in `zzz.R`.
 
-#' @importFrom S7 new_class new_generic new_object method method<- class_any class_numeric class_integer S7_object S7_inherits
+#' @importFrom S7 new_class new_generic new_object method method<- class_any class_integer S7_object S7_inherits
 #' @importFrom gmp add.bigz sub.bigz mul.bigz mod.bigz div.bigz powm inv.bigz
 #' @importFrom gmp lcm.bigz isprime sizeinbase as.bigz as.bigq numerator
-#' @importFrom cli cli_abort
+#' @importFrom cli cli_abort format_inline
 NULL
 
 # ---- Classes ---------------------------------------------------------------

@@ -4,7 +4,7 @@ The ordinary case: the records are here, and `contribution_fn` is
 evaluated in-process.
 [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
 computes the contribution and **encrypts it** with the public parameters
-the site was given when it was wired, so what leaves is already a
+the site was given when it was configured, so what leaves is already a
 ciphertext.
 
 ## Usage
@@ -12,9 +12,9 @@ ciphertext.
 ``` r
 LocalSite(
   name = character(0),
-  state = NULL,
+  state = new.env(parent = emptyenv()),
   data = NULL,
-  contribution_fn = NULL
+  contribution_fn = function() NULL
 )
 ```
 
@@ -22,14 +22,15 @@ LocalSite(
 
 - name:
 
-  short identifier shown in printed output.
+  short identifier shown in printed output. A single non-empty string;
+  it names the site in every error message, so an empty or vectorized
+  name is rejected at construction.
 
 - state:
 
-  an environment for mutable bookkeeping — the public key the site
-  encrypts under, the capability
-  [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
-  installs, and, on the frozen legacy path, the next link in the
+  an environment for mutable bookkeeping — the public parameters the
+  site was given when it was configured, its own key share under
+  threshold keys, and, on the frozen legacy path, the next link in the
   round-robin chain. Default: a fresh empty env.
 
 - data:
@@ -50,3 +51,13 @@ LocalSite(
 
 an S7 object of class `LocalSite`. Construct with
 [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md).
+
+## Details
+
+A `LocalSite` demonstrates the protocol's roles inside one R session. It
+is not a deployment boundary: its data, and under threshold keys its key
+share, are objects in this process, and anything else in this process
+can reach them. Separating the parties for real means separately
+controlled processes, which is what
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+is for.

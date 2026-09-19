@@ -12,21 +12,22 @@ contribution at the requested parameter.
 ## Usage
 
 ``` r
-Site(name = character(0), state = NULL)
+Site(name = character(0), state = new.env(parent = emptyenv()))
 ```
 
 ## Arguments
 
 - name:
 
-  short identifier shown in printed output.
+  short identifier shown in printed output. A single non-empty string;
+  it names the site in every error message, so an empty or vectorized
+  name is rejected at construction.
 
 - state:
 
-  an environment for mutable bookkeeping — the public key the site
-  encrypts under, the capability
-  [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
-  installs, and, on the frozen legacy path, the next link in the
+  an environment for mutable bookkeeping — the public parameters the
+  site was given when it was configured, its own key share under
+  threshold keys, and, on the frozen legacy path, the next link in the
   round-robin chain. Default: a fresh empty env.
 
 ## Value

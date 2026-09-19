@@ -6,9 +6,9 @@
 \usage{
 ThresholdMaster(
   name = character(0),
-  state = NULL,
-  crypto_context = NULL,
-  joint_pubkey = NULL
+  state = new.env(parent = emptyenv()),
+  crypto_context = openfhe.R::CryptoContext(),
+  joint_pubkey = openfhe.R::PublicKey()
 )
 }
 \arguments{
@@ -43,11 +43,32 @@ all \code{n} sites to return partial decryptions, which the master then
 fuses.
 }
 \details{
-\strong{The master holds no secret material.} Its properties are the
-crypto context and the joint public key, both public; the shares
-live at the sites that generated them and never travel. That is
-what makes the n-of-n claim true of the objects and not merely of
-the prose — see \code{\link[=partial_decrypt]{partial_decrypt()}} for the decryption seam.
+\strong{The master has no secret-key or secret-share property, and its
+methods use no secret material.} Its properties are the crypto
+context and the joint public key, both public; the shares live at
+the sites that generated them and never travel. That is what makes
+the n-of-n claim true of the objects and not merely of the prose —
+see \code{\link[=partial_decrypt]{partial_decrypt()}} for the decryption seam.
+
+Read that at the right scope. In a \link{LocalSite} demonstration every
+role still inhabits one \R process, and the master holds the site
+objects in order to query them, so the shares are reachable from
+the master's object graph even though no property of the master
+contains one. A boundary between the parties requires separately
+controlled processes behind \link{RemoteSite}.
+}
+\section{Exact-integer contexts}{
+
+
+Under BFV or BGV a site cannot contribute a value the scheme
+cannot carry: \code{\link[=contribute]{contribute()}} refuses a non-integer, a non-finite
+value, or one outside the plaintext modulus rather than rounding
+it. What no party can check is the \emph{total}: a sum that exceeds the
+modulus wraps, and the wrapped value decrypts as an ordinary
+integer with nothing to mark it. Choose \code{plaintext_modulus} for
+the largest total the protocol can produce, not the largest
+summand.
 
 Constructed by \code{\link[=make_threshold_master]{make_threshold_master()}}.
 }
+

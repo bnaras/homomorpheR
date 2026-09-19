@@ -105,6 +105,17 @@ say) to chain for debugging.</p></dd>
     <p>nothing — called for its side effect of signalling a
 condition of class <code>homomorpheR_site_unavailable</code>.</p>
     </div>
+    <div class="section level2">
+    <h2 id="what-the-re-raised-condition-carries">What the re-raised condition carries<a class="anchor" aria-label="anchor" href="#what-the-re-raised-condition-carries"></a></h2>
+
+
+
+<p>When <code><a href="master_aggregate.html">master_aggregate()</a></code> or <code><a href="master_decrypt.html">master_decrypt()</a></code> re-raise this, the
+condition they signal carries a <code>site_name</code> field and <strong>not</strong> the
+site object. A <a href="LocalSite.html">LocalSite</a> would drag its data, and under threshold
+keys its key share, into anything that logs or serializes the
+condition. Catch on the class and read <code>cnd$site_name</code>.</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

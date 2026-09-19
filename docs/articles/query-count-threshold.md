@@ -215,6 +215,19 @@ tolerance to argue about — the equality is bit-for-bit, not approximate.
   exactness that the original Paillier demonstration offered is
   retained; the trust model is what improved.
 
+- **Exact within the plaintext modulus, and only there.** BFV arithmetic
+  is modular. A site that tries to contribute something the scheme
+  cannot carry — a non-integer, a non-finite value, or one at or beyond
+  `plaintext_modulus / 2` — is refused by
+  [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+  rather than having its value rounded or wrapped silently. What no
+  party can check is the *total*: a sum that exceeds the modulus wraps,
+  and the wrapped value decrypts as an ordinary integer with nothing to
+  mark it as wrong. Choose `plaintext_modulus` for the largest total the
+  protocol can produce, not for the largest single contribution. For
+  counts over a cohort of 100 the modulus used here, 65537, has enormous
+  margin; for summed dollar amounts or squared deviations it would not.
+
 - **Honest-but-curious parties.** As with the other distributed
   protocols in this package, sites are assumed to follow the protocol. A
   malicious site could submit a wrong count or a corrupted partial

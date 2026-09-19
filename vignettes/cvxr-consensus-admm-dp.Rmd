@@ -311,10 +311,8 @@ loop:
 ## own randomness boundary" has to mean.
 site_contribution_dp <- function(site, sigma, Nv) {
     st <- site@state
-    if (is.null(st$params))
-        stop("Site ", site@name, " has no public parameters.")
     noised <- st$x_curr + st$u_curr + rnorm(p, mean = 0, sd = sigma * sqrt(Nv))
-    encrypt_under(st$params, noised)
+    encrypt_under(site_params(site), noised)
 }
 
 ## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The

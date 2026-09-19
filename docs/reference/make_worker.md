@@ -16,7 +16,9 @@ make_worker(name, data, contribution_fn)
 
 - name:
 
-  short identifier shown in printed output.
+  short identifier shown in printed output. A single non-empty string;
+  it names the site in every error message, so an empty or vectorized
+  name is rejected at construction.
 
 - data:
 

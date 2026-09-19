@@ -19,7 +19,7 @@ protocol runs over any backend.
 ## Usage
 
 ``` r
-Master(name = character(0), state = NULL)
+Master(name = character(0), state = new.env(parent = emptyenv()))
 ```
 
 ## Arguments

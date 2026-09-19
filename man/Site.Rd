@@ -4,15 +4,17 @@
 \alias{Site}
 \title{A site in a multi-party protocol}
 \usage{
-Site(name = character(0), state = NULL)
+Site(name = character(0), state = new.env(parent = emptyenv()))
 }
 \arguments{
-\item{name}{short identifier shown in printed output.}
+\item{name}{short identifier shown in printed output. A single
+non-empty string; it names the site in every error message, so an
+empty or vectorized name is rejected at construction.}
 
 \item{state}{an environment for mutable bookkeeping — the public
-key the site encrypts under, the capability \code{\link[=set_workers]{set_workers()}}
-installs, and, on the frozen legacy path, the next link in the
-round-robin chain. Default: a fresh empty env.}
+parameters the site was given when it was configured, its own key
+share under threshold keys, and, on the frozen legacy path, the
+next link in the round-robin chain. Default: a fresh empty env.}
 }
 \value{
 nothing — this class is abstract, so calling it raises an

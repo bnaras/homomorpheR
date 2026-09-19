@@ -4,15 +4,17 @@
 \alias{RemoteSite}
 \title{A site whose contribution is produced outside this \R session}
 \usage{
-RemoteSite(name = character(0), state = NULL)
+RemoteSite(name = character(0), state = new.env(parent = emptyenv()))
 }
 \arguments{
-\item{name}{short identifier shown in printed output.}
+\item{name}{short identifier shown in printed output. A single
+non-empty string; it names the site in every error message, so an
+empty or vectorized name is rejected at construction.}
 
 \item{state}{an environment for mutable bookkeeping — the public
-key the site encrypts under, the capability \code{\link[=set_workers]{set_workers()}}
-installs, and, on the frozen legacy path, the next link in the
-round-robin chain. Default: a fresh empty env.}
+parameters the site was given when it was configured, its own key
+share under threshold keys, and, on the frozen legacy path, the
+next link in the round-robin chain. Default: a fresh empty env.}
 }
 \value{
 nothing — this class is abstract. Subclass it as shown above.
@@ -21,30 +23,76 @@ nothing — this class is abstract. Subclass it as shown above.
 Abstract. \link{homomorpheR} deliberately ships \strong{no} implementation:
 transports differ too much, and a crypto package has no business
 carrying an HTTP client. Subclass it, add whatever properties your
-transport needs, and register a \code{\link[=contribute]{contribute()}} method:
+transport needs, and register methods:
 }
 \details{
 \if{html}{\out{<div class="sourceCode">}}\preformatted{HttpSite <- S7::new_class("HttpSite", parent = RemoteSite,
                           properties = list(url = S7::class_character))
+S7::method(set_public_params, HttpSite) <- function(site, params) \{
+    ## ... POST the public context and key to site@url; the far end
+    ##     stores them. Nothing secret travels.
+\}
 S7::method(contribute, HttpSite) <- function(site, theta) \{
     ## ... call site@url with theta; the far end encrypts ...
 \}
 }\if{html}{\out{</div>}}
 }
+\section{What this class is, and is not}{
+
+
+A \code{RemoteSite} is an \strong{architectural seam with a documented
+contract}, not a trust boundary the package establishes. Three
+cases are worth keeping apart:
+
+\describe{
+\item{A \link{LocalSite} demonstration.}{Data, key shares, sites, and
+the aggregating party are all objects in one \R process. The
+classes model the protocol's \emph{roles}; they do not create a
+process or trust boundary, and nothing prevents one object from
+reaching another. This is the right scope for a vignette.}
+\item{A single-decrypter deployment.}{Each site returns a
+ciphertext, but a \link{CKKSMaster} holds the secret key and could
+decrypt an individual contribution. "Only the aggregate is
+decrypted" describes what \code{\link[=master_aggregate]{master_aggregate()}} does, not
+something the cryptography enforces.}
+\item{A remote threshold deployment.}{Separately controlled
+endpoints keep their own shares and return ciphertexts or
+partial decryptions. Here the party boundary is real — provided
+\emph{your} transport, authentication, endpoint code, and key
+storage implement it. \link{homomorpheR} supplies none of those, and
+detects no deliberately dishonest reply.}
+}
+
+What the package does enforce: a site cannot be configured except
+through \code{\link[=set_public_params]{set_public_params()}}, which the base \code{RemoteSite} method
+refuses, so an endpoint that was never provisioned fails closed
+rather than looking wired; the base class likewise refuses
+\code{\link[=keygen_round]{keygen_round()}} and \code{\link[=partial_decrypt]{partial_decrypt()}} rather than performing a
+remote party's secret-key operation in this process; and
+\code{\link[=master_aggregate]{master_aggregate()}} checks that a reply is an encrypted value
+under this protocol's key before adding it to a total.
+}
+
 \section{The contract an implementation must honor}{
 
 
 \describe{
+\item{Provision the far end at setup.}{Implement
+\code{\link[=set_public_params]{set_public_params()}} to send the public context and key to the
+endpoint and have it retain them. This is one of only two
+moments anything passes between the parties — the other being
+a round. Only public material travels.}
 \item{Return a ciphertext, never a plain number.}{The remote end
 was given the public parameters when it was wired, so it
 encrypts \emph{before} the value crosses the wire. A \code{RemoteSite}
 that returns cleartext hands the aggregator an individual
 per-site contribution, which is precisely what the protocol
-exists to prevent. \code{NA} is the one permitted plaintext reply,
-because CKKS has no representation for it; the aggregator
-consequently learns which \code{theta} a site could not evaluate,
-and that residual side channel is documented in
-\code{\link[=master_aggregate]{master_aggregate()}}.}
+exists to prevent — \code{\link[=master_aggregate]{master_aggregate()}} now refuses such a
+reply, but an honest implementation should not produce one.
+\code{NA} is the one permitted plaintext reply, because CKKS has no
+representation for it; the aggregator consequently learns which
+\code{theta} a site could not evaluate, and that residual side
+channel is documented in \code{\link[=master_aggregate]{master_aggregate()}}.}
 \item{Distinguish "non-evaluable" from "unreachable".}{\code{NA} means
 \emph{this \code{theta} broke my solver} — the optimizer will back off and
 try a different parameter, which is the right response. A
@@ -74,6 +122,17 @@ threshold keys it costs you the entire result.}
 }
 }
 
+\section{What the package leaves to you}{
+
+
+Transport, identity, authentication, attestation, remote key
+storage, serialization of the parameter bundle, retry and timeout
+policy — and any defense against a party that deviates from the
+protocol rather than merely observing it. The trust model
+throughout is honest-but-curious.
+}
+
 \seealso{
-\code{\link[=contribute]{contribute()}}, \code{\link[=site_unavailable]{site_unavailable()}}, \link{LocalSite}
+\code{\link[=set_public_params]{set_public_params()}}, \code{\link[=contribute]{contribute()}}, \code{\link[=keygen_round]{keygen_round()}},
+\code{\link[=partial_decrypt]{partial_decrypt()}}, \code{\link[=site_unavailable]{site_unavailable()}}, \link{LocalSite}
 }

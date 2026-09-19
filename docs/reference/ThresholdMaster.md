@@ -16,9 +16,9 @@ then fuses.
 ``` r
 ThresholdMaster(
   name = character(0),
-  state = NULL,
-  crypto_context = NULL,
-  joint_pubkey = NULL
+  state = new.env(parent = emptyenv()),
+  crypto_context = openfhe.R::CryptoContext(),
+  joint_pubkey = openfhe.R::PublicKey()
 )
 ```
 
@@ -55,12 +55,33 @@ party — the master included — can decrypt alone. Construct with
 
 ## Details
 
-**The master holds no secret material.** Its properties are the crypto
-context and the joint public key, both public; the shares live at the
-sites that generated them and never travel. That is what makes the
-n-of-n claim true of the objects and not merely of the prose — see
+**The master has no secret-key or secret-share property, and its methods
+use no secret material.** Its properties are the crypto context and the
+joint public key, both public; the shares live at the sites that
+generated them and never travel. That is what makes the n-of-n claim
+true of the objects and not merely of the prose — see
 [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
 for the decryption seam.
+
+Read that at the right scope. In a
+[LocalSite](https://bnaras.github.io/homomorpheR/reference/LocalSite.md)
+demonstration every role still inhabits one R process, and the master
+holds the site objects in order to query them, so the shares are
+reachable from the master's object graph even though no property of the
+master contains one. A boundary between the parties requires separately
+controlled processes behind
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md).
+
+## Exact-integer contexts
+
+Under BFV or BGV a site cannot contribute a value the scheme cannot
+carry:
+[`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+refuses a non-integer, a non-finite value, or one outside the plaintext
+modulus rather than rounding it. What no party can check is the *total*:
+a sum that exceeds the modulus wraps, and the wrapped value decrypts as
+an ordinary integer with nothing to mark it. Choose `plaintext_modulus`
+for the largest total the protocol can produce, not the largest summand.
 
 Constructed by
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md).

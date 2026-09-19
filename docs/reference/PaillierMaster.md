@@ -14,7 +14,7 @@ or
 ``` r
 PaillierMaster(
   name = character(0),
-  state = NULL,
+  state = new.env(parent = emptyenv()),
   keypair = PaillierKeyPair(),
   den = NULL
 )

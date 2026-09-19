@@ -12,7 +12,11 @@ to construct.
 ## Usage
 
 ``` r
-NCParty(name = character(0), number = integer(0), state = NULL)
+NCParty(
+  name = character(0),
+  number = integer(0),
+  state = new.env(parent = emptyenv())
+)
 ```
 
 ## Arguments

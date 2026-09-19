@@ -90,9 +90,9 @@ fuses.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">ThresholdMaster</span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
-<span>  state <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  crypto_context <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  joint_pubkey <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  crypto_context <span class="op">=</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/CryptoContext.html" class="external-link">CryptoContext</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  joint_pubkey <span class="op">=</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/PublicKey.html" class="external-link">PublicKey</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -130,11 +130,32 @@ alone. Construct with <code><a href="make_threshold_master.html">make_threshold_
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><strong>The master holds no secret material.</strong> Its properties are the
-crypto context and the joint public key, both public; the shares
-live at the sites that generated them and never travel. That is
-what makes the n-of-n claim true of the objects and not merely of
-the prose — see <code><a href="partial_decrypt.html">partial_decrypt()</a></code> for the decryption seam.</p>
+    <p><strong>The master has no secret-key or secret-share property, and its
+methods use no secret material.</strong> Its properties are the crypto
+context and the joint public key, both public; the shares live at
+the sites that generated them and never travel. That is what makes
+the n-of-n claim true of the objects and not merely of the prose —
+see <code><a href="partial_decrypt.html">partial_decrypt()</a></code> for the decryption seam.</p>
+<p>Read that at the right scope. In a <a href="LocalSite.html">LocalSite</a> demonstration every
+role still inhabits one <span style="R">R</span> process, and the master holds the site
+objects in order to query them, so the shares are reachable from
+the master's object graph even though no property of the master
+contains one. A boundary between the parties requires separately
+controlled processes behind <a href="RemoteSite.html">RemoteSite</a>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="exact-integer-contexts">Exact-integer contexts<a class="anchor" aria-label="anchor" href="#exact-integer-contexts"></a></h2>
+
+
+
+<p>Under BFV or BGV a site cannot contribute a value the scheme
+cannot carry: <code><a href="contribute.html">contribute()</a></code> refuses a non-integer, a non-finite
+value, or one outside the plaintext modulus rather than rounding
+it. What no party can check is the <em>total</em>: a sum that exceeds the
+modulus wraps, and the wrapped value decrypts as an ordinary
+integer with nothing to mark it. Choose <code>plaintext_modulus</code> for
+the largest total the protocol can produce, not the largest
+summand.</p>
 <p>Constructed by <code><a href="make_threshold_master.html">make_threshold_master()</a></code>.</p>
     </div>
 

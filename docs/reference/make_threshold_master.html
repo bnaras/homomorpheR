@@ -100,9 +100,13 @@ arithmetic without further configuration.</p></dd>
 
 
 <dt id="arg-sites">sites<a class="anchor" aria-label="anchor" href="#arg-sites"></a></dt>
-<dd><p>a list of at least two <a href="Site.html">Site</a>s, built with
-<code><a href="make_worker.html">make_worker()</a></code>. The first is the lead site. Each ends up
-holding its own secret share and the joint public key.</p></dd>
+<dd><p>a list of at least two <strong>distinct, unconfigured</strong>
+<a href="Site.html">Site</a>s, built with <code><a href="make_worker.html">make_worker()</a></code>. The first is the lead site.
+Each ends up holding its own secret share and the joint public
+key. Listing one site twice, or reusing a site that already holds
+a share or public parameters, is an error: the repeat would
+discard what the first round left behind, and under BFV or BGV
+nothing afterwards detects the loss.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -125,6 +129,13 @@ master decrypts alone.</p>
 needed nor permitted afterwards — the site order fixed by the
 key-generation chain is the order partial decryptions must be
 fused in, and re-wiring would break it.</p>
+<p>A ceremony that fails part-way — an unimplemented <a href="RemoteSite.html">RemoteSite</a>, an
+unreachable endpoint, a context without <code>MULTIPARTY</code> — leaves no
+trace on the sites it had already visited: their shares and
+parameters are cleared before the error propagates, so the same
+sites can be used again once the cause is fixed. For a
+<a href="RemoteSite.html">RemoteSite</a> that undo reaches the local proxy only, so a remote
+implementation should tolerate a repeated ceremony.</p>
     </div>
     <div class="section level2">
     <h2 id="what-this-does-not-defend-against">What this does not defend against<a class="anchor" aria-label="anchor" href="#what-this-does-not-defend-against"></a></h2>

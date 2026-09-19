@@ -7,7 +7,9 @@
 make_worker(name, data, contribution_fn)
 }
 \arguments{
-\item{name}{short identifier shown in printed output.}
+\item{name}{short identifier shown in printed output. A single
+non-empty string; it names the site in every error message, so an
+empty or vectorized name is rejected at construction.}
 
 \item{data}{whatever \code{contribution_fn} needs in order to answer — a
 dataset, a database connection, a cohort identifier.}

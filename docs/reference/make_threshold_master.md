@@ -28,12 +28,15 @@ make_threshold_master(name, crypto_context, sites)
 
 - sites:
 
-  a list of at least two
+  a list of at least two **distinct, unconfigured**
   [Site](https://bnaras.github.io/homomorpheR/reference/Site.md)s, built
   with
   [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md).
   The first is the lead site. Each ends up holding its own secret share
-  and the joint public key.
+  and the joint public key. Listing one site twice, or reusing a site
+  that already holds a share or public parameters, is an error: the
+  repeat would discard what the first round left behind, and under BFV
+  or BGV nothing afterwards detects the loss.
 
 ## Value
 
@@ -63,6 +66,16 @@ The returned master is already wired, so
 is neither needed nor permitted afterwards — the site order fixed by the
 key-generation chain is the order partial decryptions must be fused in,
 and re-wiring would break it.
+
+A ceremony that fails part-way — an unimplemented
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md),
+an unreachable endpoint, a context without `MULTIPARTY` — leaves no
+trace on the sites it had already visited: their shares and parameters
+are cleared before the error propagates, so the same sites can be used
+again once the cause is fixed. For a
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+that undo reaches the local proxy only, so a remote implementation
+should tolerate a repeated ceremony.
 
 ## What this does not defend against
 

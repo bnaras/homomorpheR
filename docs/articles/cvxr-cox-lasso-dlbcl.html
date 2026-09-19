@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-18</h4>
+            <h4 data-toc-skip class="date">2026-09-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-cox-lasso-dlbcl.Rmd" class="external-link"><code>vignettes/cvxr-cox-lasso-dlbcl.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-cox-lasso-dlbcl.Rmd</code></div>
@@ -477,16 +477,21 @@ one an object to hold its share in.</p>
 <span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>, sites <span class="op">=</span> <span class="va">key_sites</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## What each site kept from that one exchange: its own secret share,</span></span>
-<span><span class="co">## and a copy of the public parameters -- a scheme tag, the crypto</span></span>
-<span><span class="co">## context, the joint public key, and no share of anyone else's.</span></span>
-<span><span class="va">site_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">key_sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">params</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">## and a copy of the public parameters -- the crypto context and the</span></span>
+<span><span class="co">## joint public key, and no share of anyone else's. `site_params()`</span></span>
+<span><span class="co">## asks a site what it holds; it involves no aggregator.</span></span>
+<span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">key_sites</span>, <span class="va">site_params</span><span class="op">)</span></span></code></pre></div>
 <p>That wiring is the one and only exchange between the aggregator and
 the sites, apart from the ciphertexts each round carries. From here on
 each site is autonomous: everything below encrypts with
-<code>site_params</code>, which the site already holds, and nothing
-reaches back for the aggregator.</p>
+<code>pub</code>, which the site already holds, and nothing reaches back
+for the aggregator.</p>
+<p>Printing the bundle shows why handing it out is safe — it is a
+scheme, a public-key fingerprint, and nothing else. There is no property
+in an <code>OpenFHEParams</code> object for a key share to travel
+in.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">site_params</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">pub</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
 <p>The standardization round is <code>pool_plain</code> with the two
 <code>colSums</code> encrypted: each site encrypts
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>k</mi></msub><annotation encoding="application/x-tex">S_k</annotation></semantics></math>
@@ -509,7 +514,7 @@ sum of the same kind.)</p>
 <span><span class="co">## Aggregator side. It reduces ciphertexts and decrypts only the total.</span></span>
 <span><span class="va">encrypt_pool</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span>, <span class="va">n_total</span>, <span class="va">p_raw</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co">## Each site encrypts with the parameters it kept from wiring.</span></span>
-<span>    <span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_moments</span>, <span class="va">sites</span>, <span class="va">site_params</span><span class="op">)</span></span>
+<span>    <span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_moments</span>, <span class="va">sites</span>, <span class="va">pub</span><span class="op">)</span></span>
 <span>    <span class="va">pooled_sum</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span></span>
 <span>        <span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">parts</span>, <span class="va">`[[`</span>, <span class="st">"sum"</span><span class="op">)</span><span class="op">)</span>,   len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
 <span>    <span class="va">pooled_sumsq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span></span>
@@ -537,7 +542,7 @@ it selects the same probes.</p>
 <span></span>
 <span><span class="co">## Aggregator side: sum the encrypted (U, I) and decrypt the totals.</span></span>
 <span><span class="va">encrypt_screen</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span>, <span class="va">p_raw</span>, <span class="va">K</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">UI</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_score_info</span>, <span class="va">sites</span>, <span class="va">site_params</span><span class="op">)</span></span>
+<span>    <span class="va">UI</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_score_info</span>, <span class="va">sites</span>, <span class="va">pub</span><span class="op">)</span></span>
 <span>    <span class="va">U</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"U"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                          len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
 <span>    <span class="va">I</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"I"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -568,7 +573,7 @@ aggregate.</p>
 <span><span class="co">## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the</span></span>
 <span><span class="co">## average. It sees no individual (x_k + u_k).</span></span>
 <span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site_x</span>, <span class="va">site_u</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">cts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_consensus_term</span>, <span class="va">site_x</span>, <span class="va">site_u</span>, <span class="va">site_params</span><span class="op">)</span></span>
+<span>    <span class="va">cts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_consensus_term</span>, <span class="va">site_x</span>, <span class="va">site_u</span>, <span class="va">pub</span><span class="op">)</span></span>
 <span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">cts</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">site_x</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="va">ct_avg</span>, len <span class="op">=</span> <span class="va">K</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>

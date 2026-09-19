@@ -111,9 +111,10 @@ Three sites and one untrusted aggregator (the master):
 - **Master** holds no secret-key material. It receives the
   encrypted query from the querier, broadcasts it to the sites,
   collects their encrypted scores, orchestrates the n-of-n
-  partial-decryption ceremony for the top-$k$ results, and
-  returns them to the querier. A curious or compromised master
-  cannot decrypt anything by itself.
+  partial-decryption ceremony, sorts the results, and returns the
+  top-$k$ to the querier. A curious or compromised master cannot
+  decrypt anything by itself — but see below for what it does hold
+  once the sites have cooperated, which is more than the top-$k$.
 - **Querier** sees only the top-$k$ result tuples. Repeated
   adaptive queries leak structural information about the
   database in the same Hyrum-style sense as any retrieval
@@ -122,15 +123,28 @@ Three sites and one untrusted aggregator (the master):
 What the master sees, by stage:
 
 1. The encrypted query $\mathit{ct}_q$. Not decryptable alone.
-2. Per-site encrypted scores. Not decryptable alone.
-3. Partial decryptions of the top-$k$ scores from each site.
-   Not decryptable individually.
-4. After fusion, the top-$k$ scores in the clear. Released to
-   the querier as the protocol output.
+2. Per-site encrypted scores, one per candidate patient, with the
+   site id, local index, and label in the clear alongside.
+3. Partial decryptions from each site. Not decryptable
+   individually.
+4. After fusion, **every** candidate score in the clear. It sorts
+   these and returns the top-$k$ to the querier.
 
-Step 4 is the only cleartext the master ever holds, and only
-for the top-$k$ scores released to the querier — not for any
-intermediate quantity.
+Be precise about step 4, because it is easy to state too
+favorably. The master decrypts the whole score vector, not just
+the $k$ it releases, and it does so because this implementation
+ranks in the clear. Nothing can do better without encrypted
+comparison: the global top-$k$ is not knowable until enough scores
+are known to rank them. So the master's view is one row per candidate
+patient in the whole federation — site, local index, label, and
+score — and the querier's view is the top-$k$ of it.
+
+What the $n$-of-$n$ ceremony *does* buy, and it is not nothing: no
+single party, master included, can open any of this alone. Every
+release requires all $n$ sites to take part, which is a governance
+control on when scores are revealed rather than a bound on what a
+completed release contains. The Limitations section below says
+what encrypted top-$k$ would change.
 
 The site-private compatibility adapters $\{A_k\}$ never leave
 their sites. Each is applied to an encrypted vector while it
@@ -392,7 +406,10 @@ master <- make_threshold_master(name = "master",
 ## Published once, when key generation completes, to every party that
 ## will encrypt -- the sites and the querying party alike. It is public
 ## in full, and it is the last thing anyone needs from the aggregator.
-pub <- sites[[1]]@state$params
+## `site_params()` asks a site what it is holding; no aggregator is
+## involved, and the object has no property a key share could sit in.
+pub <- site_params(sites[[1]])
+pub
 ```
 
 Site $k$'s share lives in `sites[[k]]@state$sk` and nowhere else.
@@ -624,13 +641,14 @@ $$
 In CKKS this is a slot-wise multiply of the matvec output by the
 unencrypted $v$, followed by a log-$p$ rotate-and-add
 *slot-summation reduction* that places the summed inner product
-in slot 0 (and uninteresting partial sums in the other slots).
+in slot 0.
 
 ```{r}
 slot_sum_reduction <- function(ct, p) {
-  ## Standard CKKS log-p reduction. After the loop, slot 0 of
-  ## the result holds sum_{j=1}^{p} ct[j]; other slots hold
-  ## partial sums and are not used.
+  ## Standard CKKS log-p reduction. The rotations are cyclic over
+  ## the whole batch, and here the batch is exactly p slots wide,
+  ## so after the loop *every* slot holds the same value: the full
+  ## sum_{j=1}^{p} ct[j]. We read slot 0 by convention.
   step <- p %/% 2L
   while (step >= 1L) {
     ct <- eval_add(ct, eval_rotate(ct, step))
@@ -672,6 +690,35 @@ fold_expected  <- sum(q_demo * db_fold[[1]]$z[1, ])
 cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
             abs(fold_recovered - fold_expected)))
 ```
+
+### What is in the slots we do not read
+
+Reading `len = 1L` sets the *reported* length of a decrypted
+plaintext. It is an API convenience, not a cryptographic erasure: the
+party that decrypts can ask for every slot. OpenFHE's security notes
+warn about exactly this for slot-summation primitives, so the honest
+thing is to look rather than to assume.
+
+Here the reduction is cyclic over a batch that is exactly $p$ slots
+wide, so it does not leave partial sums behind — it broadcasts the
+total to every slot. The other slots hold the same score that is
+released anyway.
+
+```{r}
+all_slots <- master_decrypt(master, ct_score, len = p)
+cat(sprintf("slots holding the released score: %d of %d (max deviation %.2e)\n",
+            sum(abs(all_slots - score_recovered) < 1e-6), p,
+            max(abs(all_slots - score_recovered))))
+```
+
+That is a property of this reduction width, not of CKKS. A layout
+that summed over fewer slots than the batch holds — packing several
+patients into one encrypted value, say — would leave genuine partial
+sums in the remainder, and those would be released along with the
+score. The fix is a slot mask: one multiplication by an unencrypted
+one-hot vector, which zeroes every other slot and costs one level of
+the precision budget. At `multiplicative_depth = 3` this protocol has
+exactly that level spare after the matvec and the inner product.
 
 ## Site `contribution_fn`: full per-site protocol step
 
@@ -1061,8 +1108,9 @@ par(op)
   decrypt anything along the way.
 - **Diagonal-encoded matvec under threshold CKKS.** A
   $p \times p$ matrix–vector multiply on an encrypted vector,
-  implemented as $p$ rotations, $p$ multiplications by
-  unencrypted vectors, and $p$ encrypted additions, all within
+  implemented as $p-1$ nontrivial rotations (the $i = 0$ diagonal
+  needs none), $p$ multiplications by unencrypted vectors, and
+  $p-1$ encrypted additions, all within
   one level of the precision budget. The
   joint rotation keys for the cyclic-slot rotations come
   from an $n$-of-$n$ ceremony that mirrors the encryption-key
@@ -1071,12 +1119,16 @@ par(op)
   Slot-wise multiply by the site's own unencrypted database
   vector followed by a halve-and-fold reduction places the
   cosine similarity in slot 0.
-- **Top-$k$ over cleartext indices, scores threshold-decrypted.**
-  Local patient indices stay in the clear at each site; only the
-  similarity scores are encrypted, and the threshold ceremony
-  reveals values only for the released top-$k$. The encrypted
-  protocol's output agrees with the same computation run
-  unencrypted to $\sim 10^{-11}$.
+- **Encrypted scoring, cleartext ranking.** Each site's scores are
+  encrypted and only the $n$-of-$n$ ceremony can open them, so no
+  single party — the aggregator included — learns a score on its
+  own. Ranking, though, happens after decryption: the aggregator
+  threshold-decrypts **every** candidate score and sorts, so what it
+  ends up holding is each candidate's site, local index, label, and
+  score, not a top-$k$ release. See the Limitations below, which is
+  where encrypted top-$k$ would change this. The encrypted
+  protocol's scores agree with the same computation run unencrypted
+  to $\sim 10^{-11}$.
 - **Fidelity under non-isometric drift.** When fine-tuning is a
   genuine non-isometry, the rigid orthogonal endpoint leaves
   recall on the table while a relaxed (least-squares or
@@ -1096,13 +1148,23 @@ par(op)
   family, is what pins the frame.
 
 ## Limitations
-- **Encrypted top-$k$ selection.** We sort in the clear
-  after threshold decrypting the per-patient scores. Encrypted
-  argmax / top-$k$ via polynomial sign approximation is
-  feasible in CKKS but adds depth and complexity orthogonal
-  to this vignette's pedagogical aim. With encrypted top-$k$,
-  the master would never see the full score distribution —
-  only the top-$k$ release.
+- **Encrypted top-$k$ selection, and what its absence releases.**
+  We sort in the clear after threshold-decrypting the per-patient
+  scores, so the ceremony runs once per candidate and the aggregator
+  ends up holding, for **every** candidate at every site: the site
+  it came from, the local index, the label, and the score. That is
+  more than a top-$k$ release, and it is the honest description of
+  what this implementation discloses. Ranking under encryption
+  cannot be avoided by ordering the steps differently — without
+  encrypted comparison, nothing can know the global top-$k$ without
+  first learning enough scores to rank them. Encrypted argmax /
+  top-$k$ via polynomial sign approximation is feasible in CKKS but
+  adds depth and complexity orthogonal to this vignette's
+  pedagogical aim. Two cheaper partial measures: have each site
+  select a local candidate set before encryption, which trades
+  recall for a smaller release, or return the scores without the
+  labels, which is the field a reader is most likely to assume was
+  protected.
 - **Normalization, and what the $\mu$ knob trades.** The
   near-isometry of the adapter controls the per-vector norms
   $\lVert A_k^\top v\rVert$. At the orthogonal end they are all

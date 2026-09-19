@@ -294,10 +294,8 @@ ADMM vignette’s `encrypted_consensus()` is the
 `## own randomness boundary" has to mean.`\
 `site_contribution_dp`` ``<-`` ``function``(``site``, ``sigma``, ``Nv``)`` ``{`\
 `    ``st`` ``<-`` ``site``@``state`\
-`    ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``st``$``params``)``)`\
-`        `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Site "``, ``site``@``name``, ``" has no public parameters."``)`\
 `    ``noised`` ``<-`` ``st``$``x_curr`` ``+`` ``st``$``u_curr`` ``+`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``, mean ``=`` ``0``, sd ``=`` ``sigma`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``Nv``)``)`\
-`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``st``$``params``, ``noised``)`\
+`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(`[`site_params`](https://bnaras.github.io/homomorpheR/reference/site_params.md)`(``site``)``, ``noised``)`\
 `}`\
 \
 `## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The`\
@@ -388,7 +386,7 @@ sanity check that the DP mechanism is a no-op when off.
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"``,`\
 `            ``clean_dev``, ``agree_tol``)``)`
 
-    ## Sigma = 0 max coefficient deviation: 2.97e-05 (tol 1e-02)
+    ## Sigma = 0 max coefficient deviation: 3.00e-05 (tol 1e-02)
 
 ## Summary table
 
@@ -412,12 +410,12 @@ sanity check that the DP mechanism is a no-op when off.
 
 |              | sigma | intercept |      age |       bmi |      sex |  max_dev |
 |:-------------|------:|----------:|---------:|----------:|---------:|---------:|
-| sigma=0      | 0e+00 | -0.591081 | 0.402672 | -0.325982 | 0.641534 | 0.000030 |
+| sigma=0      | 0e+00 | -0.591080 | 0.402672 | -0.325982 | 0.641534 | 0.000030 |
 | sigma=0.0001 | 1e-04 | -0.591148 | 0.402593 | -0.326072 | 0.641677 | 0.000113 |
 | sigma=0.001  | 1e-03 | -0.589677 | 0.401934 | -0.325976 | 0.642103 | 0.001427 |
 | sigma=0.01   | 1e-02 | -0.619390 | 0.398715 | -0.323019 | 0.648941 | 0.028286 |
 | sigma=0.1    | 1e-01 | -0.617981 | 0.428505 | -0.372438 | 0.754537 | 0.112973 |
-| sigma=1      | 1e+00 | -3.460462 | 2.788707 |  2.514525 | 2.062808 | 2.869357 |
+| sigma=1      | 1e+00 | -3.460462 | 2.788708 |  2.514526 | 2.062808 | 2.869358 |
 | centralized  |    NA | -0.591104 | 0.402674 | -0.325983 | 0.641564 | 0.000000 |
 
 DP-ADMM coefficients vs centralized CVXR {.table style="width:100%;"}

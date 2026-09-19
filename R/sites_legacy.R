@@ -64,12 +64,54 @@ make_master <- function(name, keypair, den = gmp::as.bigq(2)^256) {
     m
 }
 
-## Paillier's public setup is a public key plus the fixed-point
-## denominator its real-valued encoding needs. Both are public, so a
-## Paillier site encrypts its own contribution in contribute() exactly
-## like an OpenFHE one.
+#' Public parameters for the frozen Paillier backend
+#'
+#' Part of the frozen Paillier-era legacy surface. Paillier's public
+#' setup is a public key plus the fixed-point denominator its
+#' real-valued encoding needs; both are public, so a Paillier site
+#' encrypts its own contribution in [contribute()] exactly like an
+#' OpenFHE one. The supported backends use [OpenFHEParams].
+#'
+#' @param pk a [PaillierPublicKey].
+#' @param den a [gmp::bigq] denominator used to scale fractional
+#'   parts.
+#' @return an S7 object of class `PaillierParams`, inheriting from
+#'   [PublicParams], with properties `pk` and `den`.
+#' @export
+PaillierParams <- new_class(
+    "PaillierParams",
+    parent  = PublicParams,
+    package = "homomorpheR",
+    properties = list(
+        pk  = PaillierPublicKey,
+        den = class_any
+    )
+)
+
 method(public_params, PaillierMaster) <- function(master)
-    list(scheme = "paillier", pk = master@keypair@pubkey, den = master@den)
+    PaillierParams(pk = master@keypair@pubkey, den = master@den)
+
+## Paillier carries no key tag. The modulus serves: two independently
+## generated keys differ in it with overwhelming probability, which is
+## all the fingerprint needs to do here.
+method(params_tag, PaillierParams) <- function(params)
+    as.character(params@pk@n)
+
+method(check_encrypted, PaillierParams) <- function(params, x, what, who = NULL) {
+    if (!S7_inherits(x, PaillierEncryptedReal) &&
+        !S7_inherits(x, PaillierCiphertext))
+        .bad_encrypted(x, what, who)
+    invisible(x)
+}
+
+method(encrypt_under, PaillierParams) <- function(params, value)
+    encrypt_real(params@pk, value, params@den)
+
+method(print, PaillierParams) <- function(x, ...) {
+    cat("<PaillierParams> ", x@pk@bits, "-bit modulus\n",
+        "  secret material: none\n", sep = "")
+    invisible(x)
+}
 
 ## There is deliberately no `master_encrypt()` generic anywhere in the
 ## package. Encryption needs only public material, so naming an
@@ -119,8 +161,15 @@ NCParty <- new_class(
     properties = list(
         name   = class_character,
         number = class_integer,
-        state  = class_any
-    )
+        state  = class_environment
+    ),
+    validator = function(self) {
+        bad_name <- .check_name(self@name)
+        if (!is.null(bad_name)) return(bad_name)
+        if (length(self@number) != 1L || is.na(self@number) ||
+            !self@number %in% c(1L, 2L))
+            "@number must be 1 or 2 -- the topology has exactly two shares"
+    }
 )
 
 #' Construct an [NCParty]
@@ -251,7 +300,10 @@ round_robin_chain <- function(master, sites) {
         for (i in seq_len(n - 1)) set_next_site(sites[[i]], sites[[i + 1]])
     }
     set_next_site(sites[[n]], master)
-    for (s in sites) set_public_key(s, master@state$pubkey)
+    ## The chain encrypts at the master, so a site needs only the
+    ## public key here, not the full parameter bundle the supported
+    ## topology gives it.
+    for (s in sites) set_public_key(s, public_params(master)@pk)
     invisible(master)
 }
 

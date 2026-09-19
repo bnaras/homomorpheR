@@ -18,5 +18,10 @@ CKKS.}
 a \link{CKKSMaster}.
 }
 \description{
-Construct a CKKS-backed master
+The context must be a CKKS one. A \link{CKKSMaster} built over BFV or
+BGV would work arithmetically but every sentence of its
+documentation, and the class name a user reads in printed output,
+would be wrong about which scheme is in use; exact-integer work
+goes through \code{\link[=make_threshold_master]{make_threshold_master()}}, which is scheme-agnostic by
+design and says so.
 }

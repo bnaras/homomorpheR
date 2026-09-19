@@ -11,9 +11,9 @@ needed. Constructed by
 ``` r
 CKKSMaster(
   name = character(0),
-  state = NULL,
-  crypto_context = NULL,
-  keypair = NULL
+  state = new.env(parent = emptyenv()),
+  crypto_context = openfhe.R::CryptoContext(),
+  keypair = openfhe.R::KeyPair()
 )
 ```
 

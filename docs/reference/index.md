@@ -22,6 +22,11 @@
 - [`NCParty()`](https://bnaras.github.io/homomorpheR/reference/NCParty.md)
   : A non-cooperating party
 
+- [`OpenFHEParams()`](https://bnaras.github.io/homomorpheR/reference/OpenFHEParams.md)
+  :
+
+  Public parameters for the `openfhe.R` backends
+
 - [`PaillierCiphertext()`](https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.md)
   : A Paillier ciphertext
 
@@ -34,11 +39,17 @@
 - [`PaillierMaster()`](https://bnaras.github.io/homomorpheR/reference/PaillierMaster.md)
   : Paillier-backed master
 
+- [`PaillierParams()`](https://bnaras.github.io/homomorpheR/reference/PaillierParams.md)
+  : Public parameters for the frozen Paillier backend
+
 - [`PaillierPrivateKey()`](https://bnaras.github.io/homomorpheR/reference/PaillierPrivateKey.md)
   : Paillier private key
 
 - [`PaillierPublicKey()`](https://bnaras.github.io/homomorpheR/reference/PaillierPublicKey.md)
   : Paillier public key
+
+- [`PublicParams()`](https://bnaras.github.io/homomorpheR/reference/PublicParams.md)
+  : The public parameters a party encrypts under
 
 - [`RemoteSite()`](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
   :
@@ -129,8 +140,14 @@
 - [`set_public_key()`](https://bnaras.github.io/homomorpheR/reference/set_public_key.md)
   : Distribute the public key from the master to a downstream actor
 
+- [`set_public_params()`](https://bnaras.github.io/homomorpheR/reference/set_public_params.md)
+  : Give a party the public parameters it will encrypt under
+
 - [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
   : Wire a master to a flat list of workers
+
+- [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md)
+  : The public parameters a party holds
 
 - [`site_unavailable()`](https://bnaras.github.io/homomorpheR/reference/site_unavailable.md)
   : Signal that a site could not be reached

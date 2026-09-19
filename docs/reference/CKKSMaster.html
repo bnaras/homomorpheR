@@ -72,9 +72,9 @@ denominator is needed. Constructed by <code><a href="make_ckks_master.html">make
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">CKKSMaster</span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
-<span>  state <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  crypto_context <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  keypair <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  crypto_context <span class="op">=</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/CryptoContext.html" class="external-link">CryptoContext</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  keypair <span class="op">=</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/KeyPair.html" class="external-link">KeyPair</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 

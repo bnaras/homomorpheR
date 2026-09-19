@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-18</h4>
+            <h4 data-toc-skip class="date">2026-09-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm-dp.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm-dp.Rmd</code></div>
@@ -461,10 +461,8 @@ per-site loop:</p>
 <span><span class="co">## own randomness boundary" has to mean.</span></span>
 <span><span class="va">site_contribution_dp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span>, <span class="va">sigma</span>, <span class="va">Nv</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">st</span> <span class="op">&lt;-</span> <span class="va">site</span><span class="op">@</span><span class="va">state</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span><span class="op">)</span><span class="op">)</span></span>
-<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">site</span><span class="op">@</span><span class="va">name</span>, <span class="st">" has no public parameters."</span><span class="op">)</span></span>
 <span>    <span class="va">noised</span> <span class="op">&lt;-</span> <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">p</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="va">sigma</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">Nv</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span>, <span class="va">noised</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="fu"><a href="../reference/site_params.html">site_params</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span>, <span class="va">noised</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co">## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The</span></span>
@@ -565,7 +563,7 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"DP-ADMM at sigma = 0 disagrees with the centralized fit."</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"</span>,</span>
 <span>            <span class="va">clean_dev</span>, <span class="va">agree_tol</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 2.97e-05 (tol 1e-02)</span></span></code></pre>
+<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 3.00e-05 (tol 1e-02)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="summary-table">Summary table<a class="anchor" aria-label="anchor" href="#summary-table"></a>
@@ -611,7 +609,7 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <tr class="odd">
 <td align="left">sigma=0</td>
 <td align="right">0e+00</td>
-<td align="right">-0.591081</td>
+<td align="right">-0.591080</td>
 <td align="right">0.402672</td>
 <td align="right">-0.325982</td>
 <td align="right">0.641534</td>
@@ -657,10 +655,10 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <td align="left">sigma=1</td>
 <td align="right">1e+00</td>
 <td align="right">-3.460462</td>
-<td align="right">2.788707</td>
-<td align="right">2.514525</td>
+<td align="right">2.788708</td>
+<td align="right">2.514526</td>
 <td align="right">2.062808</td>
-<td align="right">2.869357</td>
+<td align="right">2.869358</td>
 </tr>
 <tr class="odd">
 <td align="left">centralized</td>

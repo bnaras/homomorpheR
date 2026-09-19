@@ -1,6 +1,4 @@
-#' @importFrom S7 new_class new_generic new_object method method<- class_any class_character class_integer S7_object S7_inherits
-#' @importFrom openfhe.R make_ckks_packed_plaintext get_real_packed_value make_packed_plaintext get_packed_value get_scheme_id
-#' @importFrom openfhe.R multiparty_key_gen multiparty_decrypt_lead multiparty_decrypt_main multiparty_decrypt_fusion
+#' @importFrom S7 new_class new_generic new_object method method<- class_any class_character class_environment class_function class_integer S7_object S7_inherits S7_dispatch
 NULL
 
 ## Site / Master actor classes -- the supported (CKKS / threshold)
@@ -14,9 +12,27 @@ NULL
 ## NCParty topology, the round-robin chain) live in sites_legacy.R.
 ##
 ## Actors carry an environment-backed `state` property for mutable
-## bookkeeping (next site in a chain, intermediate results, the master
-## reference each site needs in order to signal a failed local
-## computation, etc.). S7 properties themselves stay immutable.
+## bookkeeping (the public parameters a site was given, its own key
+## share, the next site in a legacy chain, intermediate results).
+##
+## The environment is there because S7 objects have copy-on-modify
+## value semantics: `obj@prop <- x` yields a *modified copy*, so a
+## function cannot record anything in an actor its caller passed in.
+## An environment is shared by reference, which is what an actor with
+## a lifetime needs. The properties themselves are writable, as
+## ordinary S7 properties are -- it is the copy that makes them
+## useless for bookkeeping, not any enforced immutability.
+
+# ---- Validators shared across the actor classes ---------------------------
+
+## A party's name appears in every error message about it, so a name
+## that is empty, missing, or a vector makes those messages useless
+## exactly when they matter. Rejecting at construction is cheaper than
+## a puzzling message three rounds into a protocol.
+.check_name <- function(x) {
+    if (length(x) != 1L || is.na(x) || !nzchar(x))
+        "@name must be a single non-empty string"
+}
 
 # ---- Classes --------------------------------------------------------------
 
@@ -33,11 +49,13 @@ NULL
 #' entirely on its own — it holds no reference to the party that
 #' aggregates its answers, and needs none.
 #'
-#' @param name short identifier shown in printed output.
+#' @param name short identifier shown in printed output. A single
+#'   non-empty string; it names the site in every error message, so an
+#'   empty or vectorized name is rejected at construction.
 #' @param state an environment for mutable bookkeeping — the public
-#'   key the site encrypts under, the capability [set_workers()]
-#'   installs, and, on the frozen legacy path, the next link in the
-#'   round-robin chain. Default: a fresh empty env.
+#'   parameters the site was given when it was configured, its own key
+#'   share under threshold keys, and, on the frozen legacy path, the
+#'   next link in the round-robin chain. Default: a fresh empty env.
 #' @return nothing — this class is abstract, so calling it raises an
 #'   error instead of returning an object. It is the common parent of
 #'   [LocalSite] and [RemoteSite], and the dispatch target for
@@ -46,12 +64,13 @@ NULL
 #' @export
 Site <- new_class(
     "Site",
-    abstract = TRUE,
-    package  = "homomorpheR",
+    abstract  = TRUE,
+    package   = "homomorpheR",
     properties = list(
         name  = class_character,
-        state = class_any
-    )
+        state = class_environment
+    ),
+    validator = function(self) .check_name(self@name)
 )
 
 #' A site whose data lives in this \R session
@@ -59,7 +78,14 @@ Site <- new_class(
 #' The ordinary case: the records are here, and `contribution_fn` is
 #' evaluated in-process. [contribute()] computes the contribution and
 #' **encrypts it** with the public parameters the site was given when
-#' it was wired, so what leaves is already a ciphertext.
+#' it was configured, so what leaves is already a ciphertext.
+#'
+#' A `LocalSite` demonstrates the protocol's roles inside one \R
+#' session. It is not a deployment boundary: its data, and under
+#' threshold keys its key share, are objects in this process, and
+#' anything else in this process can reach them. Separating the
+#' parties for real means separately controlled processes, which is
+#' what [RemoteSite] is for.
 #'
 #' @inheritParams Site
 #' @param data whatever `contribution_fn` needs in order to answer — a
@@ -76,8 +102,13 @@ LocalSite <- new_class(
     parent  = Site,
     package = "homomorpheR",
     properties = list(
+        ## `data` is deliberately untyped: it is whatever the site's
+        ## own function needs -- a data frame, a DBI connection, a
+        ## cohort identifier. `contribution_fn` is not, because a
+        ## non-function there fails at the first round rather than at
+        ## construction.
         data            = class_any,
-        contribution_fn = class_any
+        contribution_fn = class_function
     )
 )
 
@@ -86,29 +117,73 @@ LocalSite <- new_class(
 #' Abstract. [homomorpheR] deliberately ships **no** implementation:
 #' transports differ too much, and a crypto package has no business
 #' carrying an HTTP client. Subclass it, add whatever properties your
-#' transport needs, and register a [contribute()] method:
+#' transport needs, and register methods:
 #'
 #' ```
 #' HttpSite <- S7::new_class("HttpSite", parent = RemoteSite,
 #'                           properties = list(url = S7::class_character))
+#' S7::method(set_public_params, HttpSite) <- function(site, params) {
+#'     ## ... POST the public context and key to site@url; the far end
+#'     ##     stores them. Nothing secret travels.
+#' }
 #' S7::method(contribute, HttpSite) <- function(site, theta) {
 #'     ## ... call site@url with theta; the far end encrypts ...
 #' }
 #' ```
 #'
+#' @section What this class is, and is not:
+#'
+#' A `RemoteSite` is an **architectural seam with a documented
+#' contract**, not a trust boundary the package establishes. Three
+#' cases are worth keeping apart:
+#'
+#' \describe{
+#'   \item{A [LocalSite] demonstration.}{Data, key shares, sites, and
+#'     the aggregating party are all objects in one \R process. The
+#'     classes model the protocol's *roles*; they do not create a
+#'     process or trust boundary, and nothing prevents one object from
+#'     reaching another. This is the right scope for a vignette.}
+#'   \item{A single-decrypter deployment.}{Each site returns a
+#'     ciphertext, but a [CKKSMaster] holds the secret key and could
+#'     decrypt an individual contribution. "Only the aggregate is
+#'     decrypted" describes what [master_aggregate()] does, not
+#'     something the cryptography enforces.}
+#'   \item{A remote threshold deployment.}{Separately controlled
+#'     endpoints keep their own shares and return ciphertexts or
+#'     partial decryptions. Here the party boundary is real — provided
+#'     *your* transport, authentication, endpoint code, and key
+#'     storage implement it. [homomorpheR] supplies none of those, and
+#'     detects no deliberately dishonest reply.}
+#' }
+#'
+#' What the package does enforce: a site cannot be configured except
+#' through [set_public_params()], which the base `RemoteSite` method
+#' refuses, so an endpoint that was never provisioned fails closed
+#' rather than looking wired; the base class likewise refuses
+#' [keygen_round()] and [partial_decrypt()] rather than performing a
+#' remote party's secret-key operation in this process; and
+#' [master_aggregate()] checks that a reply is an encrypted value
+#' under this protocol's key before adding it to a total.
+#'
 #' @section The contract an implementation must honor:
 #'
 #' \describe{
+#'   \item{Provision the far end at setup.}{Implement
+#'     [set_public_params()] to send the public context and key to the
+#'     endpoint and have it retain them. This is one of only two
+#'     moments anything passes between the parties — the other being
+#'     a round. Only public material travels.}
 #'   \item{Return a ciphertext, never a plain number.}{The remote end
 #'     was given the public parameters when it was wired, so it
 #'     encrypts *before* the value crosses the wire. A `RemoteSite`
 #'     that returns cleartext hands the aggregator an individual
 #'     per-site contribution, which is precisely what the protocol
-#'     exists to prevent. `NA` is the one permitted plaintext reply,
-#'     because CKKS has no representation for it; the aggregator
-#'     consequently learns which `theta` a site could not evaluate,
-#'     and that residual side channel is documented in
-#'     [master_aggregate()].}
+#'     exists to prevent — [master_aggregate()] now refuses such a
+#'     reply, but an honest implementation should not produce one.
+#'     `NA` is the one permitted plaintext reply, because CKKS has no
+#'     representation for it; the aggregator consequently learns which
+#'     `theta` a site could not evaluate, and that residual side
+#'     channel is documented in [master_aggregate()].}
 #'   \item{Distinguish "non-evaluable" from "unreachable".}{`NA` means
 #'     *this `theta` broke my solver* — the optimizer will back off and
 #'     try a different parameter, which is the right response. A
@@ -137,9 +212,18 @@ LocalSite <- new_class(
 #'     threshold keys it costs you the entire result.}
 #' }
 #'
+#' @section What the package leaves to you:
+#'
+#' Transport, identity, authentication, attestation, remote key
+#' storage, serialization of the parameter bundle, retry and timeout
+#' policy — and any defense against a party that deviates from the
+#' protocol rather than merely observing it. The trust model
+#' throughout is honest-but-curious.
+#'
 #' @inheritParams Site
 #' @return nothing — this class is abstract. Subclass it as shown above.
-#' @seealso [contribute()], [site_unavailable()], [LocalSite]
+#' @seealso [set_public_params()], [contribute()], [keygen_round()],
+#'   [partial_decrypt()], [site_unavailable()], [LocalSite]
 #' @export
 RemoteSite <- new_class(
     "RemoteSite",
@@ -180,8 +264,9 @@ Master <- new_class(
     package = "homomorpheR",
     properties = list(
         name  = class_character,
-        state = class_any
-    )
+        state = class_environment
+    ),
+    validator = function(self) .check_name(self@name)
 )
 
 #' CKKS-backed master
@@ -206,8 +291,8 @@ CKKSMaster <- new_class(
     parent  = Master,
     package = "homomorpheR",
     properties = list(
-        crypto_context = class_any,
-        keypair        = class_any
+        crypto_context = openfhe.R::CryptoContext,
+        keypair        = openfhe.R::KeyPair
     )
 )
 
@@ -223,11 +308,30 @@ CKKSMaster <- new_class(
 #' all `n` sites to return partial decryptions, which the master then
 #' fuses.
 #'
-#' **The master holds no secret material.** Its properties are the
-#' crypto context and the joint public key, both public; the shares
-#' live at the sites that generated them and never travel. That is
-#' what makes the n-of-n claim true of the objects and not merely of
-#' the prose — see [partial_decrypt()] for the decryption seam.
+#' **The master has no secret-key or secret-share property, and its
+#' methods use no secret material.** Its properties are the crypto
+#' context and the joint public key, both public; the shares live at
+#' the sites that generated them and never travel. That is what makes
+#' the n-of-n claim true of the objects and not merely of the prose —
+#' see [partial_decrypt()] for the decryption seam.
+#'
+#' Read that at the right scope. In a [LocalSite] demonstration every
+#' role still inhabits one \R process, and the master holds the site
+#' objects in order to query them, so the shares are reachable from
+#' the master's object graph even though no property of the master
+#' contains one. A boundary between the parties requires separately
+#' controlled processes behind [RemoteSite].
+#'
+#' @section Exact-integer contexts:
+#'
+#' Under BFV or BGV a site cannot contribute a value the scheme
+#' cannot carry: [contribute()] refuses a non-integer, a non-finite
+#' value, or one outside the plaintext modulus rather than rounding
+#' it. What no party can check is the *total*: a sum that exceeds the
+#' modulus wraps, and the wrapped value decrypts as an ordinary
+#' integer with nothing to mark it. Choose `plaintext_modulus` for
+#' the largest total the protocol can produce, not the largest
+#' summand.
 #'
 #' Constructed by [make_threshold_master()].
 #'
@@ -250,25 +354,103 @@ ThresholdMaster <- new_class(
     parent  = Master,
     package = "homomorpheR",
     properties = list(
-        crypto_context = class_any,
-        joint_pubkey   = class_any
+        crypto_context = openfhe.R::CryptoContext,
+        joint_pubkey   = openfhe.R::PublicKey
     )
 )
+
+# ---- Public parameters ----------------------------------------------------
+
+#' The public parameters a party encrypts under
+#'
+#' Abstract base for the setup bundle a party is handed once, when it
+#' is configured, and holds from then on. It is public in full: it is
+#' exactly the message a coordinator would put on a wire to an
+#' untrusted peer, and it is all anyone needs in order to encrypt.
+#'
+#' The class carries **no secret property**, which is what makes the
+#' claim structural rather than a promise in prose — there is nowhere
+#' for a secret key or a key share to travel in this object. The
+#' concrete kinds are [OpenFHEParams] and, on the frozen legacy path,
+#' `PaillierParams`.
+#'
+#' Obtain the bundle a site holds with [site_params()]; encrypt with
+#' [encrypt_under()].
+#'
+#' @return nothing — this class is abstract. Its concrete subclasses
+#'   are constructed for you when a party is configured.
+#' @seealso [OpenFHEParams], [site_params()], [encrypt_under()]
+#' @export
+PublicParams <- new_class(
+    "PublicParams",
+    abstract = TRUE,
+    package  = "homomorpheR"
+)
+
+#' Public parameters for the `openfhe.R` backends
+#'
+#' The crypto context and the public key to encrypt under — the joint
+#' public key when the protocol uses threshold keys. Both are public.
+#' The scheme is read back from the context, so one class serves CKKS,
+#' BFV, and BGV.
+#'
+#' @param cc an `openfhe.R` `CryptoContext`.
+#' @param pk an `openfhe.R` `PublicKey`.
+#' @return an S7 object of class `OpenFHEParams`, inheriting from
+#'   [PublicParams], with properties `cc` and `pk`.
+#' @seealso [encrypt_under()], [site_params()]
+#' @export
+OpenFHEParams <- new_class(
+    "OpenFHEParams",
+    parent  = PublicParams,
+    package = "homomorpheR",
+    properties = list(
+        cc = openfhe.R::CryptoContext,
+        pk = openfhe.R::PublicKey
+    )
+)
+
+## A short public fingerprint of the key a bundle encrypts under.
+##
+## OpenFHE stamps every key and every ciphertext with a key tag, and
+## preserves it through homomorphic operations, so comparing tags
+## answers "was this produced under my key?" exactly, on public data,
+## without decrypting anything. That one equality is what turns the
+## whole class of wrong-key failures -- a worker re-wired to a second
+## master, a ciphertext from another protocol, a site's own share
+## applied to a foreign value -- from a silent wrong number into an
+## error. See notes/discoveries for what those failures look like
+## untrapped: under BFV a re-keyed decryption returns a plausible
+## integer and nothing is raised anywhere.
+##
+## Paillier has no such stamp; the modulus serves, since two keys
+## differ in it with overwhelming probability.
+#' @noRd
+params_tag <- new_generic("params_tag", "params")
+
+method(params_tag, OpenFHEParams) <- function(params)
+    openfhe.R::get_key_tag(params@pk)
 
 # ---- Constructors ---------------------------------------------------------
 
 #' Construct a CKKS-backed master
 #'
+#' The context must be a CKKS one. A [CKKSMaster] built over BFV or
+#' BGV would work arithmetically but every sentence of its
+#' documentation, and the class name a user reads in printed output,
+#' would be wrong about which scheme is in use; exact-integer work
+#' goes through [make_threshold_master()], which is scheme-agnostic by
+#' design and says so.
+#'
 #' @inheritParams CKKSMaster
 #' @return a [CKKSMaster].
 #' @export
 make_ckks_master <- function(name, crypto_context, keypair) {
-    m <- CKKSMaster(name = name, crypto_context = crypto_context,
-                    keypair = keypair,
-                    state   = new.env(parent = emptyenv()))
-    m@state$pubkey  <- keypair@public
-    m@state$privkey <- keypair@secret
-    m
+    .require_scheme(crypto_context, "CKKSRNS_SCHEME", "make_ckks_master")
+    CKKSMaster(name           = name,
+               crypto_context = crypto_context,
+               keypair        = keypair,
+               state          = new.env(parent = emptyenv()))
 }
 
 #' Run threshold key generation across sites and construct the master
@@ -297,6 +479,14 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #' key-generation chain is the order partial decryptions must be
 #' fused in, and re-wiring would break it.
 #'
+#' A ceremony that fails part-way — an unimplemented [RemoteSite], an
+#' unreachable endpoint, a context without `MULTIPARTY` — leaves no
+#' trace on the sites it had already visited: their shares and
+#' parameters are cleared before the error propagates, so the same
+#' sites can be used again once the cause is fixed. For a
+#' [RemoteSite] that undo reaches the local proxy only, so a remote
+#' implementation should tolerate a repeated ceremony.
+#'
 #' @section What this does not defend against:
 #'
 #' The construction assumes participants follow the protocol
@@ -319,9 +509,13 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #'   scheme is read back from the context, so the same master drives
 #'   the protocol over real-valued (CKKS) or exact-integer (BFV/BGV)
 #'   arithmetic without further configuration.
-#' @param sites a list of at least two [Site]s, built with
-#'   [make_worker()]. The first is the lead site. Each ends up
-#'   holding its own secret share and the joint public key.
+#' @param sites a list of at least two **distinct, unconfigured**
+#'   [Site]s, built with [make_worker()]. The first is the lead site.
+#'   Each ends up holding its own secret share and the joint public
+#'   key. Listing one site twice, or reusing a site that already holds
+#'   a share or public parameters, is an error: the repeat would
+#'   discard what the first round left behind, and under BFV or BGV
+#'   nothing afterwards detects the loss.
 #' @return a [ThresholdMaster], wired to `sites`.
 #' @seealso [keygen_round()], [partial_decrypt()], [master_decrypt()].
 #' @export
@@ -331,11 +525,55 @@ make_threshold_master <- function(name, crypto_context, sites) {
     n <- length(sites)
     if (n < 2)
         cli_abort("Threshold key generation requires at least two sites.")
+    for (i in seq_len(n)) {
+        s <- sites[[i]]
+        if (!S7_inherits(s, Site))
+            cli_abort("{.arg sites}[[{i}]] is not a {.cls Site}.")
+
+        ## The same site twice is not two parties. Its second round
+        ## overwrites the share its first round generated, so the
+        ## joint key depends on a share nobody holds and every later
+        ## decryption is wrong -- silently, under BFV and BGV, which
+        ## have no approximation check to trip over.
+        for (j in seq_len(i - 1L))
+            if (identical(s@state, sites[[j]]@state))
+                cli_abort(c("Sites {j} and {i} are the same party.",
+                            i = "Threshold key generation needs {n} distinct
+                                 parties; a repeated one overwrites the share
+                                 it generated the first time, and nothing
+                                 detects the loss afterwards."))
+
+        ## Not a protocol failure, but it makes every later message
+        ## about "site {.val X}" ambiguous.
+        for (j in seq_len(i - 1L))
+            if (identical(s@name, sites[[j]]@name))
+                cli_abort("Sites {j} and {i} share the name {.val {s@name}}.")
+
+        if (!is.null(s@state$sk) || !is.null(s@state$params))
+            cli_abort(c("Site {.val {s@name}} is already taking part in a protocol.",
+                        i = "A key-generation ceremony starts from unconfigured
+                             sites: joining a second one would discard the share
+                             and the parameters the first left behind.",
+                        i = "Build a fresh site with {.fun make_worker}."))
+    }
 
     ## The chain runs site to site. Each call returns a public key and
     ## nothing else; the share stays where it was generated.
+    ##
+    ## If any step fails -- a RemoteSite with no implementation, an
+    ## unreachable endpoint, a context without MULTIPARTY -- the sites
+    ## already visited hold a share belonging to a ceremony that will
+    ## never complete, and the checks above would then refuse them a
+    ## retry. Undo the visit rather than leave that behind.
+    touched  <- list()
+    complete <- FALSE
+    on.exit(if (!complete) for (s in touched) .clear_site(s), add = TRUE)
+
     pk <- NULL
-    for (s in sites) pk <- keygen_round(s, crypto_context, pk)
+    for (s in sites) {
+        touched[[length(touched) + 1L]] <- s
+        pk <- keygen_round(s, crypto_context, pk)
+    }
     joint_pk <- pk
 
     m <- ThresholdMaster(
@@ -343,22 +581,93 @@ make_threshold_master <- function(name, crypto_context, sites) {
         crypto_context = crypto_context,
         joint_pubkey   = joint_pk,
         state          = new.env(parent = emptyenv()))
-    m@state$pubkey  <- joint_pk
     m@state$workers <- sites
 
     ## Everyone encrypts under the joint key, so the public bundle goes
-    ## back out to every site once the chain has completed.
+    ## back out to every site once the chain has completed. This is the
+    ## setup message, and it goes through the generic so that a remote
+    ## party can receive it at the far end -- see set_public_params().
     params <- public_params(m)
-    for (s in sites) {
-        set_public_key(s, joint_pk)
-        s@state$params <- params
-    }
+    for (s in sites) set_public_params(s, params)
+
+    complete <- TRUE
     m
 }
 
 # ---- Generics -------------------------------------------------------------
 
+#' Give a party the public parameters it will encrypt under
+#'
+#' The setup step of the protocol, and one of only two moments at
+#' which anything passes between a coordinating party and a site — the
+#' other being a round itself, which carries a query out and a
+#' ciphertext back. A party receives its [PublicParams] once, here,
+#' and from then on computes and encrypts with what it holds.
+#'
+#' Called for you by [set_workers()] and [make_threshold_master()].
+#' You would call it directly only when writing a [RemoteSite] method.
+#'
+#' @section Why this is a generic:
+#'
+#' Setup is a *message*. For a co-located site, delivering it is an
+#' assignment; for a remote one it is a network call that must
+#' provision the far endpoint, and nothing in this process can do that
+#' on the endpoint's behalf. Writing the parameters straight into a
+#' remote proxy's `state` would leave the proxy looking configured
+#' while the far end had never been told anything — a setup failure
+#' that surfaces only much later, as a wrong answer. So the base
+#' [RemoteSite] method **refuses**, and a subclass must implement the
+#' provisioning it alone knows how to do. Missing remote setup fails
+#' closed.
+#'
+#' What crosses is public in full: a crypto context and a public key.
+#' There is no secret material in a [PublicParams] object and no
+#' property for one to occupy.
+#'
+#' @section Reconfiguring:
+#'
+#' Receiving the same parameters again is harmless and allowed.
+#' Receiving *different* ones is refused. A site that silently
+#' switched keys would keep answering its first coordinator, in a key
+#' that coordinator cannot read — under CKKS that surfaces as an
+#' approximation-error abort, and under BFV or BGV as a plausible
+#' wrong integer with nothing raised. Build a fresh site instead; they
+#' are cheap.
+#'
+#' @param site a [Site], or a user-defined subclass of [RemoteSite].
+#' @param ... method-specific arguments; the built-in method takes
+#'   `params`, a [PublicParams] object.
+#' @return the site, invisibly. Called for its side effect.
+#' @seealso [site_params()] to read them back, [encrypt_under()] to
+#'   use them, [RemoteSite] for the full remote contract.
+#' @export
+set_public_params <- new_generic("set_public_params", "site")
+
+#' The public parameters a party holds
+#'
+#' Reads back what [set_public_params()] delivered. Encryption needs
+#' only this, so a party that has it is self-sufficient, and any other
+#' party that will encrypt under the same key — a querier that is not
+#' itself a site, say — can be handed a copy.
+#'
+#' Aborts if the site was never configured, rather than returning
+#' `NULL` for a caller to encrypt with.
+#'
+#' @param site a [Site], or a user-defined subclass of [RemoteSite].
+#' @param ... method-specific arguments; the built-in method takes
+#'   none.
+#' @return a [PublicParams] object.
+#' @seealso [set_public_params()], [encrypt_under()]
+#' @export
+site_params <- new_generic("site_params", "site")
+
 #' Distribute the public key from the master to a downstream actor
+#'
+#' Part of the frozen Paillier-era legacy surface, used by
+#' [round_robin_chain()]. The supported setup seam is
+#' [set_public_params()], which carries the whole public bundle and
+#' which a [RemoteSite] can implement.
+#'
 #' @param obj a [Site] (or legacy [NCParty]) to receive the key.
 #' @param ... method-specific arguments. The methods take a single
 #'   public key `pubkey` of the master's backend type.
@@ -385,63 +694,109 @@ master_decrypt <- new_generic("master_decrypt", "master")
 method(set_public_key, Site)    <- function(obj, pubkey) {
     obj@state$pubkey <- pubkey; invisible(obj)
 }
-## Internal. The public setup handed out once, at wiring time, and
-## never again: it is the setup message a coordinator would send over a
-## wire, and the *only* moment key material crosses between parties
-## apart from a round's ciphertexts.
+
+## Defined on Site, not LocalSite: a user's own Site subclass carrying
+## protocol-specific state is still a co-located party, and stores its
+## parameters the same way. RemoteSite gets an explicit refusal below,
+## because storing them here would configure the proxy and not the
+## endpoint.
+method(set_public_params, Site) <- function(site, params) {
+    if (!S7_inherits(params, PublicParams))
+        cli_abort("{.arg params} must be a {.cls PublicParams} object.")
+    held <- site@state$params
+    if (!is.null(held) && !identical(params_tag(held), params_tag(params)))
+        cli_abort(c("Site {.val {site@name}} already holds different public parameters.",
+                    i = "It would go on answering its first coordinator in a key
+                         that coordinator cannot read. Under CKKS that aborts at
+                         decryption; under BFV or BGV it returns a plausible
+                         wrong integer and raises nothing.",
+                    i = "Build a fresh site with {.fun make_worker}."))
+    site@state$params <- params
+    invisible(site)
+}
+
+method(set_public_params, RemoteSite) <- function(site, params)
+    cli_abort(c("{.cls RemoteSite} {.val {site@name}} has no {.fun set_public_params} method.",
+                i = "Storing the parameters here would configure this proxy and
+                     not the endpoint, which would then look wired while never
+                     having been told anything.",
+                i = "Implement {.fun set_public_params} for your subclass: send
+                     {.arg params} to the far end and have it retain them. Only
+                     public material travels -- a crypto context and a public
+                     key."))
+
+method(site_params, Site) <- function(site) {
+    params <- site@state$params
+    if (is.null(params))
+        cli_abort(c("Site {.val {site@name}} has no public parameters.",
+                    i = "A site is given them once, when it is wired with
+                         {.fun set_workers} or taken through
+                         {.fun make_threshold_master}. Do that first."))
+    params
+}
+
+## Undo a site's participation in a key-generation ceremony that did
+## not complete. Best effort, and deliberately local: for a RemoteSite
+## this reaches the proxy only, which is why make_threshold_master()
+## tells remote implementers to tolerate a repeated ceremony.
+.clear_site <- function(site) {
+    suppressWarnings(rm(list = c("sk", "cc", "params", "pubkey", "joint_tag"),
+                        envir = site@state))
+    invisible(site)
+}
+
+## Internal. The public setup a coordinator hands out once, at wiring
+## time, and never again: the setup message it would send over a wire,
+## and the *only* moment key material crosses between parties apart
+## from a round's ciphertexts.
 ##
-## Deliberately NOT exported. A site is autonomous once constructed --
+## Deliberately NOT exported. A site is autonomous once configured --
 ## it holds what it was given and encrypts with that. Calling this at
 ## encryption time would be a party reaching back for something it
-## already has, which is the coupling the actor split exists to remove.
-## The only callers are set_workers() and make_threshold_master().
-##
-## Contents are scheme-dependent (crypto context and public key for the
-## OpenFHE backends; public key and denominator for frozen Paillier),
-## so the bundle names its `scheme` and encrypt_under() reads it back.
-## It never contains a secret key.
+## already has, which is the coupling the actor split exists to
+## remove. The only callers are set_workers() and
+## make_threshold_master(). A party that needs the bundle asks a site
+## for it, through site_params(), which involves no coordinator.
 #' @noRd
 public_params <- new_generic("public_params", "master")
 
 #' Encrypt a value under the public parameters a party holds
 #'
 #' The one encryption entry point. It takes only public material, so a
-#' party that was handed that material at setup encrypts entirely on
-#' its own, with nothing to consult and no one to ask. A [Site] keeps
-#' its copy in `state$params` from the moment it is wired, which is
-#' what makes [contribute()] a purely local computation.
+#' party handed that material at setup encrypts entirely on its own,
+#' with nothing to consult and no one to ask — which is what makes
+#' [contribute()] a purely local computation. It names no party,
+#' because encryption privileges none.
 #'
-#' For the `openfhe` schemes the plaintext encoding follows whatever
-#' the context was built for (packed CKKS reals, or packed integers for
-#' BFV and BGV), read back from the context itself.
+#' For the `openfhe` backends the encoding follows whatever the
+#' context was built for, read back from the context itself: packed
+#' reals under CKKS, packed integers under BFV and BGV. The exact
+#' schemes reject a value they cannot represent rather than round it;
+#' see [OpenFHEParams].
 #'
-#' @param params the public parameters this party holds — for a [Site],
-#'   `site@state$params`, installed when it was wired.
+#' @param params the [PublicParams] this party holds — for a [Site],
+#'   `site_params(site)`.
 #' @param value a numeric vector.
 #' @return an encrypted value of the backend's type.
-#' @seealso [contribute()], which is how a [Site] uses this on its own
-#'   data.
+#' @seealso [site_params()], and [contribute()], which is how a [Site]
+#'   uses this on its own data.
 #' @export
-encrypt_under <- function(params, value) {
-    ## Two cryptosystems, two parameter sets. The `paillier` arm serves
-    ## the frozen legacy backend only and will not grow a third case.
-    switch(params$scheme,
-           openfhe  = openfhe.R::encrypt(params$pk,
-                                         .packed_codec(params$cc)$encode(value),
-                                         cc = params$cc),
-           paillier = encrypt_real(params$pk, value, params$den),
-           cli_abort("Unknown scheme {.val {params$scheme}} in public parameters."))
-}
+encrypt_under <- new_generic("encrypt_under", "params",
+                             function(params, value) S7_dispatch())
+
+method(encrypt_under, OpenFHEParams) <- function(params, value)
+    openfhe.R::encrypt(params@pk,
+                       .packed_codec(params@cc)$encode(value),
+                       cc = params@cc)
 
 # ---- Backend-specific public_params / master_decrypt ---------------------
 
 method(public_params, CKKSMaster) <- function(master)
-    list(scheme = "openfhe",
-         cc     = master@crypto_context,
-         pk     = master@keypair@public)
+    OpenFHEParams(cc = master@crypto_context, pk = master@keypair@public)
 
 method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
     cc <- master@crypto_context
+    check_encrypted(public_params(master), ciphertext, "decrypt")
     pt <- openfhe.R::decrypt(ciphertext, master@keypair@secret, cc = cc)
     openfhe.R::set_length(pt, as.integer(len))
     vals <- .packed_codec(cc)$decode(pt)
@@ -449,9 +804,7 @@ method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
 }
 
 method(public_params, ThresholdMaster) <- function(master)
-    list(scheme = "openfhe",
-         cc     = master@crypto_context,
-         pk     = master@joint_pubkey)
+    OpenFHEParams(cc = master@crypto_context, pk = master@joint_pubkey)
 
 method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L) {
     cc    <- master@crypto_context
@@ -459,6 +812,7 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
     n     <- length(sites)
     if (n < 2)
         cli_abort("Threshold master is not wired to its sites.")
+    check_encrypted(public_params(master), ciphertext, "decrypt")
 
     ## The master has no key material. It sends the ciphertext to each
     ## site and gets a partial decryption back; the share that produced
@@ -474,11 +828,14 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
         partials[[i]] <- tryCatch(
             partial_decrypt(sites[[i]], ciphertext, lead = (i == 1L)),
             homomorpheR_site_unavailable = function(cnd)
+                ## The condition carries the site's *name*, not the site.
+                ## A LocalSite object drags its data and its key share
+                ## into anything that logs or serializes the condition.
                 cli_abort(c("Site {.val {sites[[i]]@name}} did not return a partial decryption.",
                             i = "Threshold decryption is n-of-n: one missing partial loses the whole result."),
-                          class  = "homomorpheR_site_unavailable",
-                          site   = sites[[i]],
-                          parent = cnd))
+                          class     = "homomorpheR_site_unavailable",
+                          site_name = sites[[i]]@name,
+                          parent    = cnd))
     }
 
     ## Fusion needs only the context, so the master can do it: it is a
@@ -498,6 +855,98 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+## Require a context built for a particular scheme. `caller` names the
+## function to blame, without decoration -- cli styles it here.
+.require_scheme <- function(cc, scheme, caller) {
+    want <- as.integer(openfhe.R::SchemeId[[scheme]])
+    got  <- as.integer(openfhe.R::get_scheme_id(cc))
+    if (!identical(got, want)) {
+        got_name <- names(openfhe.R::SchemeId)[
+            match(got, as.integer(unlist(openfhe.R::SchemeId)))]
+        cli_abort(c("{.fun {caller}} needs a {.val {scheme}} context.",
+                    x = "The context supplied is {.val {got_name %||% got}}."))
+    }
+    invisible(cc)
+}
+
+## Is this value something the protocol can add to a running total,
+## or decrypt?
+##
+## Without the class half of this check, a site that answers in
+## cleartext has its plain number folded into the sum by ordinary
+## scalar addition and the round returns the *correct* answer -- with
+## that site's individual contribution having crossed the boundary the
+## protocol exists to keep it behind. Nothing else in the pipeline
+## notices.
+##
+## The tag half catches a value produced under some other key.
+##
+## A generic on the parameters rather than a plain function, because
+## what counts as encrypted is a property of the backend: the frozen
+## Paillier path has its own ciphertext type and no key tag.
+#' @noRd
+check_encrypted <- new_generic("check_encrypted", "params",
+                               function(params, x, what, who = NULL) S7_dispatch())
+
+## Shared message shaping, so both backends read alike. cli does the
+## quoting -- building the fragment by hand needs non-ASCII quote
+## characters, which R CMD check will not have in package code.
+.from_site <- function(who)
+    if (is.null(who)) "" else format_inline(" from site {.val {who}}")
+
+.bad_encrypted <- function(x, what, who) {
+    where <- .from_site(who)
+    cli_abort(c("Cannot {what} a {.cls {class(x)[[1L]]}}{where}.",
+                i = "An encrypted value is expected. A party that replies in
+                     cleartext hands over exactly the individual quantity the
+                     protocol keeps hidden, and the arithmetic would go through
+                     without complaint."),
+              class = "homomorpheR_bad_contribution")
+}
+
+method(check_encrypted, OpenFHEParams) <- function(params, x, what, who = NULL) {
+    if (!S7_inherits(x, openfhe.R::Ciphertext)) .bad_encrypted(x, what, who)
+    where <- .from_site(who)
+    ## OpenFHE stamps keys and ciphertexts with a tag and preserves it
+    ## through homomorphic operations, so this is an exact test on
+    ## public data -- no decryption, no secret material.
+    if (!identical(openfhe.R::get_key_tag(x), params_tag(params)))
+        cli_abort(c("Encrypted value{where} was produced under a different key.",
+                    i = "Its key tag does not match this protocol's public key.
+                         Decrypting it would return noise -- and under BFV or
+                         BGV that noise is a plausible integer, raising
+                         nothing."),
+                  class = "homomorpheR_key_mismatch")
+    invisible(x)
+}
+
+## Reject a value an exact-integer scheme cannot carry, rather than
+## rounding it away. `as.integer(0.9)` is 0, and BFV then reports a
+## sum of zero for something that was never zero.
+.as_exact_integer <- function(value, cc) {
+    if (!is.numeric(value))
+        cli_abort("An exact-integer context needs a numeric value, not {.cls {class(value)[[1L]]}}.")
+    if (anyNA(value) || any(!is.finite(value)))
+        cli_abort(c("Exact-integer schemes cannot represent NA, NaN, or an infinity.",
+                    i = "A site that cannot evaluate a query returns {.val NA}
+                         from its {.arg contribution_fn}, and {.fun contribute}
+                         handles it before encryption."))
+    bad <- value != round(value)
+    if (any(bad))
+        cli_abort(c("Value {.val {value[which(bad)[1L]]}} is not an integer.",
+                    i = "BFV and BGV carry exact integers. Rounding it here
+                         would report a total that is not the one asked for;
+                         use a CKKS context for real-valued work."))
+    if (any(abs(value) > .Machine$integer.max))
+        cli_abort("Value {.val {value[which.max(abs(value))]}} is outside R's integer range.")
+    t <- suppressWarnings(as.numeric(openfhe.R::get_plaintext_modulus(cc)))
+    if (length(t) == 1L && is.finite(t) && t > 0 && any(abs(value) >= t / 2))
+        cli_abort(c("Value {.val {value[which.max(abs(value))]}} does not fit the
+                     plaintext modulus {.val {t}}.",
+                    i = "It would wrap around and decrypt to a different number."))
+    as.integer(value)
+}
+
 ## Plaintext codec matching a crypto context's scheme.
 ##
 ## The protocol body (encrypt local summaries, add homomorphically,
@@ -507,17 +956,30 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
 ## integers. Detecting the scheme from the context keeps it the
 ## single source of truth -- a master never has to be told which
 ## scheme its context was built for.
+##
+## The three supported schemes are named explicitly. Treating
+## "anything that is not CKKS" as an integer scheme meant a context
+## this package has no codec for -- a future scheme, or one built by
+## mistake -- would quietly encode as packed integers instead of
+## saying so.
 .packed_codec <- function(cc) {
-    if (openfhe.R::get_scheme_id(cc) == openfhe.R::SchemeId$CKKSRNS_SCHEME) {
+    id <- as.integer(openfhe.R::get_scheme_id(cc))
+    if (identical(id, as.integer(openfhe.R::SchemeId$CKKSRNS_SCHEME))) {
         list(
             encode = function(value) openfhe.R::make_ckks_packed_plaintext(cc, value),
             decode = function(pt)    openfhe.R::get_real_packed_value(pt)
         )
-    } else {
+    } else if (identical(id, as.integer(openfhe.R::SchemeId$BFVRNS_SCHEME)) ||
+               identical(id, as.integer(openfhe.R::SchemeId$BGVRNS_SCHEME))) {
         list(
-            encode = function(value) openfhe.R::make_packed_plaintext(cc, as.integer(value)),
-            decode = function(pt)    openfhe.R::get_packed_value(pt)
+            encode = function(value)
+                openfhe.R::make_packed_plaintext(cc, .as_exact_integer(value, cc)),
+            decode = function(pt) openfhe.R::get_packed_value(pt)
         )
+    } else {
+        cli_abort(c("No plaintext codec for this crypto context.",
+                    i = "{.pkg homomorpheR} carries CKKS for real-valued work
+                         and BFV or BGV for exact integers."))
     }
 }
 
@@ -556,6 +1018,14 @@ make_worker <- function(name, data, contribution_fn) {
 #'   say) to chain for debugging.
 #' @return nothing — called for its side effect of signalling a
 #'   condition of class `homomorpheR_site_unavailable`.
+#'
+#' @section What the re-raised condition carries:
+#'
+#' When [master_aggregate()] or [master_decrypt()] re-raise this, the
+#' condition they signal carries a `site_name` field and **not** the
+#' site object. A [LocalSite] would drag its data, and under threshold
+#' keys its key share, into anything that logs or serializes the
+#' condition. Catch on the class and read `cnd$site_name`.
 #' @export
 site_unavailable <- function(message, site = NULL, parent = NULL) {
     cli_abort(message, class = "homomorpheR_site_unavailable",
@@ -566,9 +1036,11 @@ site_unavailable <- function(message, site = NULL, parent = NULL) {
 #'
 #' The single call the protocol runner makes on a site. Implementations
 #' return the site's contribution **already encrypted**, using the
-#' public parameters the site was given when it was wired, so an
+#' public parameters the site was given when it was configured, so an
 #' individual site's cleartext contribution never reaches the
-#' aggregator — that is the property the whole protocol rests on.
+#' aggregator — that is the property the whole protocol rests on, and
+#' [master_aggregate()] refuses a reply that is neither an encrypted
+#' value under this protocol's key nor `NA`.
 #'
 #' The computation is entirely local. A site needs nothing at call time
 #' beyond `theta`, its own data, and what it already holds.
@@ -592,12 +1064,7 @@ contribute <- new_generic("contribute", "site")
 method(contribute, LocalSite) <- function(site, theta) {
     value <- site@contribution_fn(site@data, theta)
     if (length(value) == 1 && is.na(value)) return(NA)
-    if (is.null(site@state$params))
-        cli_abort(c("Site {.val {site@name}} has no public parameters.",
-                    i = "A site is given them once, when it is wired with
-                         {.fun set_workers} or taken through
-                         {.fun make_threshold_master}. Do that first."))
-    encrypt_under(site@state$params, value)
+    encrypt_under(site_params(site), value)
 }
 
 #' One site's step in the threshold key-generation chain
@@ -679,6 +1146,17 @@ method(partial_decrypt, Site) <- function(site, ciphertext, lead = FALSE) {
         cli_abort(c("Site {.val {site@name}} holds no secret share.",
                     i = "Only sites that took part in {.fun make_threshold_master}
                          can produce a partial decryption."))
+
+    ## The site checks for itself, with the joint key it was given at
+    ## setup, that this ciphertext belongs to the protocol it joined.
+    ## Applying its share to anything else is work it did not agree
+    ## to, and the requester is not a party it has reason to trust.
+    ## Nothing here is asked of anyone: the tag and the joint public
+    ## key are both already in hand.
+    held <- site@state$params
+    if (!is.null(held))
+        check_encrypted(held, ciphertext, "partially decrypt")
+
     cc <- site@state$cc
     if (lead)
         openfhe.R::multiparty_decrypt_lead(cc, site@state$sk, ciphertext)
@@ -720,14 +1198,17 @@ set_workers <- function(master, workers) {
                          fixes is the order partial decryptions fuse in."))
     if (length(workers) < 1)
         cli_abort("Need at least one worker.")
-    master@state$workers <- workers
     params <- public_params(master)
-    for (w in workers) {
-        ## Public material only. The site encrypts its own value with
-        ## this; nothing cleartext is ever passed to the master.
-        set_public_key(w, master@state$pubkey)
-        w@state$params <- params
-    }
+
+    ## Publish before recording, so that a worker which refuses the
+    ## setup message -- a RemoteSite with no provisioning method --
+    ## leaves the master unwired rather than half-wired.
+    ##
+    ## Public material only, and it goes through the generic: a
+    ## RemoteSite has to be told at the far end, and writing into its
+    ## proxy here would make it look configured when it is not.
+    for (w in workers) set_public_params(w, params)
+    master@state$workers <- workers
     invisible(master)
 }
 
@@ -767,7 +1248,9 @@ set_workers <- function(master, workers) {
 #' learns which parameter values break which site — a residual side
 #' channel that no amount of encryption here removes.
 #'
-#' @param master a [Master], wired to workers via [set_workers()].
+#' @param master a [Master], wired to its workers — with
+#'   [set_workers()] for a [CKKSMaster], or by
+#'   [make_threshold_master()], which returns one already wired.
 #' @param theta the current parameter value (passed through to each
 #'   worker).
 #' @return the aggregated value, or `NA_real_` if some site found
@@ -778,6 +1261,7 @@ master_aggregate <- function(master, theta) {
     if (is.null(workers) || length(workers) == 0)
         cli_abort("Master has no workers; call {.fun set_workers} first.")
 
+    params        <- public_params(master)
     contributions <- vector("list", length(workers))
     for (i in seq_along(workers)) {
         w <- workers[[i]]
@@ -789,10 +1273,18 @@ master_aggregate <- function(master, theta) {
             contribute(w, theta),
             homomorpheR_site_unavailable = function(cnd)
                 cli_abort("Site {.val {w@name}}: {conditionMessage(cnd)}",
-                          class  = "homomorpheR_site_unavailable",
-                          site   = w,
-                          parent = cnd))
+                          class     = "homomorpheR_site_unavailable",
+                          site_name = w@name,
+                          parent    = cnd))
         if (is.atomic(ci) && length(ci) == 1L && is.na(ci)) return(NA_real_)
+
+        ## Check what came back before adding it to the total. The
+        ## contract in ?RemoteSite says a reply is a ciphertext or
+        ## `NA`; an implementation that returns the plain number
+        ## instead would otherwise be summed in silently and the round
+        ## would report the right answer, having been handed the one
+        ## quantity the protocol exists to hide.
+        check_encrypted(params, ci, "aggregate", who = w@name)
         contributions[[i]] <- ci
     }
     master_decrypt(master, Reduce(`+`, contributions))
@@ -807,5 +1299,18 @@ method(print, Site) <- function(x, ...) {
 method(print, Master) <- function(x, ...) {
     cat("<", sub("^homomorpheR::", "", class(x)[[1L]]), "> ", x@name,
         "\n", sep = "")
+    invisible(x)
+}
+
+## Printing the bundle is how a reader sees that it is public in full:
+## a scheme, a key fingerprint, and a line saying there is nothing
+## else. The vignettes show this rather than describing it.
+method(print, OpenFHEParams) <- function(x, ...) {
+    id   <- as.integer(openfhe.R::get_scheme_id(x@cc))
+    name <- names(openfhe.R::SchemeId)[
+        match(id, as.integer(unlist(openfhe.R::SchemeId)))]
+    cat("<OpenFHEParams> ", sub("RNS_SCHEME$", "", name %||% "unknown"), "\n",
+        "  public key  ", params_tag(x), "\n",
+        "  secret material: none\n", sep = "")
     invisible(x)
 }

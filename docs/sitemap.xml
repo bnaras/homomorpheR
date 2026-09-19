@@ -25,12 +25,15 @@
 <url><loc>https://bnaras.github.io/homomorpheR/reference/LocalSite.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/Master.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/NCParty.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/reference/OpenFHEParams.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierEncryptedReal.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierKeyPair.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierMaster.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierParams.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierPrivateKey.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/PaillierPublicKey.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/reference/PublicParams.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/RemoteSite.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/Site.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.html</loc></url>
@@ -61,7 +64,9 @@
 <url><loc>https://bnaras.github.io/homomorpheR/reference/run_round_robin.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/set_next_site.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/set_public_key.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/reference/set_public_params.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/set_workers.html</loc></url>
+<url><loc>https://bnaras.github.io/homomorpheR/reference/site_params.html</loc></url>
 <url><loc>https://bnaras.github.io/homomorpheR/reference/site_unavailable.html</loc></url>
 </urlset>
 

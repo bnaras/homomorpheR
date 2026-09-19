@@ -38,3 +38,16 @@ site_unavailable(message, site = NULL, parent = NULL)
 
 nothing — called for its side effect of signalling a condition of class
 `homomorpheR_site_unavailable`.
+
+## What the re-raised condition carries
+
+When
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
+or
+[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+re-raise this, the condition they signal carries a `site_name` field and
+**not** the site object. A
+[LocalSite](https://bnaras.github.io/homomorpheR/reference/LocalSite.md)
+would drag its data, and under threshold keys its key share, into
+anything that logs or serializes the condition. Catch on the class and
+read `cnd$site_name`.

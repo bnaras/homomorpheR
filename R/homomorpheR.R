@@ -35,7 +35,6 @@
 "_PACKAGE"
 
 ONE  <- gmp::as.bigz(1L)
-ZERO <- gmp::as.bigz(0L)
 
 #' Random big integer
 #'

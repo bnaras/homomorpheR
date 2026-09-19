@@ -90,24 +90,24 @@ computation and shrinks as the scaling factor widens.
 
 | computation | magnitude | depth | scaling_mod_size | absolute | relative |
 |:---|---:|---:|---:|:---|:---|
-| sum | 1 | 1 | 50 | 1.21e-13 | 3.72e-14 |
+| sum | 1 | 1 | 50 | 1.75e-13 | 5.37e-14 |
 | sum, wider scale | 1 | 1 | 59 | 8.88e-16 | 2.73e-16 |
-| weighted sum (one multiply) | 1 | 2 | 50 | 1.43e-13 | 1.97e-13 |
+| weighted sum (one multiply) | 1 | 2 | 50 | 8.73e-14 | 1.20e-13 |
 | sum | 100 | 1 | 50 | 1.14e-13 | 3.46e-16 |
 | sum, wider scale | 100 | 1 | 59 | 5.68e-14 | 1.73e-16 |
-| weighted sum (one multiply) | 100 | 2 | 50 | 2.27e-13 | 3.22e-15 |
+| weighted sum (one multiply) | 100 | 2 | 50 | 3.27e-13 | 4.62e-15 |
 | sum | 10000 | 1 | 50 | 7.28e-12 | 2.21e-16 |
-| sum, wider scale | 10000 | 1 | 59 | 3.64e-12 | 1.11e-16 |
-| weighted sum (one multiply) | 10000 | 2 | 50 | 1.55e-11 | 2.15e-15 |
+| sum, wider scale | 10000 | 1 | 59 | 7.28e-12 | 2.21e-16 |
+| weighted sum (one multiply) | 10000 | 2 | 50 | 1.46e-11 | 2.02e-15 |
 
 CKKS error against the same computation in the clear. {.table}
 
 Three things to read off that table.
 
 **State tolerances relatively, not absolutely.** For the plain sum the
-absolute error rises from 1.2e-13 at magnitude 1 to 7.3e-12 at magnitude
-$`10^4`$, a factor of about 60, while the relative error *falls* — from
-3.7e-14 to 2.2e-16. At magnitude 1 a fixed noise floor is large compared
+absolute error rises from 1.7e-13 at magnitude 1 to 7.3e-12 at magnitude
+$`10^4`$, a factor of about 42, while the relative error *falls* — from
+5.4e-14 to 2.2e-16. At magnitude 1 a fixed noise floor is large compared
 to the answer; by magnitude $`10^4`$ it is negligible against it. A
 tolerance calibrated on standardized covariates is therefore far too
 tight for a log-likelihood in the hundreds, which is why the Cox
@@ -115,8 +115,8 @@ vignettes raise `scaling_mod_size` above the default rather than
 loosening a comparison.
 
 **Widening the scaling factor helps only where that floor binds.** At
-magnitude 1 it improves the absolute error by a factor of 140. At
-magnitude $`10^4`$ the same change gives a factor of 2 — that is,
+magnitude 1 it improves the absolute error by a factor of 200. At
+magnitude $`10^4`$ the same change gives a factor of 1 — that is,
 nothing, and the two settings land within a small multiple of each other
 in either direction. Once the floor is no longer what limits the answer,
 a wider scale stops buying accuracy while still consuming modulus
@@ -124,8 +124,8 @@ budget. It is a targeted fix for small-magnitude work, not a general
 accuracy dial.
 
 **Each multiplication costs precision as well as budget.** The depth-2
-row is worse than the depth-1 sum at every magnitude: by a factor of 1.2
-in absolute terms at magnitude 1, and 9.7 in relative terms at magnitude
+row is worse than the depth-1 sum at every magnitude: by a factor of 0.5
+in absolute terms at magnitude 1, and 9.1 in relative terms at magnitude
 $`10^4`$. The budget is consumed whether or not the extra precision is
 missed.
 

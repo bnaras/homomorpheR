@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-18</h4>
+            <h4 data-toc-skip class="date">2026-09-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="d-none name"><code>introduction.Rmd</code></div>
@@ -282,29 +282,45 @@ actually deployed.</p>
 each is reproducible by running it. That is a simulation of the
 deployment, not the deployment itself, and it is worth being explicit
 about what changes when the sites are genuinely remote.</p>
-<p>The structure does not change. You still construct one
-<code>Site</code> object per site, in the aggregator’s own session. The
-object is a <em>local handle</em> for a remote party, not the party
-itself. What changes is what its function does: instead of computing a
-summary from data held in memory, it issues a request to that site’s
-service and returns what comes back. The <code>data</code> property then
-carries whatever the handle needs to make the call — an endpoint, a
-credential, a connection object — rather than patient records. Nothing
-in <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> needs to know the difference; it
-calls the function once per iteration either way.</p>
-<p>One detail matters if you build this. As the aggregation body is
-currently written, the aggregator encrypts each site’s summary
-<em>after</em> receiving it: <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> calls the
-site’s function, gets an ordinary number back, and encrypts that. Inside
-a single R session nothing travels between parties, so this is harmless
-and keeps the vignettes readable. Across a network it would not be
-harmless — the summary would leave the site unencrypted, which is the
-one thing the protocol exists to prevent. A real deployment must encrypt
-at the site, before anything is transmitted. <code>Site</code> objects
-can already be given the aggregator’s public key with
-<code><a href="../reference/set_public_key.html">set_public_key()</a></code>, so the pieces are present; routing the
-aggregation body through them is a change this package has not yet
-made.</p>
+<p>The structure does not change. You subclass <code>RemoteSite</code>
+and give it whatever properties your transport needs — an endpoint, a
+credential, a connection object. The object you hold in the aggregator’s
+session is a <em>local handle</em> for a remote party, not the party
+itself. Nothing in <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> needs to know the
+difference.</p>
+<p>Two methods carry the deployment, and they correspond to the only two
+moments anything passes between the parties:</p>
+<ul>
+<li>
+<code>set_public_params(site, params)</code> — setup. Send the
+public context and key to the endpoint and have it keep them. Only
+public material travels.</li>
+<li>
+<code>contribute(site, theta)</code> — one round. Send
+<code>theta</code>, and get back a value the far end has <strong>already
+encrypted</strong>.</li>
+</ul>
+<p>The ordering in the second one is the whole point: the summary is
+encrypted before it leaves the site, so no individual contribution ever
+exists in the clear outside the site that produced it.</p>
+<p>The package refuses to fake either step for you. The base
+<code>RemoteSite</code> has no <code><a href="../reference/set_public_params.html">set_public_params()</a></code> method,
+so wiring a subclass that has not implemented one fails immediately
+rather than leaving a proxy that looks configured while the endpoint was
+never told anything. <code><a href="../reference/keygen_round.html">keygen_round()</a></code> and
+<code><a href="../reference/partial_decrypt.html">partial_decrypt()</a></code> refuse in the same way, since performing
+a remote party’s secret-key operation in this process is precisely what
+threshold keys exist to prevent. And <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code>
+checks that what came back is an encrypted value under this protocol’s
+key before adding it to a total — a site that replied with a plain
+number would otherwise have its answer summed in silently, and the round
+would report the correct result having been handed the one quantity the
+protocol hides.</p>
+<p>What the package does not supply is everything else a deployment
+needs: transport, authentication, key storage at the endpoint, retry and
+timeout policy, and any defense against a party that actively deviates
+rather than merely observes. <code><a href="../reference/RemoteSite.html">?RemoteSite</a></code> states the full
+contract.</p>
 </div>
 </div>
 <div class="section level2">

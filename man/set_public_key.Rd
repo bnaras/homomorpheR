@@ -19,5 +19,8 @@ environment, and in the \link{NCParty} method is forwarded on to every
 \link{Site} that party manages, so each site can encrypt under it.
 }
 \description{
-Distribute the public key from the master to a downstream actor
+Part of the frozen Paillier-era legacy surface, used by
+\code{\link[=round_robin_chain]{round_robin_chain()}}. The supported setup seam is
+\code{\link[=set_public_params]{set_public_params()}}, which carries the whole public bundle and
+which a \link{RemoteSite} can implement.
 }

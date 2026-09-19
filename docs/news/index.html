@@ -88,14 +88,34 @@
 <li>The help page states what the construction does not defend against: participants are assumed to follow the protocol, and a deviating site can return a dishonest contribution or a malformed partial that corrupts the result silently.</li>
 </ul></div>
 <div class="section level3">
+<h3 id="setup-and-what-a-remote-site-must-implement-1-3-0">Setup, and what a remote site must implement<a class="anchor" aria-label="anchor" href="#setup-and-what-a-remote-site-must-implement-1-3-0"></a></h3>
+<ul><li>
+<code>set_public_params(site, params)</code> is the setup seam: the one moment a coordinating party hands a site anything, apart from a round itself. The <code>Site</code> method stores the bundle; the <code>RemoteSite</code> method <strong>refuses</strong>, because storing it would configure the local proxy and leave the far endpoint untold. Wiring a remote subclass that has not implemented provisioning now fails immediately instead of producing a site that looks configured and is not.</li>
+<li>
+<code>site_params(site)</code> reads back what a site holds, and errors if it was never configured. Use it instead of reaching into <code>site@state$params</code>.</li>
+<li>Public parameters are now typed S7 objects — <code>PublicParams</code> with <code>OpenFHEParams</code> and the frozen <code>PaillierParams</code> — rather than a list with a scheme string. “The bundle carries no secret material” is now a property of the class rather than a promise about a list, and the objects print to show it.</li>
+<li>
+<code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> checks each reply before adding it to a total: a site that answered in cleartext, or with a value produced under some other key, is refused. Previously a cleartext reply was folded in by ordinary scalar addition and the round returned the right answer, having been handed the one quantity the protocol exists to hide.</li>
+<li>
+<code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> and site-side <code><a href="../reference/partial_decrypt.html">partial_decrypt()</a></code> likewise verify that a value belongs to this protocol’s key, using OpenFHE’s key tag. A site therefore refuses to apply its own share to a ciphertext from a protocol it did not join.</li>
+<li>
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> rejects a site listed twice, two sites with the same name, and a site already serving another protocol; a ceremony that fails part-way rolls back, leaving the sites it had visited clean enough to retry.</li>
+<li>
+<code><a href="../reference/RemoteSite.html">?RemoteSite</a></code> now separates three cases that were previously run together: a <code>LocalSite</code> demonstration models the protocol’s roles in one R session and is not a trust boundary; a single-decrypter deployment relies on honest execution rather than cryptography; only a remote threshold deployment gives a real party boundary, and only if your transport, authentication, and key storage provide one.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="encryption-surface-1-3-0">Encryption surface<a class="anchor" aria-label="anchor" href="#encryption-surface-1-3-0"></a></h3>
 <ul><li>
-<code>encrypt_under(params, value)</code> is the one encryption entry point. It takes public parameters and no party at all, because encryption needs only public material and belongs to no one in particular. A site passes the parameters it holds, <code>site@state$params</code>.</li>
+<code>encrypt_under(params, value)</code> is the one encryption entry point. It takes public parameters and no party at all, because encryption needs only public material and belongs to no one in particular. A site passes the parameters it holds, from <code>site_params(site)</code>.</li>
 <li>
-<strong>A site is autonomous once constructed.</strong> It is given its public parameters once, when it is wired, and from then on computes and encrypts without consulting anyone. There is deliberately no exported function that reaches from a site back to a master; the public parameters themselves are not exported either, since fetching them at encryption time would mean asking for something already held.</li>
+<strong>A site is autonomous once configured.</strong> It is given its public parameters once, and from then on computes and encrypts without consulting anyone. There is deliberately no exported function that reaches from a site back to a master; the master-side <code>public_params()</code> is not exported either, since fetching it at encryption time would mean asking for something already held.</li>
 <li>Consequently there is <strong>no <code>master_encrypt()</code></strong>. Naming an encryption entry point after one party would advertise a privilege that does not exist, and would invite site-side code to hold a master it has no use for.</li>
 <li>
 <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> does take a master, and that asymmetry is the point: decryption is privileged, requiring secret material or the standing to convene every site, while encryption is not. It is vector-aware via <code>len</code>.</li>
+<li>Under BFV and BGV a value the scheme cannot carry is now refused rather than coerced: a non-integer, a non-finite value, one outside R’s integer range, or one at or beyond half the plaintext modulus. <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> previously turned a contribution of <code>0.9</code> into <code>0</code> and reported a total of zero without a warning. The one thing no party can check is the <em>total</em>, which still wraps if it exceeds the modulus; <code><a href="../reference/ThresholdMaster.html">?ThresholdMaster</a></code> says so.</li>
+<li>
+<code><a href="../reference/make_ckks_master.html">make_ckks_master()</a></code> requires a CKKS context. Exact-integer work goes through <code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code>, which is scheme-agnostic by design.</li>
+<li>Crypto contexts, key pairs, public keys, <code>state</code> environments, and <code>contribution_fn</code> are now typed S7 properties rather than <code>class_any</code>, and a party’s <code>name</code> must be a single non-empty string.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="data-1-3-0">Data<a class="anchor" aria-label="anchor" href="#data-1-3-0"></a></h3>

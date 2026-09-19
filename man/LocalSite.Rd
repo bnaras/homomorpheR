@@ -6,18 +6,20 @@
 \usage{
 LocalSite(
   name = character(0),
-  state = NULL,
+  state = new.env(parent = emptyenv()),
   data = NULL,
-  contribution_fn = NULL
+  contribution_fn = function() NULL
 )
 }
 \arguments{
-\item{name}{short identifier shown in printed output.}
+\item{name}{short identifier shown in printed output. A single
+non-empty string; it names the site in every error message, so an
+empty or vectorized name is rejected at construction.}
 
 \item{state}{an environment for mutable bookkeeping — the public
-key the site encrypts under, the capability \code{\link[=set_workers]{set_workers()}}
-installs, and, on the frozen legacy path, the next link in the
-round-robin chain. Default: a fresh empty env.}
+parameters the site was given when it was configured, its own key
+share under threshold keys, and, on the frozen legacy path, the
+next link in the round-robin chain. Default: a fresh empty env.}
 
 \item{data}{whatever \code{contribution_fn} needs in order to answer — a
 dataset, a database connection, a cohort identifier.}
@@ -35,5 +37,13 @@ an S7 object of class \code{LocalSite}. Construct with
 The ordinary case: the records are here, and \code{contribution_fn} is
 evaluated in-process. \code{\link[=contribute]{contribute()}} computes the contribution and
 \strong{encrypts it} with the public parameters the site was given when
-it was wired, so what leaves is already a ciphertext.
+it was configured, so what leaves is already a ciphertext.
+}
+\details{
+A \code{LocalSite} demonstrates the protocol's roles inside one \R
+session. It is not a deployment boundary: its data, and under
+threshold keys its key share, are objects in this process, and
+anything else in this process can reach them. Separating the
+parties for real means separately controlled processes, which is
+what \link{RemoteSite} is for.
 }

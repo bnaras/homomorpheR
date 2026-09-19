@@ -1,6 +1,12 @@
 # Distribute the public key from the master to a downstream actor
 
-Distribute the public key from the master to a downstream actor
+Part of the frozen Paillier-era legacy surface, used by
+[`round_robin_chain()`](https://bnaras.github.io/homomorpheR/reference/round_robin_chain.md).
+The supported setup seam is
+[`set_public_params()`](https://bnaras.github.io/homomorpheR/reference/set_public_params.md),
+which carries the whole public bundle and which a
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+can implement.
 
 ## Usage
 

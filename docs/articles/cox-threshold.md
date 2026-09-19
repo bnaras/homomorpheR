@@ -197,7 +197,7 @@ the underlying master class changed.
     ##              Estimate Std. Error
     ## GCB_sig    -0.2638698 0.11940447
     ## LN_sig     -0.2543587 0.08515178
-    ## Prolif_sig  0.3031250 0.14981284
+    ## Prolif_sig  0.3031250 0.14981283
     ## BMP6        0.3036367 0.10727837
     ## MHC2_sig   -0.3191459 0.09412946
     ## 

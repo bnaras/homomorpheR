@@ -4,7 +4,11 @@
 \alias{NCParty}
 \title{A non-cooperating party}
 \usage{
-NCParty(name = character(0), number = integer(0), state = NULL)
+NCParty(
+  name = character(0),
+  number = integer(0),
+  state = new.env(parent = emptyenv())
+)
 }
 \arguments{
 \item{name}{short identifier shown in printed output.}

@@ -7,8 +7,8 @@
 encrypt_under(params, value)
 }
 \arguments{
-\item{params}{the public parameters this party holds — for a \link{Site},
-\code{site@state$params}, installed when it was wired.}
+\item{params}{the \link{PublicParams} this party holds — for a \link{Site},
+\code{site_params(site)}.}
 
 \item{value}{a numeric vector.}
 }
@@ -17,17 +17,19 @@ an encrypted value of the backend's type.
 }
 \description{
 The one encryption entry point. It takes only public material, so a
-party that was handed that material at setup encrypts entirely on
-its own, with nothing to consult and no one to ask. A \link{Site} keeps
-its copy in \code{state$params} from the moment it is wired, which is
-what makes \code{\link[=contribute]{contribute()}} a purely local computation.
+party handed that material at setup encrypts entirely on its own,
+with nothing to consult and no one to ask — which is what makes
+\code{\link[=contribute]{contribute()}} a purely local computation. It names no party,
+because encryption privileges none.
 }
 \details{
-For the \code{openfhe} schemes the plaintext encoding follows whatever
-the context was built for (packed CKKS reals, or packed integers for
-BFV and BGV), read back from the context itself.
+For the \code{openfhe} backends the encoding follows whatever the
+context was built for, read back from the context itself: packed
+reals under CKKS, packed integers under BFV and BGV. The exact
+schemes reject a value they cannot represent rather than round it;
+see \link{OpenFHEParams}.
 }
 \seealso{
-\code{\link[=contribute]{contribute()}}, which is how a \link{Site} uses this on its own
-data.
+\code{\link[=site_params]{site_params()}}, and \code{\link[=contribute]{contribute()}}, which is how a \link{Site}
+uses this on its own data.
 }

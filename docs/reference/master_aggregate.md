@@ -20,8 +20,13 @@ master_aggregate(master, theta)
 - master:
 
   a [Master](https://bnaras.github.io/homomorpheR/reference/Master.md),
-  wired to workers via
-  [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md).
+  wired to its workers — with
+  [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
+  for a
+  [CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md),
+  or by
+  [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md),
+  which returns one already wired.
 
 - theta:
 

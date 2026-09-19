@@ -42,11 +42,13 @@ for (w in list(w1, w2, w3)) expect_false(is.null(w@state$sk))
 expect_false(identical(w1@state$sk, w2@state$sk))
 
 ## Each site got the joint public key, and they all got the same one.
-expect_true(identical(w1@state$params$pk, w3@state$params$pk))
+expect_true(identical(site_params(w1)@pk, site_params(w3)@pk))
 
-## The published bundle carries no secret material.
-expect_true(all(c("scheme", "cc", "pk") %in% names(w1@state$params)))
-expect_false(any(grepl("sk|secret|private", names(w1@state$params))))
+## The published bundle carries no secret material -- structurally, in
+## that the class has no property one could travel in.
+expect_true(S7::S7_inherits(site_params(w1), OpenFHEParams))
+expect_equal(sort(names(S7::props(site_params(w1)))), c("cc", "pk"))
+expect_false(any(grepl("sk|secret|private", names(S7::props(site_params(w1))))))
 
 ## NA propagation through the threshold path too.
 b1 <- make_worker("Sbad", c(2, 3),
@@ -70,7 +72,7 @@ expect_error(set_workers(master, list(w1, w2, w3)),
 ## decryption.
 stranger <- make_worker("Outsider", c(1, 2), local_nll)
 expect_error(partial_decrypt(stranger,
-                             encrypt_under(w1@state$params, 1), lead = FALSE),
+                             encrypt_under(site_params(w1), 1), lead = FALSE),
              pattern = "no secret share")
 
 ## keygen_round returns a public key, never a secret one: a share that

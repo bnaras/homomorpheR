@@ -27,3 +27,13 @@ authentication, or timeout failure stops it from answering. This is
 the contract in \link{RemoteSite}. Raising it aborts the round rather
 than silently changing the set of sites being summed over.
 }
+\section{What the re-raised condition carries}{
+
+
+When \code{\link[=master_aggregate]{master_aggregate()}} or \code{\link[=master_decrypt]{master_decrypt()}} re-raise this, the
+condition they signal carries a \code{site_name} field and \strong{not} the
+site object. A \link{LocalSite} would drag its data, and under threshold
+keys its key share, into anything that logs or serializes the
+condition. Catch on the class and read \code{cnd$site_name}.
+}
+

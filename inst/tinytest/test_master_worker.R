@@ -83,11 +83,19 @@ expect_error(contribute(make_worker("Loose", c(1, 2), local_nll), 1.0),
 ## "far side" is a closure; the runner cannot tell the difference.
 FakeRemote <- S7::new_class("FakeRemote", parent = RemoteSite,
                             properties = list(rows = S7::class_any))
+## Setup is a message the far end must receive, so a RemoteSite has to
+## implement it; the base method refuses rather than configure this
+## proxy and leave the endpoint untold. Here the "far end" is the same
+## process, so provisioning is a local store.
+S7::method(set_public_params, FakeRemote) <- function(site, params) {
+    site@state$params <- params
+    invisible(site)
+}
 S7::method(contribute, FakeRemote) <- function(site, theta) {
     value <- -sum(stats::dpois(site@rows, theta, log = TRUE))
     ## Encrypts with the published public bundle, before the value
     ## would cross a wire.
-    encrypt_under(site@state$params, value)
+    encrypt_under(site_params(site), value)
 }
 
 master6 <- make_master("M6", keys)
@@ -99,6 +107,13 @@ expect_true(abs(master_aggregate(master6, 3.5) - direct6) < 1e-9)
 
 ## ---- Unreachable is not the same event as non-evaluable -----------------
 Dead <- S7::new_class("Dead", parent = RemoteSite)
+## Reachable at setup, gone by the time the round runs -- which is the
+## realistic shape of the failure, and keeps this test about the
+## NA/unreachable distinction rather than about provisioning.
+S7::method(set_public_params, Dead) <- function(site, params) {
+    site@state$params <- params
+    invisible(site)
+}
 S7::method(contribute, Dead) <- function(site, theta)
     site_unavailable("connection refused", site = site)
 

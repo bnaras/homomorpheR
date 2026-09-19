@@ -7,7 +7,9 @@
 master_aggregate(master, theta)
 }
 \arguments{
-\item{master}{a \link{Master}, wired to workers via \code{\link[=set_workers]{set_workers()}}.}
+\item{master}{a \link{Master}, wired to its workers — with
+\code{\link[=set_workers]{set_workers()}} for a \link{CKKSMaster}, or by
+\code{\link[=make_threshold_master]{make_threshold_master()}}, which returns one already wired.}
 
 \item{theta}{the current parameter value (passed through to each
 worker).}

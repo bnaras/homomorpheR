@@ -16,9 +16,13 @@ scheme is read back from the context, so the same master drives
 the protocol over real-valued (CKKS) or exact-integer (BFV/BGV)
 arithmetic without further configuration.}
 
-\item{sites}{a list of at least two \link{Site}s, built with
-\code{\link[=make_worker]{make_worker()}}. The first is the lead site. Each ends up
-holding its own secret share and the joint public key.}
+\item{sites}{a list of at least two \strong{distinct, unconfigured}
+\link{Site}s, built with \code{\link[=make_worker]{make_worker()}}. The first is the lead site.
+Each ends up holding its own secret share and the joint public
+key. Listing one site twice, or reusing a site that already holds
+a share or public parameters, is an error: the repeat would
+discard what the first round left behind, and under BFV or BGV
+nothing afterwards detects the loss.}
 }
 \value{
 a \link{ThresholdMaster}, wired to \code{sites}.
@@ -48,6 +52,14 @@ The returned master is already wired, so \code{\link[=set_workers]{set_workers()
 needed nor permitted afterwards — the site order fixed by the
 key-generation chain is the order partial decryptions must be
 fused in, and re-wiring would break it.
+
+A ceremony that fails part-way — an unimplemented \link{RemoteSite}, an
+unreachable endpoint, a context without \code{MULTIPARTY} — leaves no
+trace on the sites it had already visited: their shares and
+parameters are cleared before the error propagates, so the same
+sites can be used again once the cause is fixed. For a
+\link{RemoteSite} that undo reaches the local proxy only, so a remote
+implementation should tolerate a repeated ceremony.
 }
 \section{What this does not defend against}{
 

@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-18</h4>
+            <h4 data-toc-skip class="date">2026-09-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/query-count-threshold.Rmd" class="external-link"><code>vignettes/query-count-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>query-count-threshold.Rmd</code></div>
@@ -325,6 +325,18 @@ the protocol never does.</p></li>
 aggregates — counts, sums, contingency-table cells — BFV decrypts to the
 exact integer. The exactness that the original Paillier demonstration
 offered is retained; the trust model is what improved.</p></li>
+<li><p><strong>Exact within the plaintext modulus, and only
+there.</strong> BFV arithmetic is modular. A site that tries to
+contribute something the scheme cannot carry — a non-integer, a
+non-finite value, or one at or beyond <code>plaintext_modulus / 2</code>
+— is refused by <code><a href="../reference/contribute.html">contribute()</a></code> rather than having its value
+rounded or wrapped silently. What no party can check is the
+<em>total</em>: a sum that exceeds the modulus wraps, and the wrapped
+value decrypts as an ordinary integer with nothing to mark it as wrong.
+Choose <code>plaintext_modulus</code> for the largest total the protocol
+can produce, not for the largest single contribution. For counts over a
+cohort of 100 the modulus used here, 65537, has enormous margin; for
+summed dollar amounts or squared deviations it would not.</p></li>
 <li><p><strong>Honest-but-curious parties.</strong> As with the other
 distributed protocols in this package, sites are assumed to follow the
 protocol. A malicious site could submit a wrong count or a corrupted

@@ -355,17 +355,22 @@ object to hold its share in.
 `                                crypto_context ``=`` ``cc``, sites ``=`` ``key_sites``)`\
 \
 `## What each site kept from that one exchange: its own secret share,`\
-`## and a copy of the public parameters -- a scheme tag, the crypto`\
-`## context, the joint public key, and no share of anyone else's.`\
-`site_params`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``key_sites``, ``function``(``s``)`` ``s``@``state``$``params``)`
+`## and a copy of the public parameters -- the crypto context and the`\
+`` ## joint public key, and no share of anyone else's. `site_params()` ``\
+`## asks a site what it holds; it involves no aggregator.`\
+`pub`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``key_sites``, ``site_params``)`
 
 That wiring is the one and only exchange between the aggregator and the
 sites, apart from the ciphertexts each round carries. From here on each
-site is autonomous: everything below encrypts with `site_params`, which
-the site already holds, and nothing reaches back for the aggregator.
+site is autonomous: everything below encrypts with `pub`, which the site
+already holds, and nothing reaches back for the aggregator.
+
+Printing the bundle shows why handing it out is safe — it is a scheme, a
+public-key fingerprint, and nothing else. There is no property in an
+`OpenFHEParams` object for a key share to travel in.
 
 \
-[`names`](https://rdrr.io/r/base/names.html)`(``site_params``[[``1``]``]``)`
+`pub``[[``1``]``]`
 
 The standardization round is `pool_plain` with the two `colSums`
 encrypted: each site encrypts $`S_k`$ and $`Q_k`$, the aggregator sums
@@ -385,7 +390,7 @@ per-site head-counts is one more sum of the same kind.)
 `## Aggregator side. It reduces ciphertexts and decrypts only the total.`\
 `encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`\
 `    ``## Each site encrypts with the parameters it kept from wiring.`\
-`    ``parts`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_moments``, ``sites``, ``site_params``)`\
+`    ``parts`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_moments``, ``sites``, ``pub``)`\
 `    ``pooled_sum``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
 `        ``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``parts``, ``` `[[` ```, ``"sum"``)``)``,   len ``=`` ``p_raw``)`\
 `    ``pooled_sumsq`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
@@ -413,7 +418,7 @@ it selects the same probes.
 \
 `## Aggregator side: sum the encrypted (U, I) and decrypt the totals.`\
 `encrypt_screen`` ``<-`` ``function``(``master``, ``sites``, ``p_raw``, ``K``)`` ``{`\
-`    ``UI``  ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_score_info``, ``sites``, ``site_params``)`\
+`    ``UI``  ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_score_info``, ``sites``, ``pub``)`\
 `    ``U``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)``,`\
 `                          len ``=`` ``p_raw``)`\
 `    ``I``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)``,`\
@@ -443,7 +448,7 @@ aggregate.
 `## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the`\
 `## average. It sees no individual (x_k + u_k).`\
 `encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`\
-`    ``cts``    ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_consensus_term``, ``site_x``, ``site_u``, ``site_params``)`\
+`    ``cts``    ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_consensus_term``, ``site_x``, ``site_u``, ``pub``)`\
 `    ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)``)`\
 `    `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_avg``, len ``=`` ``K``)`\
 `}`\

@@ -66,17 +66,57 @@
   can return a dishonest contribution or a malformed partial that
   corrupts the result silently.
 
+### Setup, and what a remote site must implement
+
+- `set_public_params(site, params)` is the setup seam: the one moment a
+  coordinating party hands a site anything, apart from a round itself.
+  The `Site` method stores the bundle; the `RemoteSite` method
+  **refuses**, because storing it would configure the local proxy and
+  leave the far endpoint untold. Wiring a remote subclass that has not
+  implemented provisioning now fails immediately instead of producing a
+  site that looks configured and is not.
+- `site_params(site)` reads back what a site holds, and errors if it was
+  never configured. Use it instead of reaching into `site@state$params`.
+- Public parameters are now typed S7 objects — `PublicParams` with
+  `OpenFHEParams` and the frozen `PaillierParams` — rather than a list
+  with a scheme string. “The bundle carries no secret material” is now a
+  property of the class rather than a promise about a list, and the
+  objects print to show it.
+- [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
+  checks each reply before adding it to a total: a site that answered in
+  cleartext, or with a value produced under some other key, is refused.
+  Previously a cleartext reply was folded in by ordinary scalar addition
+  and the round returned the right answer, having been handed the one
+  quantity the protocol exists to hide.
+- [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+  and site-side
+  [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
+  likewise verify that a value belongs to this protocol’s key, using
+  OpenFHE’s key tag. A site therefore refuses to apply its own share to
+  a ciphertext from a protocol it did not join.
+- [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
+  rejects a site listed twice, two sites with the same name, and a site
+  already serving another protocol; a ceremony that fails part-way rolls
+  back, leaving the sites it had visited clean enough to retry.
+- [`?RemoteSite`](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+  now separates three cases that were previously run together: a
+  `LocalSite` demonstration models the protocol’s roles in one R session
+  and is not a trust boundary; a single-decrypter deployment relies on
+  honest execution rather than cryptography; only a remote threshold
+  deployment gives a real party boundary, and only if your transport,
+  authentication, and key storage provide one.
+
 ### Encryption surface
 
 - `encrypt_under(params, value)` is the one encryption entry point. It
   takes public parameters and no party at all, because encryption needs
   only public material and belongs to no one in particular. A site
-  passes the parameters it holds, `site@state$params`.
-- **A site is autonomous once constructed.** It is given its public
-  parameters once, when it is wired, and from then on computes and
-  encrypts without consulting anyone. There is deliberately no exported
-  function that reaches from a site back to a master; the public
-  parameters themselves are not exported either, since fetching them at
+  passes the parameters it holds, from `site_params(site)`.
+- **A site is autonomous once configured.** It is given its public
+  parameters once, and from then on computes and encrypts without
+  consulting anyone. There is deliberately no exported function that
+  reaches from a site back to a master; the master-side
+  `public_params()` is not exported either, since fetching it at
   encryption time would mean asking for something already held.
 - Consequently there is **no `master_encrypt()`**. Naming an encryption
   entry point after one party would advertise a privilege that does not
@@ -86,6 +126,22 @@
   does take a master, and that asymmetry is the point: decryption is
   privileged, requiring secret material or the standing to convene every
   site, while encryption is not. It is vector-aware via `len`.
+- Under BFV and BGV a value the scheme cannot carry is now refused
+  rather than coerced: a non-integer, a non-finite value, one outside
+  R’s integer range, or one at or beyond half the plaintext modulus.
+  [`as.integer()`](https://rdrr.io/r/base/integer.html) previously
+  turned a contribution of `0.9` into `0` and reported a total of zero
+  without a warning. The one thing no party can check is the *total*,
+  which still wraps if it exceeds the modulus;
+  [`?ThresholdMaster`](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md)
+  says so.
+- [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
+  requires a CKKS context. Exact-integer work goes through
+  [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md),
+  which is scheme-agnostic by design.
+- Crypto contexts, key pairs, public keys, `state` environments, and
+  `contribution_fn` are now typed S7 properties rather than `class_any`,
+  and a party’s `name` must be a single non-empty string.
 
 ### Data
 

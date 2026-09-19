@@ -4,7 +4,7 @@
 \alias{Master}
 \title{Abstract master class}
 \usage{
-Master(name = character(0), state = NULL)
+Master(name = character(0), state = new.env(parent = emptyenv()))
 }
 \arguments{
 \item{name}{short identifier shown in printed output.}

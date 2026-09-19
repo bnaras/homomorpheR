@@ -105,7 +105,7 @@ model — without ever seeing patient values.
 `max_error`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``scores`` ``-`` ``cleartext_scores``)``)`\
 [`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Maximum error vs cleartext: %.2e"``, ``max_error``)`
 
-    ## [1] "Maximum error vs cleartext: 1.64e-13"
+    ## [1] "Maximum error vs cleartext: 9.02e-14"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.

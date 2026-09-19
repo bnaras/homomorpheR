@@ -223,9 +223,9 @@ $`\rho`$ changes.
 `## secrets. The cleartext vector never leaves this function.`\
 `site_contribution`` ``<-`` ``function``(``site``)`` ``{`\
 `    ``st`` ``<-`` ``site``@``state`\
-`    ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``st``$``params``)``)`\
-`        `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Site "``, ``site``@``name``, ``" has no public parameters."``)`\
-`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``st``$``params``, ``st``$``x_curr`` ``+`` ``st``$``u_curr``)`\
+`    ``## site_params() returns what this site was handed at setup, and`\
+`    ``## errors if it was never configured. Nothing is asked of anyone.`\
+`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(`[`site_params`](https://bnaras.github.io/homomorpheR/reference/site_params.md)`(``site``)``, ``st``$``x_curr`` ``+`` ``st``$``u_curr``)`\
 `}`\
 \
 `## Aggregator-side. It receives ciphertexts, adds them, scales by 1/N,`\
@@ -452,7 +452,7 @@ trajectory:
 | beta_1      |              0.419682 |         0.419687 |    5e-06 |
 | beta_2      |             -0.939203 |        -0.939209 |    5e-06 |
 | beta_3      |              0.384038 |         0.384041 |    4e-06 |
-| beta_4      |              0.659835 |         0.659840 |    5e-06 |
+| beta_4      |              0.659836 |         0.659840 |    4e-06 |
 
 Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 
@@ -461,7 +461,7 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Max absolute coefficient difference vs. centralized fit: %.2e\n"``,`\
 `            ``max_diff``)``)`
 
-    ## Max absolute coefficient difference vs. centralized fit: 5.44e-06
+    ## Max absolute coefficient difference vs. centralized fit: 5.39e-06
 
 \
 `if`` ``(``max_diff`` ``>`` ``10`` ``*`` ``reltol``)`\

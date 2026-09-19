@@ -78,7 +78,9 @@ same body works over <a href="CKKSMaster.html">CKKSMaster</a> and <a href="Thres
 
 
 <dl><dt id="arg-master">master<a class="anchor" aria-label="anchor" href="#arg-master"></a></dt>
-<dd><p>a <a href="Master.html">Master</a>, wired to workers via <code><a href="set_workers.html">set_workers()</a></code>.</p></dd>
+<dd><p>a <a href="Master.html">Master</a>, wired to its workers — with
+<code><a href="set_workers.html">set_workers()</a></code> for a <a href="CKKSMaster.html">CKKSMaster</a>, or by
+<code><a href="make_threshold_master.html">make_threshold_master()</a></code>, which returns one already wired.</p></dd>
 
 
 <dt id="arg-theta">theta<a class="anchor" aria-label="anchor" href="#arg-theta"></a></dt>
