@@ -15,7 +15,14 @@ log-likelihood
 In R, this is a one-liner using
 [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html):
 
-[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``17822``)`` ``y`` ``<-`` `[`rpois`](https://rdrr.io/r/stats/Poisson.html)`(``n ``=`` ``40``, lambda ``=`` ``10``)`` `` ``nLL`` ``<-`` ``function``(``lambda``)`` ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``y``, ``lambda``, log ``=`` ``TRUE``)``)`` ``fit0`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``nLL``, start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``, nobs ``=`` `[`NROW`](https://rdrr.io/r/base/nrow.html)`(``y``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit0``)`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`\
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``17822``)`\
+`y`` ``<-`` `[`rpois`](https://rdrr.io/r/stats/Poisson.html)`(``n ``=`` ``40``, lambda ``=`` ``10``)`\
+\
+`nLL`` ``<-`` ``function``(``lambda``)`` ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``y``, ``lambda``, log ``=`` ``TRUE``)``)`\
+`fit0`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``nLL``, start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``, nobs ``=`` `[`NROW`](https://rdrr.io/r/base/nrow.html)`(``y``)``)`\
+[`summary`](https://rdrr.io/r/base/summary.html)`(``fit0``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -28,6 +35,7 @@ In R, this is a one-liner using
     ## 
     ## -2 log L: 199.5328
 
+\
 [`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit0``)`
 
     ## 'log Lik.' -99.76641 (df=1)
@@ -42,7 +50,10 @@ another party’s contribution.
 
 To simulate this, partition `y`:
 
-`y1`` ``<-`` ``y``[``1``:``20``]`` ``y2`` ``<-`` ``y``[``21``:``27``]`` ``y3`` ``<-`` ``y``[``28``:``40``]`
+\
+`y1`` ``<-`` ``y``[``1``:``20``]`\
+`y2`` ``<-`` ``y``[``21``:``27``]`\
+`y3`` ``<-`` ``y``[``28``:``40``]`
 
 The negative log-likelihood factorises additively:
 
@@ -114,7 +125,12 @@ runner are backend-agnostic.
 The per-site negative log-likelihood is the same plain R function it
 would be in the cleartext case:
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` ``local_nll`` ``<-`` ``function``(``data``, ``lambda``)`` ``{`` `` ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``data``, ``lambda``, log ``=`` ``TRUE``)``)`` ``}`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`\
+\
+`local_nll`` ``<-`` ``function``(``data``, ``lambda``)`` ``{`\
+`    ``-`[`sum`](https://rdrr.io/r/base/sum.html)`(``stats``::`[`dpois`](https://rdrr.io/r/stats/Poisson.html)`(``data``, ``lambda``, log ``=`` ``TRUE``)``)`\
+`}`
 
 ### 1. Generate a CKKS key pair
 
@@ -124,15 +140,28 @@ packages export `encrypt`/`decrypt` generics, and we want
 `homomorpheR`’s on the search path so the protocol code below reads
 naturally.
 
-`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``50L``,`` `` batch_size ``=`` ``8L``)`` ``keys`` ``<-`` ``openfhe.R``::`[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``)`
+\
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
+`                           multiplicative_depth ``=`` ``1L``,`\
+`                           scaling_mod_size     ``=`` ``50L``,`\
+`                           batch_size           ``=`` ``8L``)`\
+`keys`` ``<-`` ``openfhe.R``::`[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``)`
 
 ### 2. Build workers and master
 
-`worker1`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 1"``, data ``=`` ``y1``, local_fn ``=`` ``local_nll``)`` ``worker2`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 2"``, data ``=`` ``y2``, local_fn ``=`` ``local_nll``)`` ``worker3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 3"``, data ``=`` ``y3``, local_fn ``=`` ``local_nll``)`` ``master`` ``<-`` `[`make_ckks_master`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)`(``"Master"``, crypto_context ``=`` ``cc``, keypair ``=`` ``keys``)`` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker1``, ``worker2``, ``worker3``)``)`
+\
+`worker1`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 1"``, data ``=`` ``y1``, contribution_fn ``=`` ``local_nll``)`\
+`worker2`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 2"``, data ``=`` ``y2``, contribution_fn ``=`` ``local_nll``)`\
+`worker3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Site 3"``, data ``=`` ``y3``, contribution_fn ``=`` ``local_nll``)`\
+`master``  ``<-`` `[`make_ckks_master`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)`(``"Master"``, crypto_context ``=`` ``cc``, keypair ``=`` ``keys``)`\
+[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker1``, ``worker2``, ``worker3``)``)`
 
 ### 3. Run `mle()` through the encrypted channel
 
-`fit1`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``function``(``lambda``)`` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, ``lambda``)``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit1``)`
+\
+`fit1`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``function``(``lambda``)`` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, ``lambda``)``,`\
+`            start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``lambda ``=`` ``5``)``)`\
+[`summary`](https://rdrr.io/r/base/summary.html)`(``fit1``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -146,6 +175,7 @@ naturally.
     ## 
     ## -2 log L: 199.5328
 
+\
 [`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit1``)`
 
     ## 'log Lik.' -99.76641 (df=1)

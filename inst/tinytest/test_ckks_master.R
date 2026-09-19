@@ -19,8 +19,8 @@ local_nll <- function(data, lambda) {
     -sum(stats::dpois(data, lambda, log = TRUE))
 }
 
-site1  <- make_site("S1", c(2, 3), local_fn = local_nll)
-site2  <- make_site("S2", c(4, 5), local_fn = local_nll)
+site1  <- make_worker("S1", c(2, 3), contribution_fn = local_nll)
+site2  <- make_worker("S2", c(4, 5), contribution_fn = local_nll)
 master <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
 round_robin_chain(master, list(site1, site2))
 
@@ -31,7 +31,7 @@ expect_true(abs(encrypted - direct) < 1e-3)   # CKKS approximation tolerance
 
 ## NA propagation through CKKS as well.
 master2  <- make_ckks_master("M2", cc, keys)
-site_bad <- make_site("Sbad", c(2, 3),
+site_bad <- make_worker("Sbad", c(2, 3),
                       function(d, lambda) if (lambda < 0.01) NA else
                           -sum(stats::dpois(d, lambda, log = TRUE)))
 round_robin_chain(master2, list(site_bad))
@@ -40,8 +40,8 @@ expect_true(!is.na(run_round_robin(master2, 1.0)))
 
 ## mle() converges through the encrypted CKKS channel.
 master3 <- make_ckks_master("M3", cc, keys)
-s1 <- make_site("S1", c(2, 3), local_fn = local_nll)
-s2 <- make_site("S2", c(4, 5), local_fn = local_nll)
+s1 <- make_worker("S1", c(2, 3), contribution_fn = local_nll)
+s2 <- make_worker("S2", c(4, 5), contribution_fn = local_nll)
 round_robin_chain(master3, list(s1, s2))
 fit <- stats4::mle(function(lambda) run_round_robin(master3, lambda),
                    start = list(lambda = 5))

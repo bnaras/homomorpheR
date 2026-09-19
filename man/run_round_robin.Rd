@@ -10,16 +10,17 @@ run_round_robin(master, theta)
 \item{master}{a \link{Master}, wired to a chain via \code{\link[=round_robin_chain]{round_robin_chain()}}.}
 
 \item{theta}{the current parameter value (passed through to each
-worker's \code{local_fn}).}
+worker's \code{contribution_fn}).}
 }
 \value{
 the aggregated value, or \code{NA_real_} on failure.
 }
 \description{
-Backend-agnostic via the \code{\link[=master_encrypt]{master_encrypt()}} / \code{\link[=master_decrypt]{master_decrypt()}}
-generics, but part of the frozen Paillier-era legacy surface: the
-random-offset chain idiom compensated for Paillier-era trust
-assumptions. The supported pattern is \code{\link[=master_aggregate]{master_aggregate()}}.
+Backend-agnostic via the \code{\link[=master_decrypt]{master_decrypt()}} generic, but part of the
+frozen Paillier-era legacy surface: the random-offset chain idiom
+compensated for Paillier-era trust assumptions, and it encrypts each
+site's value \emph{at the master}, which the supported topology
+deliberately does not. The supported pattern is \code{\link[=master_aggregate]{master_aggregate()}}.
 }
 \details{
 The master generates a random real offset, encrypts it under its
@@ -28,6 +29,6 @@ encrypted local summary to the running total and forwards. On
 return, the master decrypts the running total, subtracts the offset
 in the clear, and returns the resulting scalar.
 
-If any worker's \code{local_fn} returns \code{NA}, the chain stops and this
+If any worker's \code{contribution_fn} returns \code{NA}, the chain stops and this
 function returns \code{NA_real_}.
 }

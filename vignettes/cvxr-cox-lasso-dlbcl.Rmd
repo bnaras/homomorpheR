@@ -36,7 +36,14 @@ knitr::opts_chunk$set(
 ## (see data-raw/cvxr_consensus.R and the verification note below). The
 ## openfhe-jss manuscript reads the same purled chunks, so vignette,
 ## script, manuscript, and data object cannot drift.
-if (!exists("RECOMPUTE")) RECOMPUTE <- FALSE
+## Default stays FALSE, but an environment variable can turn the real
+## pipeline on for a whole build -- `HOMOMORPHER_RECOMPUTE=true R CMD
+## build ...` or the same in front of a pkgdown run. Without a hook at
+## this level there is no way to make a full build actually execute the
+## encrypted pipeline, and a build that replays the shipped artifact
+## cannot tell you the code still works.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
 
 suppressPackageStartupMessages(library(homomorpheR))
 data(cvxr_consensus, package = "homomorpheR")
@@ -391,8 +398,14 @@ decryption. The local [CVXR][] work and `run_admm` are untouched.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` and `make_threshold_master()`, which
-runs the chained `multiparty_key_gen()` ceremony internally so no single
-party ever holds the secret key.
+walks the `multiparty_key_gen()` chain across the sites. Each site
+generates its own share and keeps it; only public keys move along the
+chain, so no party — the aggregator included — ever holds the joint
+secret.
+
+That means the key-holding parties have to exist before the aggregator
+does. The subgroups are already our sites; here we give each one an
+object to hold its share in.
 
 ```{r cvxr-context, eval=RECOMPUTE}
 cc <- fhe_context("CKKS",
@@ -401,8 +414,26 @@ cc <- fhe_context("CKKS",
                   first_mod_size       = 60L,
                   batch_size           = 8192L,
                   features             = c(Feature$MULTIPARTY))
+
+key_sites <- lapply(levels(dlbcl$Subgroup), function(s)
+    make_worker(s, data = NULL, contribution_fn = function(data, theta) NULL))
+
 master <- make_threshold_master("Aggregator",
-                                crypto_context = cc, n_sites = N_sites)
+                                crypto_context = cc, sites = key_sites)
+
+## What each site kept from that one exchange: its own secret share,
+## and a copy of the public parameters -- a scheme tag, the crypto
+## context, the joint public key, and no share of anyone else's.
+site_params <- lapply(key_sites, function(s) s@state$params)
+```
+
+That wiring is the one and only exchange between the aggregator and the
+sites, apart from the ciphertexts each round carries. From here on each
+site is autonomous: everything below encrypts with `site_params`, which
+the site already holds, and nothing reaches back for the aggregator.
+
+```{r cvxr-params-shown, eval=RECOMPUTE, purl=FALSE}
+names(site_params[[1]])
 ```
 
 The standardization round is `pool_plain` with the two `colSums`
@@ -412,11 +443,22 @@ treat $N_{\mathrm{tot}}$ as known to the aggregator; hiding the per-site
 head-counts is one more sum of the same kind.)
 
 ```{r cvxr-pool-encrypt, eval=RECOMPUTE}
+## Site side. Each site forms its own moments and encrypts them under
+## the joint key; what leaves is ciphertext. Encrypting at the
+## aggregator instead would mean handing it the per-site column sums in
+## the clear first, which is the disclosure this round exists to avoid.
+site_moments <- function(s, params)
+    list(sum   = encrypt_under(params, colSums(s$X)),
+         sumsq = encrypt_under(params, colSums(s$X^2)))
+
+## Aggregator side. It reduces ciphertexts and decrypts only the total.
 encrypt_pool <- function(master, sites, n_total, p_raw) {
-    s_ct <- lapply(sites, function(s) master_encrypt(master, colSums(s$X)))
-    q_ct <- lapply(sites, function(s) master_encrypt(master, colSums(s$X^2)))
-    pooled_sum   <- master_decrypt(master, Reduce(`+`, s_ct), len = p_raw)
-    pooled_sumsq <- master_decrypt(master, Reduce(`+`, q_ct), len = p_raw)
+    ## Each site encrypts with the parameters it kept from wiring.
+    parts <- Map(site_moments, sites, site_params)
+    pooled_sum   <- master_decrypt(
+        master, Reduce(`+`, lapply(parts, `[[`, "sum")),   len = p_raw)
+    pooled_sumsq <- master_decrypt(
+        master, Reduce(`+`, lapply(parts, `[[`, "sumsq")), len = p_raw)
     mu     <- pooled_sum / n_total
     sigma2 <- pmax(pooled_sumsq / n_total - mu^2, .Machine$double.eps)
     list(mu = mu, sigma = sqrt(sigma2))
@@ -433,12 +475,19 @@ $(U^{(k)},I^{(k)})$ encrypted and summed the same way, so we show it
 compactly and confirm it selects the same probes.
 
 ```{r cvxr-screen-encrypt, eval=RECOMPUTE}
+## Site side: compute the score and information at beta = 0 on the
+## site's own rows, and encrypt both before returning them.
+site_score_info <- function(s, params) {
+    z <- score_info_at_zero(s$X, s$time, s$status)
+    list(U = encrypt_under(params, z$U), I = encrypt_under(params, z$I))
+}
+
+## Aggregator side: sum the encrypted (U, I) and decrypt the totals.
 encrypt_screen <- function(master, sites, p_raw, K) {
-    enc <- function(v) master_encrypt(master, v)
-    UI  <- lapply(sites, function(s) score_info_at_zero(s$X, s$time, s$status))
-    U   <- master_decrypt(master, Reduce(`+`, lapply(UI, function(z) enc(z$U))),
+    UI  <- Map(site_score_info, sites, site_params)
+    U   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
                           len = p_raw)
-    I   <- master_decrypt(master, Reduce(`+`, lapply(UI, function(z) enc(z$I))),
+    I   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
                           len = p_raw)
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
@@ -449,16 +498,24 @@ stopifnot(setequal(fhe_top, top_idx))   # same probes as the plaintext screen
 
 With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`: encrypt each $(x_k+u_k)$, sum the encrypted
-vectors, scale by $1/N$ under encryption (one multiplication by an
-unencrypted constant, which costs one level of the precision budget),
-and threshold-decrypt the length-$K$ average. Soft-thresholding stays in
-the clear at the aggregator.
+`plain_consensus`, with the encryption on the site's side of the
+boundary: each site encrypts its own $(x_k+u_k)$, the aggregator sums
+the ciphertexts, scales by $1/N$ under encryption (one multiplication
+by an unencrypted constant, which costs one level of the precision
+budget), and threshold-decrypts the length-$K$ average.
+Soft-thresholding stays in the clear at the aggregator, on the
+aggregate.
 
 ```{r cvxr-consensus, eval=RECOMPUTE}
+## Site side: form x_k + u_k and encrypt it there. The per-site vector
+## never exists in the clear outside this function.
+site_consensus_term <- function(x_k, u_k, params)
+    encrypt_under(params, x_k + u_k)
+
+## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the
+## average. It sees no individual (x_k + u_k).
 encrypted_consensus <- function(site_x, site_u) {
-    cts    <- lapply(seq_along(site_x), function(i)
-                  master_encrypt(master, site_x[[i]] + site_u[[i]]))
+    cts    <- Map(site_consensus_term, site_x, site_u, site_params)
     ct_avg <- Reduce(`+`, cts) * (1 / length(site_x))
     master_decrypt(master, ct_avg, len = K)
 }
@@ -553,6 +610,27 @@ appear in cleartext anywhere in the protocol. Decryption at every step
 is $n$-of-$n$ threshold: no single party — the aggregator included — can
 recover any intermediate quantity unilaterally.
 
+Two things in this document sit outside that sentence, and both are
+artifacts of writing it rather than parts of the protocol. The
+unencrypted reference pass forms exactly the per-site averages just
+ruled out; we can run it, and the centralized solve we check against,
+only because this vignette holds all three sites' data in one R
+session. The constants inherit the same caveat — as the note above
+says, $\rho = `r RHO`$ was kept for the tightest agreement with that
+centralized solve, which is a comparison no deployment can make.
+
+This is worth naming, because it is the kind of thing a threat model
+misses: the guarded computation gets audited, while the step that
+*chooses its constants* looks like setup and does not. It need not
+be exposed. `vignette("cvxr-consensus-admm")` sweeps $\rho$ over the
+encrypted channel itself — the tuning needs no cryptographic
+machinery beyond what one run already needs, and the crypto is small
+beside the per-iteration [CVXR][] solves. Where the protocol also
+carries a privacy budget, as in
+`vignette("cvxr-consensus-admm-dp")`, encrypting the sweep is not
+enough and the constants have to come from data the protocol may
+read for free.
+
 ## Discussion
 
 1. **CVXR symbolic problems compose with threshold FHE.** The local
@@ -567,10 +645,12 @@ recover any intermediate quantity unilaterally.
    active set; the residual gap to the one-shot centralized solve
    (`r signif(max(abs(z_ref - agg_beta)), 2)`) is the ADMM iteration
    budget, not the cryptography.
-3. **No single party holds the secret key.** `make_threshold_master()`
-   distributes the secret across all sites; encrypted intermediates are
-   undecryptable by any one party, and each round's result appears only
-   after $n$-of-$n$ partial-decryption fusion.
+3. **No single party holds the secret key.** Each site generated its
+   own share during the key-generation chain and kept it; the
+   aggregator holds only the joint public key. Encrypted intermediates
+   are undecryptable by any one party, and each round's result appears
+   only after $n$-of-$n$ partial-decryption fusion, which the
+   aggregator can only obtain by asking every site.
 4. **DPP keeps the inner loop fast.** Each site's [CVXR][] problem is
    built once at setup; ADMM iterations only update the `Parameter`
    values.

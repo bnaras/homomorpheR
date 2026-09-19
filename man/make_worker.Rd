@@ -2,25 +2,31 @@
 % Please edit documentation in R/sites.R
 \name{make_worker}
 \alias{make_worker}
-\title{Construct a worker (alias for \code{\link[=make_site]{make_site()}})}
+\title{Construct a worker}
 \usage{
-make_worker(name, data, local_fn)
+make_worker(name, data, contribution_fn)
 }
 \arguments{
 \item{name}{short identifier shown in printed output.}
 
-\item{data}{local dataset.}
+\item{data}{whatever \code{contribution_fn} needs in order to answer — a
+dataset, a database connection, a cohort identifier.}
 
-\item{local_fn}{a function with signature \verb{function(data, theta)}
-returning the site-level summary at \code{theta}. May return \code{NA} to
-signal a non-evaluable parameter (an extreme \code{theta} that breaks
-the local solver, for example); the master will propagate \code{NA}
-back to the optimizer.}
+\item{contribution_fn}{a function with signature \verb{function(data, theta)}
+returning this site's contribution at \code{theta} as a plain numeric
+value. It does \strong{not} encrypt; \code{\link[=contribute]{contribute()}} does that. May
+return \code{NA} to signal that \code{theta} is non-evaluable here.}
 }
 \value{
-a \link{Site}.
+a \link{LocalSite}.
 }
 \description{
-Provided for naming clarity in master/worker protocols. Returns a
-\link{Site} with identical semantics to \code{\link[=make_site]{make_site()}}.
+Builds the \link{Site} one party contributes to a multi-party protocol.
+A \code{Site} becomes a \emph{worker} once it has been wired and given its
+public parameters; from that point it is autonomous, computing and
+encrypting on its own.
+}
+\seealso{
+\link{RemoteSite} for a site whose contribution is produced
+outside this \R session.
 }

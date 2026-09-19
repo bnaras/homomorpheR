@@ -112,7 +112,7 @@ local_cox_nll <- function(data, beta) {
 ## Threshold setup and DP-noised workers
 
 The threshold infrastructure is the same as `cox-threshold`. The
-DP twist lives entirely inside the per-worker `local_fn`: each
+DP twist lives entirely inside the per-worker `contribution_fn`: each
 worker adds an independent $\mathcal{N}(0, \sigma^2/N)$ draw to its
 local nLL before returning. The master/worker runner sees only the
 noisy local value and encrypts it as usual.
@@ -132,7 +132,7 @@ build_dp_workers <- function(sigma) {
         make_worker(
             nm,
             data     = cox_data[[nm]],
-            local_fn = function(data, beta) {
+            contribution_fn = function(data, beta) {
                 nll <- local_cox_nll(data, beta)
                 if (is.na(nll)) return(NA_real_)
                 nll + rnorm(1L, mean = 0, sd = sigma / sqrt(n_sites))
@@ -142,10 +142,10 @@ build_dp_workers <- function(sigma) {
 
 fit_at_sigma <- function(sigma, method = "BFGS", seed = 1L) {
     set.seed(seed)   # stabilize the DP-noise draws across runs
-    master <- make_threshold_master("Aggregator",
-                                    crypto_context = cc,
-                                    n_sites        = n_sites)
-    set_workers(master, build_dp_workers(sigma))
+    workers <- build_dp_workers(sigma)
+    master  <- make_threshold_master("Aggregator",
+                                     crypto_context = cc,
+                                     sites          = workers)
     dp_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
         master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
     stats4::mle(dp_nLL,

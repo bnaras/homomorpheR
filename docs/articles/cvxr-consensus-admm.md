@@ -42,7 +42,7 @@ rewriting the optimizer.
 
 ## The global problem and its consensus split
 
-We pick L2-regularised logistic regression. With $`N`$ sites, local data
+We pick L2-regularized logistic regression. With $`N`$ sites, local data
 $`(X_i, y_i)`$ at site $`i`$, a shared coefficient
 $`x \in \mathbb{R}^p`$, the global problem is
 
@@ -79,7 +79,13 @@ $`u`$-update is local again. Only the $`z`$-update needs cryptography.
 
 ## The local CVXR subproblem
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`CVXR`](https://cvxr.rbind.io)`)``)`` `` ``N`` ``<-`` ``3L`` ``p`` ``<-`` ``4L`` ``lam`` ``<-`` ``1`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`\
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`CVXR`](https://cvxr.rbind.io)`)``)`\
+\
+`N``   ``<-`` ``3L`\
+`p``   ``<-`` ``4L`\
+`lam`` ``<-`` ``1`
 
 We build the local problem so that DPP can engage: $`z`$ and $`u`$ are
 `Parameter`s (so canonicalization is shared across iterations); $`X_i`$,
@@ -87,14 +93,86 @@ $`y_i`$, and $`\rho`$ are *constants* baked in at construction time (so
 the augmented Lagrangian term enters affinely in the parameters and the
 DPP fast path is not broken).
 
-`build_local_problem`` ``<-`` ``function``(``X_i``, ``y_i``, ``rho_val``)`` ``{`` `` ``n_i`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_i``)`` `` ``p_i`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)`` `` `` ``x`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p_i``)`` `` ``zp`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p_i``)`` `` ``up`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p_i``)`` `` `` ``y_signs`` ``<-`` ``2`` ``*`` ``y_i`` ``-`` ``1`` `` ``margins`` ``<-`` ``-``y_signs`` ``*`` ``(``X_i`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``x``)`` `` `` ``local_loss`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins``)``)`` ``+`` `` ``(``lam`` ``/`` ``(``2`` ``*`` ``N``)``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x``)`` `` ``augmented`` ``<-`` ``(``rho_val`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x`` ``-`` ``zp`` ``+`` ``up``)`` `` `` ``prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(``local_loss`` ``+`` ``augmented``)``)`` `` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``zp``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p_i``)`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``up``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p_i``)`` `` `` `[`list`](https://rdrr.io/r/base/list.html)`(``prob ``=`` ``prob``, x ``=`` ``x``, zp ``=`` ``zp``, up ``=`` ``up``)`` ``}`
+\
+`build_local_problem`` ``<-`` ``function``(``X_i``, ``y_i``, ``rho_val``)`` ``{`\
+`    ``n_i`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_i``)`\
+`    ``p_i`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)`\
+\
+`    ``x``  ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p_i``)`\
+`    ``zp`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p_i``)`\
+`    ``up`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p_i``)`\
+\
+`    ``y_signs`` ``<-`` ``2`` ``*`` ``y_i`` ``-`` ``1`\
+`    ``margins`` ``<-`` ``-``y_signs`` ``*`` ``(``X_i`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``x``)`\
+\
+`    ``local_loss`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins``)``)`` ``+`\
+`                  ``(``lam`` ``/`` ``(``2`` ``*`` ``N``)``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x``)`\
+`    ``augmented``  ``<-`` ``(``rho_val`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x`` ``-`` ``zp`` ``+`` ``up``)`\
+\
+`    ``prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(``local_loss`` ``+`` ``augmented``)``)`\
+\
+`    `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``zp``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p_i``)`\
+`    `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``up``)`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p_i``)`\
+\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``prob ``=`` ``prob``, x ``=`` ``x``, zp ``=`` ``zp``, up ``=`` ``up``)`\
+`}`
 
 A vignette-local site class wraps the local CVXR problem plus the ADMM
 state. The exported `Site` from this package is shaped for the
 master/worker pattern; ADMM is peer-to-peer and needs its own per-site
 state, so we define `ConsensusSite` inline.
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`S7`](https://rconsortium.github.io/S7/)`)`` `` ``ConsensusSite`` ``<-`` `[`new_class`](https://rconsortium.github.io/S7/reference/new_class.html)`(``"ConsensusSite"``,`` `` properties ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` name ``=`` ``class_character``,`` `` n ``=`` ``class_integer``,`` `` state ``=`` ``class_any`` `` ``)`` ``)`` `` ``make_consensus_site`` ``<-`` ``function``(``name``, ``X_i``, ``y_i``, ``rho_val``)`` ``{`` `` ``st`` ``<-`` `[`new.env`](https://rdrr.io/r/base/environment.html)`(``parent ``=`` `[`emptyenv`](https://rdrr.io/r/base/environment.html)`(``)``)`` `` ``st``$``X`` ``<-`` ``X_i`` `` ``st``$``y`` ``<-`` ``y_i`` `` ``built`` ``<-`` ``build_local_problem``(``X_i``, ``y_i``, ``rho_val``)`` `` ``st``$``prob`` ``<-`` ``built``$``prob`` `` ``st``$``x_var`` ``<-`` ``built``$``x`` `` ``st``$``zp`` ``<-`` ``built``$``zp`` `` ``st``$``up`` ``<-`` ``built``$``up`` `` ``st``$``x_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`` `` ``st``$``u_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`` `` ``ConsensusSite``(``name ``=`` ``name``, n ``=`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``, state ``=`` ``st``)`` ``}`` `` ``local_update`` ``<-`` ``function``(``site``, ``z_curr``)`` ``{`` `` ``st`` ``<-`` ``site``@``state`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``zp``)`` ``<-`` ``z_curr`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``up``)`` ``<-`` ``st``$``u_curr`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``st``$``prob``, solver ``=`` ``"CLARABEL"``)`` `` ``if`` ``(``!`[`status`](https://www.cvxgrp.org/CVXR/reference/status.html)`(``st``$``prob``)`` `[`%in%`](https://rdrr.io/r/base/match.html)` `[`c`](https://rdrr.io/r/base/c.html)`(``"optimal"``, ``"optimal_inaccurate"``)``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Local solve at "``, ``site``@``name``, ``" did not reach optimal status."``)`` `` ``st``$``x_curr`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``x_var``)``)`` `` `[`invisible`](https://rdrr.io/r/base/invisible.html)`(``st``$``x_curr``)`` ``}`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`S7`](https://rconsortium.github.io/S7/)`)`\
+\
+`` ## It inherits from homomorpheR's abstract `Site`, which supplies ``\
+`` ## `name` and the `state` environment. That inheritance is what lets it ``\
+`` ## take part in threshold key generation: `keygen_round()` and ``\
+`` ## `partial_decrypt()` dispatch on `Site`, so each ConsensusSite ``\
+`## generates and keeps its own share like any other party.`\
+`ConsensusSite`` ``<-`` `[`new_class`](https://rconsortium.github.io/S7/reference/new_class.html)`(``"ConsensusSite"``,`\
+`    parent     ``=`` ``homomorpheR``::`[`Site`](https://bnaras.github.io/homomorpheR/reference/Site.md)`,`\
+`    properties ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`        n ``=`` ``class_integer`\
+`    ``)`\
+`)`\
+\
+`## A site is a *party*: it persists across the whole analysis, because`\
+`## it holds a secret share that threshold key generation put there. Its`\
+`## local CVXR problem is a property of the current run, not of the`\
+`## party, so it is set separately and can be rebuilt for a new rho`\
+`## without destroying the share.`\
+`make_consensus_site`` ``<-`` ``function``(``name``, ``X_i``, ``y_i``)`` ``{`\
+`    ``st``        ``<-`` `[`new.env`](https://rdrr.io/r/base/environment.html)`(``parent ``=`` `[`emptyenv`](https://rdrr.io/r/base/environment.html)`(``)``)`\
+`    ``st``$``X``      ``<-`` ``X_i`\
+`    ``st``$``y``      ``<-`` ``y_i`\
+`    ``st``$``x_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`\
+`    ``st``$``u_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``)`\
+`    ``ConsensusSite``(``name ``=`` ``name``, n ``=`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_i``)``, state ``=`` ``st``)`\
+`}`\
+\
+`set_rho`` ``<-`` ``function``(``site``, ``rho_val``)`` ``{`\
+`    ``st``        ``<-`` ``site``@``state`\
+`    ``built``     ``<-`` ``build_local_problem``(``st``$``X``, ``st``$``y``, ``rho_val``)`\
+`    ``st``$``prob``   ``<-`` ``built``$``prob`\
+`    ``st``$``x_var``  ``<-`` ``built``$``x`\
+`    ``st``$``zp``     ``<-`` ``built``$``zp`\
+`    ``st``$``up``     ``<-`` ``built``$``up`\
+`    ``st``$``x_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``st``$``X``)``)`\
+`    ``st``$``u_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``st``$``X``)``)`\
+`    `[`invisible`](https://rdrr.io/r/base/invisible.html)`(``site``)`\
+`}`\
+\
+`local_update`` ``<-`` ``function``(``site``, ``z_curr``)`` ``{`\
+`    ``st`` ``<-`` ``site``@``state`\
+`    `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``zp``)`` ``<-`` ``z_curr`\
+`    `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``up``)`` ``<-`` ``st``$``u_curr`\
+`    `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``st``$``prob``, solver ``=`` ``"CLARABEL"``)`\
+`    ``if`` ``(``!`[`status`](https://www.cvxgrp.org/CVXR/reference/status.html)`(``st``$``prob``)`` `[`%in%`](https://rdrr.io/r/base/match.html)` `[`c`](https://rdrr.io/r/base/c.html)`(``"optimal"``, ``"optimal_inaccurate"``)``)`\
+`        `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Local solve at "``, ``site``@``name``, ``" did not reach optimal status."``)`\
+`    ``st``$``x_curr`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``st``$``x_var``)``)`\
+`    `[`invisible`](https://rdrr.io/r/base/invisible.html)`(``st``$``x_curr``)`\
+`}`
 
 ## The threshold-FHE consensus aggregation
 
@@ -109,17 +187,54 @@ precision budget), and threshold-decrypt the result.
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` enabled and
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md),
-which runs the chained `multiparty_key_gen()` setup automatically. The
-consensus function calls
-[`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
-to encrypt each site’s contribution under the joint public key and
+which walks the chained `multiparty_key_gen()` setup across the sites.
+
+Note where the encryption happens. Each site encrypts its own
+$`(x_i + u_i)`$ under the joint public key and hands back a
+*ciphertext*; the aggregator adds those ciphertexts, scales, and calls
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-to threshold-decrypt the result; the partial-decrypt fan-in across sites
-is handled inside the master class.
+to threshold-decrypt the total. Hoisting the encryption up to the
+aggregator — letting it read each site’s cleartext vector and encrypt on
+arrival — would be pointless: it would already have seen the per-site
+values the protocol exists to hide. The partial-decrypt fan-in runs the
+other way for the same reason: the aggregator sends the ciphertext out
+and each site applies its own share, because a share that traveled to
+the aggregator would make the whole construction pointless.
 
-`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
+\
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
+`                           multiplicative_depth ``=`` ``1L``,`\
+`                           scaling_mod_size     ``=`` ``59L``,`\
+`                           first_mod_size       ``=`` ``60L``,`\
+`                           batch_size           ``=`` ``8L``,`\
+`                           features             ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
-`encrypted_consensus`` ``<-`` ``function``(``threshold_master``, ``sites``)`` ``{`` `` ``cts`` ``<-`` `[`vector`](https://rdrr.io/r/base/vector.html)`(``"list"``, `[`length`](https://rdrr.io/r/base/length.html)`(``sites``)``)`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sites``)``)`` ``{`` `` ``st`` ``<-`` ``sites``[[``i``]``]``@``state`` `` ``val`` ``<-`` ``st``$``x_curr`` ``+`` ``st``$``u_curr`` `` ``cts``[[``i``]``]`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``threshold_master``, ``val``)`` `` ``}`` `` ``ct_sum`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` `` ``ct_avg`` ``<-`` ``ct_sum`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites``)``)`` `` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``threshold_master``, ``ct_avg``, len ``=`` ``p``)`` ``}`
+Threshold key generation happens once, up front, and it runs *through*
+the sites: each generates its own share, keeps it, and passes on only a
+public key. So the sites have to exist before the aggregator does — we
+set them up below, once the data is in hand. The keys do not depend on
+$`\rho`$, so the same sites and the same master serve both the tuning
+sweep and the final run; only each site’s local problem is rebuilt when
+$`\rho`$ changes.
+
+\
+`## Site-side. The site forms x_i + u_i and encrypts it with the public`\
+`## bundle it was handed at setup -- context and joint public key, no`\
+`## secrets. The cleartext vector never leaves this function.`\
+`site_contribution`` ``<-`` ``function``(``site``)`` ``{`\
+`    ``st`` ``<-`` ``site``@``state`\
+`    ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``st``$``params``)``)`\
+`        `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Site "``, ``site``@``name``, ``" has no public parameters."``)`\
+`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``st``$``params``, ``st``$``x_curr`` ``+`` ``st``$``u_curr``)`\
+`}`\
+\
+`## Aggregator-side. It receives ciphertexts, adds them, scales by 1/N,`\
+`## and threshold-decrypts. At no point does it hold an individual`\
+`## (x_i + u_i).`\
+`encrypted_consensus`` ``<-`` ``function``(``threshold_master``, ``sites``)`` ``{`\
+`    ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``site_contribution``)``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites``)``)`\
+`    `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``threshold_master``, ``ct_avg``, len ``=`` ``p``)`\
+`}`
 
 What this protocol hides and reveals: every ADMM iteration the
 aggregator recovers the *new consensus* $`z^k`$ exactly. The per-site
@@ -135,26 +250,134 @@ site’s contribution and no decryption power.
 Three sites with deliberately uneven sample sizes; same true
 coefficients across sites.
 
-[`set.seed`](https://rdrr.io/r/base/Random.html)`(``98765``)`` `` ``beta_true`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.5``, ``-``1.0``, ``0.3``, ``0.8``)`` ``n_per`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``400``, ``250``, ``350``)`` `` ``site_data`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``, ``function``(``i``)`` ``{`` `` ``X`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_per``[``i``]`` ``*`` ``p``)``, nrow ``=`` ``n_per``[``i``]``, ncol ``=`` ``p``)`` `` ``eta`` ``<-`` ``X`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_true`` `` ``y`` ``<-`` `[`rbinom`](https://rdrr.io/r/stats/Binomial.html)`(``n_per``[``i``]``, size ``=`` ``1``, prob ``=`` ``1`` ``/`` ``(``1`` ``+`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``-``eta``)``)``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``X ``=`` ``X``, y ``=`` ``y``)`` ``}``)`` `` ``X_all`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"X"``)``)`` ``y_all`` ``<-`` `[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"y"``)``)`
+\
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``98765``)`\
+\
+`beta_true`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.5``, ``-``1.0``, ``0.3``, ``0.8``)`\
+`n_per``     ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``400``, ``250``, ``350``)`\
+\
+`site_data`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``, ``function``(``i``)`` ``{`\
+`    ``X`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_per``[``i``]`` ``*`` ``p``)``, nrow ``=`` ``n_per``[``i``]``, ncol ``=`` ``p``)`\
+`    ``eta`` ``<-`` ``X`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_true`\
+`    ``y`` ``<-`` `[`rbinom`](https://rdrr.io/r/stats/Binomial.html)`(``n_per``[``i``]``, size ``=`` ``1``, prob ``=`` ``1`` ``/`` ``(``1`` ``+`` `[`exp`](https://rdrr.io/r/base/Log.html)`(``-``eta``)``)``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``X ``=`` ``X``, y ``=`` ``y``)`\
+`}``)`\
+\
+`X_all`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"X"``)``)`\
+`y_all`` ``<-`` `[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"y"``)``)`
+
+### The parties, and the key-generation chain
+
+Now the sites exist, so the chain can run through them. Each generates
+its own share and keeps it; what comes back is an aggregator holding the
+joint public key and nothing secret.
+
+\
+`sites`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``, ``function``(``i``)`\
+`    ``make_consensus_site``(`[`paste0`](https://rdrr.io/r/base/paste.html)`(``"Site "``, ``i``)``,`\
+`                        ``site_data``[[``i``]``]``$``X``, ``site_data``[[``i``]``]``$``y``)``)`\
+\
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`\
+`                                crypto_context ``=`` ``cc``,`\
+`                                sites          ``=`` ``sites``)`\
+\
+[`c`](https://rdrr.io/r/base/c.html)`(``aggregator_has_share ``=`` ``!`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``master``@``state``$``sk``)``,`\
+`  every_site_has_one   ``=`` `[`all`](https://rdrr.io/r/base/all.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` ``!`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``s``@``state``$``sk``)``, ``TRUE``)``)``)`
+
+    ## aggregator_has_share   every_site_has_one 
+    ##                FALSE                 TRUE
 
 ## Centralized CVXR fit
 
 For the comparison at the end of the run, we fit the same problem
 centrally. This is the target the federated fit should match.
 
-`x_central`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)`` ``y_signs`` ``<-`` ``2`` ``*`` ``y_all`` ``-`` ``1`` ``margins`` ``<-`` ``-``y_signs`` ``*`` ``(``X_all`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``x_central``)`` ``central_prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins``)``)`` ``+`` ``(``lam`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x_central``)`` ``)``)`` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``central_prob``, solver ``=`` ``"CLARABEL"``)`
+\
+`x_central`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)`\
+`y_signs``  ``<-`` ``2`` ``*`` ``y_all`` ``-`` ``1`\
+`margins``  ``<-`` ``-``y_signs`` ``*`` ``(``X_all`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``x_central``)`\
+`central_prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(`\
+`    `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`logistic`](https://www.cvxgrp.org/CVXR/reference/logistic.html)`(``margins``)``)`` ``+`` ``(``lam`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x_central``)`\
+`)``)`\
+[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``central_prob``, solver ``=`` ``"CLARABEL"``)`
 
     ## [1] 552.3928
 
-`beta_central`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``x_central``)``)`
+\
+`beta_central`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``x_central``)``)`
 
 ## Tuning $`\rho`$ before the loop
 
 ADMM convergence depends on $`\rho`$. We sweep three candidate values
-against a *cleartext* copy of the protocol (no FHE) and pick the one
-that converges fastest. The chosen value is fixed for the encrypted run.
+and keep the one that converges fastest, fixing it for the run that
+follows.
 
-`rho_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``10``, ``50``, ``200``)`` ``sweep_iters`` ``<-`` `[`integer`](https://rdrr.io/r/base/integer.html)`(`[`length`](https://rdrr.io/r/base/length.html)`(``rho_grid``)``)`` `` ``for`` ``(``g`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``rho_grid``)``)`` ``{`` `` ``rho_val`` ``<-`` ``rho_grid``[``g``]`` `` ``sites`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``, ``function``(``i``)`` `` ``make_consensus_site``(`[`paste0`](https://rdrr.io/r/base/paste.html)`(``"Site "``, ``i``)``,`` `` ``site_data``[[``i``]``]``$``X``, ``site_data``[[``i``]``]``$``y``,`` `` rho_val ``=`` ``rho_val``)``)`` `` ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`` `` ``converged`` ``<-`` ``FALSE`` `` ``for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``40``)``)`` ``{`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``local_update``(``s``, ``z_curr``)`` `` ``means_xu`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```,`` `` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` ``s``@``state``$``x_curr`` ``+`` ``s``@``state``$``u_curr``)``)`` ``/`` ``N`` `` ``z_new`` ``<-`` ``means_xu`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``{`` `` ``s``@``state``$``u_curr`` ``<-`` ``s``@``state``$``u_curr`` ``+`` ``(``s``@``state``$``x_curr`` ``-`` ``z_new``)`` `` ``}`` `` ``primal_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``s``@``state``$``x_curr`` ``-`` ``z_new``)``^``2``)``)``)``)``)`` `` ``dual_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``N``)`` ``*`` ``rho_val`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`` `` ``z_curr`` ``<-`` ``z_new`` `` ``if`` ``(``primal_res`` ``<`` ``1e-3`` ``&&`` ``dual_res`` ``<`` ``1e-3``)`` ``{`` `` ``converged`` ``<-`` ``TRUE`` `` ``sweep_iters``[``g``]`` ``<-`` ``k`` `` ``break`` `` ``}`` `` ``}`` `` ``if`` ``(``!``converged``)`` ``sweep_iters``[``g``]`` ``<-`` ``NA_integer_`` ``}`` `` ``sweep_table`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``rho ``=`` ``rho_grid``, iters ``=`` ``sweep_iters``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``sweep_table``, caption ``=`` ``"Cleartext ADMM iterations to convergence"``)`
+The sweep goes through **the same encrypted channel the main loop
+uses**. It is worth being explicit about why it can, because the
+tempting shortcut — sweep in cleartext, then switch on the cryptography
+once $`\rho`$ is settled — is not a shortcut at all.
+
+Tuning needs no cryptographic machinery beyond what a single ADMM run
+already needs. The $`x`$-update is a site-local CVXR solve on site-local
+data, cleartext in both cases; the $`u`$-update is site-local
+arithmetic; only the consensus average crosses the channel, and it is
+the same one addition and one plaintext-scalar multiplication per
+iteration, so the sweep runs inside the same `multiplicative_depth = 1L`
+budget. Each iteration re-encrypts from fresh plaintext rather than
+building on the previous ciphertext, so neither depth nor noise
+accumulates across iterations, and nothing accumulates across candidates
+either. The stopping test and the `which.min` over the grid are
+comparisons, which CKKS cannot do natively — but they never touch a
+ciphertext. They are computed from $`z`$, which this protocol decrypts
+every iteration by design, and from each site’s own $`x_i`$ and $`u_i`$.
+$`\rho`$ itself is a public protocol constant that every site must agree
+on, so there is nothing there to hide.
+
+The cleartext sweep, by contrast, is not a deployable step. To average
+$`(x_i + u_i)`$ in the clear, each site has to hand the aggregator that
+vector in plaintext — once per iteration, once per candidate. That is
+precisely the quantity the paragraph above says never appears in the
+clear, and $`x_i^{k+1}`$ is the minimizer of site $`i`$’s local loss,
+hence a direct function of its $`(X_i, y_i)`$. Tuning in cleartext would
+leak several times over what the run it precedes is built to protect.
+
+The cost of not taking the shortcut is small: the encrypted channel
+moves a length-$`p`$ vector, while each iteration pays for $`N`$
+interior-point solves.
+
+\
+`rho_grid``    ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``10``, ``50``, ``200``)`\
+`sweep_iters`` ``<-`` `[`integer`](https://rdrr.io/r/base/integer.html)`(`[`length`](https://rdrr.io/r/base/length.html)`(``rho_grid``)``)`\
+\
+`for`` ``(``g`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``rho_grid``)``)`` ``{`\
+`    ``rho_val`` ``<-`` ``rho_grid``[``g``]`\
+`    ``## The parties persist -- they hold the key shares. Only the local`\
+`    ``## problem is rebuilt for this rho.`\
+`    ``for`` ``(``s`` ``in`` ``sites``)`` ``set_rho``(``s``, ``rho_val``)`\
+`    ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`\
+`    ``converged`` ``<-`` ``FALSE`\
+`    ``for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``40``)``)`` ``{`\
+`        ``for`` ``(``s`` ``in`` ``sites``)`` ``local_update``(``s``, ``z_curr``)`\
+`        ``z_new`` ``<-`` ``encrypted_consensus``(``master``, ``sites``)`\
+`        ``for`` ``(``s`` ``in`` ``sites``)`` ``{`\
+`            ``s``@``state``$``u_curr`` ``<-`` ``s``@``state``$``u_curr`` ``+`` ``(``s``@``state``$``x_curr`` ``-`` ``z_new``)`\
+`        ``}`\
+`        ``primal_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`\
+`            `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``s``@``state``$``x_curr`` ``-`` ``z_new``)``^``2``)``)``)``)``)`\
+`        ``dual_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``N``)`` ``*`` ``rho_val`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`\
+`        ``z_curr`` ``<-`` ``z_new`\
+`        ``if`` ``(``primal_res`` ``<`` ``1e-3`` ``&&`` ``dual_res`` ``<`` ``1e-3``)`` ``{`\
+`            ``converged`` ``<-`` ``TRUE`\
+`            ``sweep_iters``[``g``]`` ``<-`` ``k`\
+`            ``break`\
+`        ``}`\
+`    ``}`\
+`    ``if`` ``(``!``converged``)`` ``sweep_iters``[``g``]`` ``<-`` ``NA_integer_`\
+`}`\
+\
+`sweep_table`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``rho ``=`` ``rho_grid``, iters ``=`` ``sweep_iters``)`\
+`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``sweep_table``,`\
+`             caption ``=`` ``"Threshold-FHE ADMM iterations to convergence"``)`
 
 | rho | iters |
 |----:|------:|
@@ -162,39 +385,88 @@ that converges fastest. The chosen value is fixed for the encrypted run.
 |  50 |    19 |
 | 200 |    NA |
 
-Cleartext ADMM iterations to convergence {.table}
+Threshold-FHE ADMM iterations to convergence {.table}
 
-`rho_chosen`` ``<-`` ``rho_grid``[`[`which.min`](https://rdrr.io/r/base/which.min.html)`(``sweep_iters``)``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Selected rho = %g (converged in %d iterations).\n"``,`` `` ``rho_chosen``, `[`min`](https://rdrr.io/r/base/Extremes.html)`(``sweep_iters``, na.rm ``=`` ``TRUE``)``)``)`
+\
+`rho_chosen`` ``<-`` ``rho_grid``[`[`which.min`](https://rdrr.io/r/base/which.min.html)`(``sweep_iters``)``]`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Selected rho = %g (converged in %d iterations).\n"``,`\
+`            ``rho_chosen``, `[`min`](https://rdrr.io/r/base/Extremes.html)`(``sweep_iters``, na.rm ``=`` ``TRUE``)``)``)`
 
     ## Selected rho = 50 (converged in 19 iterations).
 
-## The encrypted ADMM loop
+## The ADMM run at the chosen $`\rho`$
 
-Threshold key generation, sites built with the chosen $`\rho`$, then the
-main loop:
+Local problems rebuilt at the chosen $`\rho`$ — the same parties,
+holding the same shares from the key-generation chain above — then the
+main loop, identical to the sweep body except that it records the
+trajectory:
 
-`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``N``)`` `` ``sites`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N``)``, ``function``(``i``)`` `` ``make_consensus_site``(`[`paste0`](https://rdrr.io/r/base/paste.html)`(``"Site "``, ``i``)``,`` `` ``site_data``[[``i``]``]``$``X``, ``site_data``[[``i``]``]``$``y``,`` `` rho_val ``=`` ``rho_chosen``)``)`` `` ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`` ``max_iter`` ``<-`` ``40`` ``reltol`` ``<-`` ``1e-3`` ``converged`` ``<-`` ``FALSE`` ``trajectory`` ``<-`` `[`vector`](https://rdrr.io/r/base/vector.html)`(``"list"``, ``max_iter``)`` `` ``for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``max_iter``)``)`` ``{`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``local_update``(``s``, ``z_curr``)`` `` ``z_new`` ``<-`` ``encrypted_consensus``(``master``, ``sites``)`` `` ``for`` ``(``s`` ``in`` ``sites``)`` ``{`` `` ``s``@``state``$``u_curr`` ``<-`` ``s``@``state``$``u_curr`` ``+`` ``(``s``@``state``$``x_curr`` ``-`` ``z_new``)`` `` ``}`` `` ``primal_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``s``@``state``$``x_curr`` ``-`` ``z_new``)``^``2``)``)``)``)``)`` `` ``dual_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``N``)`` ``*`` ``rho_chosen`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`` `` ``trajectory``[[``k``]``]`` ``<-`` ``z_new`` `` ``z_curr`` ``<-`` ``z_new`` `` ``if`` ``(``primal_res`` ``<`` ``reltol`` ``&&`` ``dual_res`` ``<`` ``reltol``)`` ``{`` `` ``converged`` ``<-`` ``TRUE`` `` ``trajectory`` ``<-`` ``trajectory``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``k``)``]`` `` ``break`` `` ``}`` ``}`` `` ``if`` ``(``!``converged``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Encrypted ADMM did not converge within max_iter; rerun the rho sweep."``)`` `` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Encrypted ADMM converged in %d iterations.\n"``, `[`length`](https://rdrr.io/r/base/length.html)`(``trajectory``)``)``)`
+\
+`for`` ``(``s`` ``in`` ``sites``)`` ``set_rho``(``s``, ``rho_chosen``)`\
+\
+`z_curr``    ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``p``)`\
+`max_iter``  ``<-`` ``40`\
+`reltol``    ``<-`` ``1e-3`\
+`converged`` ``<-`` ``FALSE`\
+`trajectory`` ``<-`` `[`vector`](https://rdrr.io/r/base/vector.html)`(``"list"``, ``max_iter``)`\
+\
+`for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``max_iter``)``)`` ``{`\
+`    ``for`` ``(``s`` ``in`` ``sites``)`` ``local_update``(``s``, ``z_curr``)`\
+`    ``z_new`` ``<-`` ``encrypted_consensus``(``master``, ``sites``)`\
+`    ``for`` ``(``s`` ``in`` ``sites``)`` ``{`\
+`        ``s``@``state``$``u_curr`` ``<-`` ``s``@``state``$``u_curr`` ``+`` ``(``s``@``state``$``x_curr`` ``-`` ``z_new``)`\
+`    ``}`\
+`    ``primal_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`unlist`](https://rdrr.io/r/base/unlist.html)`(`[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`\
+`        `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``s``@``state``$``x_curr`` ``-`` ``z_new``)``^``2``)``)``)``)``)`\
+`    ``dual_res`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``N``)`` ``*`` ``rho_chosen`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`\
+`    ``trajectory``[[``k``]``]`` ``<-`` ``z_new`\
+`    ``z_curr`` ``<-`` ``z_new`\
+`    ``if`` ``(``primal_res`` ``<`` ``reltol`` ``&&`` ``dual_res`` ``<`` ``reltol``)`` ``{`\
+`        ``converged`` ``<-`` ``TRUE`\
+`        ``trajectory`` ``<-`` ``trajectory``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``k``)``]`\
+`        ``break`\
+`    ``}`\
+`}`\
+\
+`if`` ``(``!``converged``)`\
+`    `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Encrypted ADMM did not converge within max_iter; rerun the rho sweep."``)`\
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Encrypted ADMM converged in %d iterations.\n"``, `[`length`](https://rdrr.io/r/base/length.html)`(``trajectory``)``)``)`
 
     ## Encrypted ADMM converged in 19 iterations.
 
 ## Comparison with the centralized fit
 
-`comparison`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` coefficient ``=`` `[`paste0`](https://rdrr.io/r/base/paste.html)`(``"beta_"``, `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)``)``,`` `` threshold_distributed ``=`` ``z_curr``,`` `` centralized_cvxr ``=`` ``beta_central``,`` `` abs_diff ``=`` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_curr`` ``-`` ``beta_central``)`` ``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``comparison``, digits ``=`` ``6``,`` `` caption ``=`` ``"Threshold-FHE consensus ADMM vs. centralized CVXR"``)`
+\
+`comparison`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`    coefficient            ``=`` `[`paste0`](https://rdrr.io/r/base/paste.html)`(``"beta_"``, `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)``)``,`\
+`    threshold_distributed  ``=`` ``z_curr``,`\
+`    centralized_cvxr       ``=`` ``beta_central``,`\
+`    abs_diff               ``=`` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_curr`` ``-`` ``beta_central``)`\
+`)`\
+`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``comparison``, digits ``=`` ``6``,`\
+`             caption ``=`` ``"Threshold-FHE consensus ADMM vs. centralized CVXR"``)`
 
 | coefficient | threshold_distributed | centralized_cvxr | abs_diff |
 |:------------|----------------------:|-----------------:|---------:|
 | beta_1      |              0.419682 |         0.419687 |    5e-06 |
-| beta_2      |             -0.939203 |        -0.939209 |    6e-06 |
+| beta_2      |             -0.939203 |        -0.939209 |    5e-06 |
 | beta_3      |              0.384038 |         0.384041 |    4e-06 |
 | beta_4      |              0.659835 |         0.659840 |    5e-06 |
 
 Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 
-`max_diff`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_curr`` ``-`` ``beta_central``)``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Max absolute coefficient difference vs. centralized fit: %.2e\n"``,`` `` ``max_diff``)``)`
+\
+`max_diff`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_curr`` ``-`` ``beta_central``)``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Max absolute coefficient difference vs. centralized fit: %.2e\n"``,`\
+`            ``max_diff``)``)`
 
-    ## Max absolute coefficient difference vs. centralized fit: 5.58e-06
+    ## Max absolute coefficient difference vs. centralized fit: 5.44e-06
 
-`if`` ``(``max_diff`` ``>`` ``10`` ``*`` ``reltol``)`` `` `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "``,`` `` ``"investigate before publishing this run."``)`
+\
+`if`` ``(``max_diff`` ``>`` ``10`` ``*`` ``reltol``)`\
+`    `[`stop`](https://rdrr.io/r/base/stop.html)`(``"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "``,`\
+`         ``"investigate before publishing this run."``)`
 
 ## Discussion
 
@@ -204,12 +476,13 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
     not have to rewrite their CVXR model for an encrypted setting — the
     same `Problem(Minimize(...))` they would write for cleartext data is
     used here verbatim.
-2.  **No single party holds the secret key.**
-    [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-    distributes the secret across all sites; the aggregator holds only
-    the joint public key. Encrypted intermediates are undecryptable by
-    any single party, and the consensus result appears only after the
-    n-of-n partial-decryption fusion.
+2.  **No single party holds the secret key.** Each site generated its
+    own share during the key-generation chain and kept it; the
+    aggregator holds only the joint public key, and has no property a
+    share could sit in. Encrypted intermediates are undecryptable by any
+    single party, and the consensus result appears only after the n-of-n
+    partial-decryption fusion — which the aggregator can reach only by
+    asking every site.
 3.  **DPP keeps the inner loop fast.** Each site’s CVXR problem is built
     once at setup; ADMM iterations only update the parameter values.
     Without DPP, the canonicalization would re-run every iteration and
@@ -224,7 +497,15 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 - **The aggregator sees the trajectory $`\{z^k\}`$.** Per-iteration
   consensus values are revealed in the clear (after fusion) so the
   optimizer can decide convergence. A subpoena to the aggregator yields
-  this trajectory.
+  this trajectory — one per candidate $`\rho`$, since the sweep runs the
+  same protocol. Hiding the trajectory as well would mean keeping the
+  residuals encrypted, which turns the stopping test and the `which.min`
+  into comparisons on ciphertexts: a fixed iteration budget with a
+  masked freeze in place of
+  [`break`](https://rdrr.io/r/base/Control.html), and a polynomial or
+  scheme-switched comparison in place of `<`. Nothing rules that out in
+  principle, but it is a different and far more expensive protocol than
+  this one.
 - **No output privacy.** The released $`\hat\beta = z^\star`$ is the
   same coefficient vector as the centralized fit. Output-level attacks
   are out of scope here; the companion DP vignettes (not yet ported)

@@ -1,12 +1,11 @@
 # Run one round of the round-robin protocol
 
 Backend-agnostic via the
-[`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
-/
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-generics, but part of the frozen Paillier-era legacy surface: the
+generic, but part of the frozen Paillier-era legacy surface: the
 random-offset chain idiom compensated for Paillier-era trust
-assumptions. The supported pattern is
+assumptions, and it encrypts each site's value *at the master*, which
+the supported topology deliberately does not. The supported pattern is
 [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md).
 
 ## Usage
@@ -26,7 +25,7 @@ run_round_robin(master, theta)
 - theta:
 
   the current parameter value (passed through to each worker's
-  `local_fn`).
+  `contribution_fn`).
 
 ## Value
 
@@ -40,5 +39,5 @@ local summary to the running total and forwards. On return, the master
 decrypts the running total, subtracts the offset in the clear, and
 returns the resulting scalar.
 
-If any worker's `local_fn` returns `NA`, the chain stops and this
+If any worker's `contribution_fn` returns `NA`, the chain stops and this
 function returns `NA_real_`.

@@ -4,32 +4,35 @@
 \alias{Site}
 \title{A site in a multi-party protocol}
 \usage{
-Site(name = character(0), data = NULL, local_fn = NULL, state = NULL)
+Site(name = character(0), state = NULL)
 }
 \arguments{
 \item{name}{short identifier shown in printed output.}
 
-\item{data}{local dataset.}
-
-\item{local_fn}{a function with signature \verb{function(data, theta)}
-returning the site-level summary at \code{theta}. May return \code{NA} to
-signal a non-evaluable parameter (an extreme \code{theta} that breaks
-the local solver, for example); the master will propagate \code{NA}
-back to the optimizer.}
-
-\item{state}{an environment for mutable bookkeeping (next site,
-public key, master back-reference). Default: a fresh empty env.}
+\item{state}{an environment for mutable bookkeeping — the public
+key the site encrypts under, the capability \code{\link[=set_workers]{set_workers()}}
+installs, and, on the frozen legacy path, the next link in the
+round-robin chain. Default: a fresh empty env.}
 }
 \value{
-an S7 object of class \code{Site} with properties \code{name}, \code{data},
-\code{local_fn} and \code{state}, representing one data-holding party. The
-\code{state} environment carries the mutable wiring the protocol fills in
-— the public key to encrypt under, and the back-reference the site
-uses to signal a non-evaluable parameter. Construct with
-\code{\link[=make_site]{make_site()}}.
+nothing — this class is abstract, so calling it raises an
+error instead of returning an object. It is the common parent of
+\link{LocalSite} and \link{RemoteSite}, and the dispatch target for
+\code{\link[=contribute]{contribute()}}. Construct a co-located site with \code{\link[=make_worker]{make_worker()}}.
 }
 \description{
-Holds the site's local data and the function that computes the
-per-site summary at a given parameter value. Use \code{\link[=make_site]{make_site()}} to
-construct.
+Abstract base for the two kinds of participating party: a
+\link{LocalSite}, whose data is in this \R session, and a \link{RemoteSite},
+whose contribution is produced elsewhere. Both answer the same
+generic, \code{\link[=contribute]{contribute()}}, and are indistinguishable to whoever asks:
+each returns an \emph{encrypted} contribution at the requested parameter.
+}
+\details{
+A site is autonomous once constructed. It is given public parameters
+once, when it is wired, and from then on it computes and encrypts
+entirely on its own — it holds no reference to the party that
+aggregates its answers, and needs none.
+}
+\seealso{
+\link{LocalSite}, \link{RemoteSite}, \code{\link[=contribute]{contribute()}}
 }

@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/query-count-threshold.Rmd" class="external-link"><code>vignettes/query-count-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>query-count-threshold.Rmd</code></div>
@@ -240,28 +240,30 @@ the default is comfortable for counts.</p>
 <span>                             plaintext_modulus    <span class="op">=</span> <span class="fl">65537L</span>,</span>
 <span>                             multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>                             features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> runs the chained key generation
-across the three sites and returns a master holding the joint public key
-and the per-site secret shares. The same master class drives CKKS or BFV
-— it reads the scheme back from the context — so the only thing that
-changed from the real-valued vignettes is the context above.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
-<span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
-<span>                                n_sites        <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 <p>Each site is a worker whose local function evaluates the query
 against its own private data and returns a count. The master broadcasts
 the query; no site sees another site’s data, and the counts it returns
 are encrypted before they leave.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">local_count</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">query</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">eval</a></span><span class="op">(</span><span class="va">query</span>, <span class="va">data</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">workers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span></span>
-<span>    <span class="kw">function</span><span class="op">(</span><span class="va">nm</span>, <span class="va">d</span><span class="op">)</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="va">nm</span>, data <span class="op">=</span> <span class="va">d</span>, local_fn <span class="op">=</span> <span class="va">local_count</span><span class="op">)</span>,</span>
+<span>    <span class="kw">function</span><span class="op">(</span><span class="va">nm</span>, <span class="va">d</span><span class="op">)</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="va">nm</span>, data <span class="op">=</span> <span class="va">d</span>, contribution_fn <span class="op">=</span> <span class="va">local_count</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Site 1"</span>, <span class="st">"Site 2"</span>, <span class="st">"Site 3"</span><span class="op">)</span>,</span>
-<span>    <span class="va">query_data</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/set_workers.html">set_workers</a></span><span class="op">(</span><span class="va">master</span>, <span class="va">workers</span><span class="op">)</span></span></code></pre></div>
+<span>    <span class="va">query_data</span><span class="op">)</span></span></code></pre></div>
+<p>The sites have to exist before the aggregator does, because the joint
+public key is built <em>from</em> them:
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> walks the chain, each site
+generating and keeping its own share and passing on only a public key.
+What comes back is an aggregator holding the joint public key and
+nothing secret, already wired to the sites. The same master class drives
+CKKS or BFV — it reads the scheme back from the context — so the only
+thing that changed from the real-valued vignettes is the context
+above.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
+<span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
+<span>                                sites          <span class="op">=</span> <span class="va">workers</span><span class="op">)</span></span></code></pre></div>
 <p>One call runs the protocol: each worker’s encrypted count is summed
 homomorphically, and the total is jointly decrypted by the three
 secret-share holders.</p>

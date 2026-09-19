@@ -364,11 +364,14 @@ $\mu$ vary.
 ## Threshold key generation
 
 The three sites jointly construct a CKKS keypair so that the
-secret key is split $n$-of-$n$ across them. The familiar
-`make_threshold_master()` from `homomorpheR` wires the joint
-public key and the per-site secret-key shares for us; the
-master is given the joint public key but never holds usable
-secret material.
+secret key is split $n$-of-$n$ across them.
+`make_threshold_master()` from `homomorpheR` walks that chain
+across the sites: each site generates its own share, keeps it,
+and passes on only a public key. The master is handed the joint
+public key and holds no secret material at all.
+
+Because the joint key is built *from* the sites, the sites are
+constructed first.
 
 ```{r}
 cc <- fhe_context(
@@ -378,17 +381,28 @@ cc <- fhe_context(
   batch_size           = p,
   features             = c(Feature$MULTIPARTY, Feature$KEYSWITCH))
 
+sites <- lapply(seq_len(n_sites), function(k)
+  make_worker(paste("Site", k), data = NULL,
+              contribution_fn = function(data, theta) NULL))
+
 master <- make_threshold_master(name = "master",
                                 crypto_context = cc,
-                                n_sites = n_sites)
+                                sites = sites)
+
+## Published once, when key generation completes, to every party that
+## will encrypt -- the sites and the querying party alike. It is public
+## in full, and it is the last thing anyone needs from the aggregator.
+pub <- sites[[1]]@state$params
 ```
 
-The joint public key is `master@joint_pubkey`; the secret-key
-shares are `master@secret_keys[[k]]` for $k = 1, \ldots, n$.
-The `master_encrypt(master, x)` and `master_decrypt(master,
-ct, len)` generics dispatch on `ThresholdMaster` and run the
-$n$-of-$n$ partial-decryption ceremony internally — no party
-ever holds a usable secret unilaterally.
+Site $k$'s share lives in `sites[[k]]@state$sk` and nowhere else.
+`master_decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
+runs the $n$-of-$n$ ceremony by asking each site for a partial
+decryption — no party ever holds a usable secret unilaterally, the
+aggregator included.
+
+Everything below encrypts with `pub`. No party consults the aggregator
+again; each holds what it was given and works from that.
 
 ## Joint rotation keys
 
@@ -417,28 +431,37 @@ $1, \ldots, p-1$ and rely on the subset that each step needs.
 
 ```{r}
 rotation_indices <- seq_len(p - 1L)
-sks  <- master@secret_keys
-pks  <- list(master@joint_pubkey)        # daisy-chain pubkey at step 1
 joint_pk_tag <- get_key_tag(master@joint_pubkey)
 
-## Lead-party rotation-key generation. Populates the crypto
-## context's automorphism-key registry under the lead party's
-## secret-key tag.
-eval_rotate_key_gen(cc, sks[[1]], rotation_indices)
+## Each of the two functions below runs *at a site*, and touches only
+## that site's own share. Nothing collects the shares into one list:
+## a variable holding every `sk` would be exactly the single point of
+## compromise the n-of-n split exists to remove.
 
-lead_tag    <- get_key_tag(sks[[1]])
-rot_running <- get_eval_automorphism_key_map(lead_tag)
+## Lead site. Generates its rotation keys under its own share, which
+## populates the context's automorphism-key registry under that
+## share's tag, and returns the resulting (public) key map.
+site_rotation_lead <- function(site, indices) {
+  eval_rotate_key_gen(cc, site@state$sk, indices)
+  get_eval_automorphism_key_map(get_key_tag(site@state$sk))
+}
+
+## A following site. Contributes its share of the rotation keys to the
+## running joint map and returns the contribution.
+site_rotation_share <- function(site, running, indices, tag)
+  multi_eval_at_index_key_gen(cc, site@state$sk, running,
+                              index_list = indices, key_tag = tag)
+
+rot_running <- site_rotation_lead(sites[[1]], rotation_indices)
 
 ## Sites 2..n contribute their rotation-key shares in turn.
 ## At each step, the running joint share is registered under
 ## the cumulative-pubkey tag — which for our `make_threshold_master`
-## is the same `joint_pk_tag` at every step (the master daisy-chains
-## pubkeys forward but only retains the final joint pubkey).
+## is the same `joint_pk_tag` at every step (the chain daisy-chains
+## pubkeys forward but only the final joint pubkey is retained).
 for (k in 2:n_sites) {
-  share_k <- multi_eval_at_index_key_gen(
-    cc, sks[[k]], rot_running,
-    index_list = rotation_indices,
-    key_tag = joint_pk_tag)
+  share_k <- site_rotation_share(sites[[k]], rot_running,
+                                 rotation_indices, joint_pk_tag)
   rot_running <- multi_add_eval_automorphism_keys(
     cc, rot_running, share_k, key_tag = joint_pk_tag)
 }
@@ -457,7 +480,7 @@ $x_{(i+3) \bmod p}$:
 
 ```{r}
 x <- 1:p
-ct_x      <- master_encrypt(master, x)
+ct_x      <- encrypt_under(pub, x)
 ct_rot    <- eval_rotate(ct_x, 3L)
 recovered <- master_decrypt(master, ct_rot, len = p)
 
@@ -577,7 +600,7 @@ matvec recovers $A_1 \cdot q$ to floating-point precision:
 
 ```{r}
 q_demo <- public_query$z[1, ]
-ct_q  <- master_encrypt(master, q_demo)
+ct_q  <- encrypt_under(pub, q_demo)
 ct_Aq <- encrypted_matvec(ct_q, A_hat[[1]], cc, p)
 Aq_recovered <- master_decrypt(master, ct_Aq, len = p)
 Aq_expected  <- as.numeric(A_hat[[1]] %*% q_demo)
@@ -650,7 +673,7 @@ cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
             abs(fold_recovered - fold_expected)))
 ```
 
-## Site `local_fn`: full per-site protocol step
+## Site `contribution_fn`: full per-site protocol step
 
 The site-side computation closes over the site's adapter
 $A_k$ and database $D_k$, takes the encrypted query as input,
@@ -698,10 +721,11 @@ decryption ceremony for each score so it can sort them once
 they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score
-goes through one threshold-decrypt round
-(`master_decrypt()` calls `multiparty_decrypt_lead` on site 1,
-`multiparty_decrypt_main` on each remaining site, and
-`multiparty_decrypt_fusion` to combine). For our `r sum(cohort_sizes)`
+goes through one threshold-decrypt round. `master_decrypt()` sends
+the ciphertext to each site in turn — `multiparty_decrypt_lead` at
+site 1, `multiparty_decrypt_main` at each of the rest, every site
+applying its own share — and fuses the returned partials with
+`multiparty_decrypt_fusion`, which needs only the public context. For our `r sum(cohort_sizes)`
 total patients this runs in a few seconds; production
 deployments would pack many patients into the slots of a
 single encrypted value and amortize the ceremony.
@@ -1129,7 +1153,7 @@ summed by the master; the similarity protocol uses a
 broadcast-and-aggregate shape: encrypted query in, per-site
 scoring, master-side threshold decryption of the released
 top-$k$. The actor surface (`make_threshold_master`,
-`make_worker`, `master_encrypt`/`master_decrypt`) carries over
+`make_worker`, `encrypt_under`, `master_decrypt`) carries over
 unchanged.
 
 The closest precedents in the literature combine some but

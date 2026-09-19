@@ -58,7 +58,20 @@ useless without the joint fusion.
 
 ## The Cox setup (same DLBCL data as `cox.Rmd`)
 
-[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)``)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``)`` `` ``cox_data`` ``<-`` `[`split`](https://rdrr.io/r/base/split.html)`(`` `` ``DLBCL``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"time"``, ``"status"``, ``"GCB_sig"``, ``"LN_sig"``,`` `` ``"Prolif_sig"``, ``"BMP6"``, ``"MHC2_sig"``, ``"Subgroup"``)``]``,`` `` ``DLBCL``$``Subgroup``)`` `` ``agg_model`` ``<-`` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` `` ``Prolif_sig`` ``+`` ``BMP6`` ``+`` ``MHC2_sig`` ``+`` `` `[`strata`](https://rdrr.io/pkg/survival/man/strata.html)`(``Subgroup``)``,`` `` data ``=`` ``DLBCL``)`
+\
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(`[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)``)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`\
+[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``)`\
+\
+`cox_data`` ``<-`` `[`split`](https://rdrr.io/r/base/split.html)`(`\
+`  ``DLBCL``[``, `[`c`](https://rdrr.io/r/base/c.html)`(``"time"``, ``"status"``, ``"GCB_sig"``, ``"LN_sig"``,`\
+`            ``"Prolif_sig"``, ``"BMP6"``, ``"MHC2_sig"``, ``"Subgroup"``)``]``,`\
+`  ``DLBCL``$``Subgroup``)`\
+\
+`agg_model`` ``<-`` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`\
+`                       ``Prolif_sig`` ``+`` ``BMP6`` ``+`` ``MHC2_sig`` ``+`\
+`                       `[`strata`](https://rdrr.io/pkg/survival/man/strata.html)`(``Subgroup``)``,`\
+`                   data ``=`` ``DLBCL``)`
 
 ## The protocol
 
@@ -83,36 +96,74 @@ useless without the joint fusion.
 
 `homomorpheR` exports a
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-constructor that runs the chained key generation in one call and returns
-a \[ThresholdMaster\] holding the joint public key plus the per-site
-secret shares. The same
-[`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
-and
+constructor that runs this chain across the sites in one call and
+returns a \[ThresholdMaster\] holding the joint public key. Each site
+keeps the share it generated; the master holds no secret material at
+all, and decrypts by asking every site for a partial and fusing the
+results. The
 [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
-helpers used by the single-decrypter `cox.Rmd` work unchanged here: the
-threshold-specific encrypt/partial-decrypt/fuse logic lives inside
-[`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
-and
+runner used by the single-decrypter `cox.Rmd` works unchanged here — the
+threshold-specific partial-decrypt and fuse logic lives inside the
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-methods on `ThresholdMaster`, so the per-iteration code looks the same
-as the single-decrypter case.
+method on `ThresholdMaster`, so the per-iteration code looks the same as
+the single-decrypter case.
 
 ## Implementation
 
-`cph_control`` ``<-`` `[`replace`](https://rdrr.io/r/base/replace.html)`(`[`coxph.control`](https://rdrr.io/pkg/survival/man/coxph.control.html)`(``)``, ``"iter.max"``, ``0``)`` `` ``local_cox_nll`` ``<-`` ``function``(``data``, ``beta``)`` ``{`` `` ``fit`` ``<-`` `[`tryCatch`](https://rdrr.io/r/base/conditions.html)`(`` `` `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` ``Prolif_sig`` ``+`` `` ``BMP6`` ``+`` ``MHC2_sig``,`` `` data ``=`` ``data``,`` `` init ``=`` ``beta``,`` `` control ``=`` ``cph_control``)``,`` `` error ``=`` ``function``(``e``)`` ``NULL``)`` `` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``fit``)``)`` ``NA_real_`` ``else`` ``-``fit``$``loglik``[``1``]`` ``}`
+\
+`cph_control`` ``<-`` `[`replace`](https://rdrr.io/r/base/replace.html)`(`[`coxph.control`](https://rdrr.io/pkg/survival/man/coxph.control.html)`(``)``, ``"iter.max"``, ``0``)`\
+\
+`local_cox_nll`` ``<-`` ``function``(``data``, ``beta``)`` ``{`\
+`    ``fit`` ``<-`` `[`tryCatch`](https://rdrr.io/r/base/conditions.html)`(`\
+`        `[`coxph`](https://rdrr.io/pkg/survival/man/coxph.html)`(`[`Surv`](https://rdrr.io/pkg/survival/man/Surv.html)`(``time``, ``status``)`` ``~`` ``GCB_sig`` ``+`` ``LN_sig`` ``+`` ``Prolif_sig`` ``+`\
+`                  ``BMP6`` ``+`` ``MHC2_sig``,`\
+`              data    ``=`` ``data``,`\
+`              init    ``=`` ``beta``,`\
+`              control ``=`` ``cph_control``)``,`\
+`        error ``=`` ``function``(``e``)`` ``NULL``)`\
+`    ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``fit``)``)`` ``NA_real_`` ``else`` ``-``fit``$``loglik``[``1``]`\
+`}`
 
 The CKKS context needs the `MULTIPARTY` feature enabled so the chained
 `multiparty_key_gen()` calls work:
 
-`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
+\
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
+`                           multiplicative_depth ``=`` ``1L``,`\
+`                           scaling_mod_size     ``=`` ``59L``,`\
+`                           first_mod_size       ``=`` ``60L``,`\
+`                           batch_size           ``=`` ``8L``,`\
+`                           features             ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
-`make_threshold_master(name, cc, n_sites)` runs the chained key
-generation and returns a master holding the joint public key and a list
-of per-site secret shares. The master’s `master_encrypt` /
-`master_decrypt` methods automatically use the joint pk for encryption
-and the partial-decrypt fan-in for decryption.
+The sites come first, because the joint public key is built from them.
+`make_threshold_master(name, cc, sites)` walks the chain — each site
+generating and retaining its own share, passing on only a public key —
+and returns a master that holds the joint public key, holds nothing
+secret, and is already wired to the sites. Its `master_decrypt` method
+drives the partial-decrypt fan-in by asking each site in turn.
 
-`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``3``)`` `` ``worker_gcb`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"GCB"``, data ``=`` ``cox_data``[[``"GCB"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_abc`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"ABC"``, data ``=`` ``cox_data``[[``"ABC"``]``]``, local_fn ``=`` ``local_cox_nll``)`` ``worker_t3`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``"Type III"``, data ``=`` ``cox_data``[[``"Type III"``]``]``, local_fn ``=`` ``local_cox_nll``)`` `` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, `[`list`](https://rdrr.io/r/base/list.html)`(``worker_gcb``, ``worker_abc``, ``worker_t3``)``)`
+\
+`worker_gcb`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``name ``=`` ``"GCB"``,      data ``=`` ``cox_data``[[``"GCB"``]``]``,`\
+`                          contribution_fn ``=`` ``local_cox_nll``)`\
+`worker_abc`` ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``name ``=`` ``"ABC"``,      data ``=`` ``cox_data``[[``"ABC"``]``]``,`\
+`                          contribution_fn ``=`` ``local_cox_nll``)`\
+`worker_t3``  ``<-`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``name ``=`` ``"Type III"``, data ``=`` ``cox_data``[[``"Type III"``]``]``,`\
+`                          contribution_fn ``=`` ``local_cox_nll``)`\
+\
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`\
+`                                crypto_context ``=`` ``cc``,`\
+`                                sites ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``worker_gcb``, ``worker_abc``, ``worker_t3``)``)`
+
+The share each site generated stays in that site’s own state; nothing in
+the returned master can decrypt on its own. We can check that rather
+than assert it:
+
+\
+[`c`](https://rdrr.io/r/base/c.html)`(``master_holds_shares ``=`` ``"secret_keys"`` `[`%in%`](https://rdrr.io/r/base/match.html)` `[`names`](https://rdrr.io/r/base/names.html)`(``S7``::`[`props`](https://rconsortium.github.io/S7/reference/props.html)`(``master``)``)``,`\
+`  gcb_holds_own_share ``=`` ``!`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``worker_gcb``@``state``$``sk``)``)`
+
+    ## master_holds_shares gcb_holds_own_share 
+    ##               FALSE                TRUE
 
 ## Iterative MLE through the threshold protocol
 
@@ -121,7 +172,19 @@ The optimizer-facing code is *identical* to `cox.Rmd`. Same
 runner, same [`mle()`](https://rdrr.io/r/stats4/mle.html) driver — only
 the underlying master class changed.
 
-[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`` `` ``encrypted_nLL`` ``<-`` ``function``(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)`` ``{`` `` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, `[`c`](https://rdrr.io/r/base/c.html)`(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)``)`` ``}`` `` ``fit`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``encrypted_nLL``,`` `` start ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``GCB_sig ``=`` ``0``, LN_sig ``=`` ``0``, Prolif_sig ``=`` ``0``,`` `` BMP6 ``=`` ``0``, MHC2_sig ``=`` ``0``)``,`` `` method ``=`` ``"BFGS"``,`` `` control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``reltol ``=`` ``1e-7``)``)`` `[`summary`](https://rdrr.io/r/base/summary.html)`(``fit``)`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(``stats4``)`\
+\
+`encrypted_nLL`` ``<-`` ``function``(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)`` ``{`\
+`    `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, `[`c`](https://rdrr.io/r/base/c.html)`(``GCB_sig``, ``LN_sig``, ``Prolif_sig``, ``BMP6``, ``MHC2_sig``)``)`\
+`}`\
+\
+`fit`` ``<-`` `[`mle`](https://rdrr.io/r/stats4/mle.html)`(``encrypted_nLL``,`\
+`           start   ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``GCB_sig ``=`` ``0``, LN_sig ``=`` ``0``, Prolif_sig ``=`` ``0``,`\
+`                          BMP6    ``=`` ``0``, MHC2_sig ``=`` ``0``)``,`\
+`           method  ``=`` ``"BFGS"``,`\
+`           control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``reltol ``=`` ``1e-7``)``)`\
+[`summary`](https://rdrr.io/r/base/summary.html)`(``fit``)`
 
     ## Maximum likelihood estimation
     ## 
@@ -134,18 +197,20 @@ the underlying master class changed.
     ##              Estimate Std. Error
     ## GCB_sig    -0.2638698 0.11940447
     ## LN_sig     -0.2543587 0.08515178
-    ## Prolif_sig  0.3031250 0.14981283
+    ## Prolif_sig  0.3031250 0.14981284
     ## BMP6        0.3036367 0.10727837
     ## MHC2_sig   -0.3191459 0.09412946
     ## 
     ## -2 log L: 990.458
 
+\
 [`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)`
 
     ## 'log Lik.' -495.229 (df=5)
 
 ## Comparison with the cleartext fit
 
+\
 [`summary`](https://rdrr.io/r/base/summary.html)`(``agg_model``)`
 
     ## Call:
@@ -175,11 +240,15 @@ the underlying master class changed.
     ## Wald test            = 44.78  on 5 df,   p=2e-08
     ## Score (logrank) test = 44.83  on 5 df,   p=2e-08
 
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(threshold-distributed encrypted): %f\n"``,`` `` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)``)``)``)`
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(threshold-distributed encrypted): %f\n"``,`\
+`            `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`logLik`](https://rdrr.io/r/stats/logLik.html)`(``fit``)``)``)``)`
 
     ## logLik(threshold-distributed encrypted): -495.229022
 
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(aggregated cleartext) : %f\n"``,`` `` ``agg_model``$``loglik``[``2``]``)``)`
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"logLik(aggregated cleartext)            : %f\n"``,`\
+`            ``agg_model``$``loglik``[``2``]``)``)`
 
     ## logLik(aggregated cleartext)            : -495.229022
 
@@ -195,22 +264,23 @@ Threshold-distributed BFGS vs. aggregated-cleartext coxph() {.table}
 
 ## Discussion
 
-1.  **No single party holds the decryption key.**
-    [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-    distributes the secret across three sites; the master holds only the
-    joint public key. Encrypted intermediate values are undecryptable by
-    any single party in the system.
+1.  **No single party holds the decryption key.** Each site generated
+    its own share and kept it; the master holds only the joint public
+    key, and has no property in which a share could sit. Encrypted
+    intermediate values are undecryptable by any single party in the
+    system, the aggregator included.
 2.  **Same statistical fit as the trusted-master version.** The
     coefficients and standard errors agree with
     [`coxph()`](https://rdrr.io/pkg/survival/man/coxph.html) to the
     precision the optimizer cares about. Threshold key generation is a
     trust-model improvement; it does not change the fit.
-3.  **Same optimizer, same callback shape, same code structure.** The
-    only line that changed compared to `cox.Rmd` is the master
-    constructor
-    ([`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-    instead of
-    [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)).
+3.  **Same optimizer, same callback shape, same code structure.**
+    Compared to `cox.Rmd` only the setup changed: the workers are built
+    first and handed to
+    [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
+    instead of being wired to a
+    [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
+    afterwards, because the joint key cannot exist before the sites do.
     The optimizer sees nothing different.
 
 ## Limitations

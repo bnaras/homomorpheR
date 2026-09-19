@@ -8,43 +8,46 @@ ThresholdMaster(
   name = character(0),
   state = NULL,
   crypto_context = NULL,
-  joint_pubkey = NULL,
-  secret_keys = NULL
+  joint_pubkey = NULL
 )
 }
 \arguments{
 \item{name}{short identifier.}
 
-\item{state}{an environment for mutable bookkeeping.}
+\item{state}{an environment for mutable bookkeeping (the wired
+sites, in the order the key-generation chain visited them).}
 
 \item{crypto_context}{an \code{openfhe.R} \code{CryptoContext} with the
 \code{MULTIPARTY} feature enabled.}
 
 \item{joint_pubkey}{the joint public key produced by chaining
-\code{multiparty_key_gen()} across the sites.}
-
-\item{secret_keys}{a list of per-site secret keys, in site order
-(the first is the lead site whose \code{sk} started the chain).}
+\code{\link[=keygen_round]{keygen_round()}} across the sites.}
 }
 \value{
 an S7 object of class \code{ThresholdMaster}, inheriting from \link{Master},
-with properties \code{name}, \code{crypto_context}, \code{joint_pubkey},
-\code{secret_keys} and \code{state}. There is no single secret key:
-\code{secret_keys} holds one share per site and decryption fuses partial
-decryptions from all of them, so no party can decrypt alone.
-Construct with \code{\link[=make_threshold_master]{make_threshold_master()}}.
+with properties \code{name}, \code{crypto_context}, \code{joint_pubkey} and
+\code{state}. It carries no secret key and no secret shares: decryption
+is driven by asking each site for a partial decryption and fusing
+the results, so no party — the master included — can decrypt
+alone. Construct with \code{\link[=make_threshold_master]{make_threshold_master()}}.
 }
 \description{
 A \link{Master} that drives the protocol over \code{openfhe.R} with
 threshold key generation, under whichever scheme the supplied
 crypto context was built for (CKKS for real-valued work, BFV or
 BGV for exact integer work). There is no single secret key: each
-site holds a secret share \code{sk_i}, and the joint public key
-\verb{pk_\{1..n\}} is built by chaining \code{multiparty_key_gen()} across
+site generates and keeps its own share \code{sk_i}, and the joint public
+key \verb{pk_\{1..n\}} is built by chaining \code{\link[=keygen_round]{keygen_round()}} across the
 sites. Encryption goes under \code{joint_pubkey}. Decryption requires
-all \code{n} sites to contribute partial decryptions, which the master
-then fuses.
+all \code{n} sites to return partial decryptions, which the master then
+fuses.
 }
 \details{
+\strong{The master holds no secret material.} Its properties are the
+crypto context and the joint public key, both public; the shares
+live at the sites that generated them and never travel. That is
+what makes the n-of-n claim true of the objects and not merely of
+the prose — see \code{\link[=partial_decrypt]{partial_decrypt()}} for the decryption seam.
+
 Constructed by \code{\link[=make_threshold_master]{make_threshold_master()}}.
 }

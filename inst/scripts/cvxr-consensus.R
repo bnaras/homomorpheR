@@ -158,16 +158,38 @@ cc <- fhe_context("CKKS",
                   first_mod_size       = 60L,
                   batch_size           = 8192L,
                   features             = c(Feature$MULTIPARTY))
+
+key_sites <- lapply(levels(dlbcl$Subgroup), function(s)
+    make_worker(s, data = NULL, contribution_fn = function(data, theta) NULL))
+
 master <- make_threshold_master("Aggregator",
-                                crypto_context = cc, n_sites = N_sites)
+                                crypto_context = cc, sites = key_sites)
+
+## What each site kept from that one exchange: its own secret share,
+## and a copy of the public parameters -- a scheme tag, the crypto
+## context, the joint public key, and no share of anyone else's.
+site_params <- lapply(key_sites, function(s) s@state$params)
+
+
 
 
 ## ----cvxr-pool-encrypt, eval=RECOMPUTE----------------------------------------
+## Site side. Each site forms its own moments and encrypts them under
+## the joint key; what leaves is ciphertext. Encrypting at the
+## aggregator instead would mean handing it the per-site column sums in
+## the clear first, which is the disclosure this round exists to avoid.
+site_moments <- function(s, params)
+    list(sum   = encrypt_under(params, colSums(s$X)),
+         sumsq = encrypt_under(params, colSums(s$X^2)))
+
+## Aggregator side. It reduces ciphertexts and decrypts only the total.
 encrypt_pool <- function(master, sites, n_total, p_raw) {
-    s_ct <- lapply(sites, function(s) master_encrypt(master, colSums(s$X)))
-    q_ct <- lapply(sites, function(s) master_encrypt(master, colSums(s$X^2)))
-    pooled_sum   <- master_decrypt(master, Reduce(`+`, s_ct), len = p_raw)
-    pooled_sumsq <- master_decrypt(master, Reduce(`+`, q_ct), len = p_raw)
+    ## Each site encrypts with the parameters it kept from wiring.
+    parts <- Map(site_moments, sites, site_params)
+    pooled_sum   <- master_decrypt(
+        master, Reduce(`+`, lapply(parts, `[[`, "sum")),   len = p_raw)
+    pooled_sumsq <- master_decrypt(
+        master, Reduce(`+`, lapply(parts, `[[`, "sumsq")), len = p_raw)
     mu     <- pooled_sum / n_total
     sigma2 <- pmax(pooled_sumsq / n_total - mu^2, .Machine$double.eps)
     list(mu = mu, sigma = sqrt(sigma2))
@@ -176,12 +198,19 @@ fhe_pool <- encrypt_pool(master, sites_raw, N_total, P_raw)
 
 
 ## ----cvxr-screen-encrypt, eval=RECOMPUTE--------------------------------------
+## Site side: compute the score and information at beta = 0 on the
+## site's own rows, and encrypt both before returning them.
+site_score_info <- function(s, params) {
+    z <- score_info_at_zero(s$X, s$time, s$status)
+    list(U = encrypt_under(params, z$U), I = encrypt_under(params, z$I))
+}
+
+## Aggregator side: sum the encrypted (U, I) and decrypt the totals.
 encrypt_screen <- function(master, sites, p_raw, K) {
-    enc <- function(v) master_encrypt(master, v)
-    UI  <- lapply(sites, function(s) score_info_at_zero(s$X, s$time, s$status))
-    U   <- master_decrypt(master, Reduce(`+`, lapply(UI, function(z) enc(z$U))),
+    UI  <- Map(site_score_info, sites, site_params)
+    U   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
                           len = p_raw)
-    I   <- master_decrypt(master, Reduce(`+`, lapply(UI, function(z) enc(z$I))),
+    I   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
                           len = p_raw)
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
@@ -191,9 +220,15 @@ stopifnot(setequal(fhe_top, top_idx))   # same probes as the plaintext screen
 
 
 ## ----cvxr-consensus, eval=RECOMPUTE-------------------------------------------
+## Site side: form x_k + u_k and encrypt it there. The per-site vector
+## never exists in the clear outside this function.
+site_consensus_term <- function(x_k, u_k, params)
+    encrypt_under(params, x_k + u_k)
+
+## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the
+## average. It sees no individual (x_k + u_k).
 encrypted_consensus <- function(site_x, site_u) {
-    cts    <- lapply(seq_along(site_x), function(i)
-                  master_encrypt(master, site_x[[i]] + site_u[[i]]))
+    cts    <- Map(site_consensus_term, site_x, site_u, site_params)
     ct_avg <- Reduce(`+`, cts) * (1 / length(site_x))
     master_decrypt(master, ct_avg, len = K)
 }

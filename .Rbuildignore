@@ -22,3 +22,8 @@
 #    "Non-standard files/directories found at top level" NOTE.
 ^Rplots\.pdf$
 ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}-.*\.txt$
+#    figure/ is knitr's default fig.path, created whenever a vignette is
+#    knitted directly from the package root (knitr::knit("vignettes/x.Rmd"))
+#    rather than through R CMD build. Same NOTE, same cause: a local
+#    verification step leaving an artifact where the tarball can see it.
+^figure$

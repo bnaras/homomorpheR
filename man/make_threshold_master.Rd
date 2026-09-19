@@ -2,9 +2,9 @@
 % Please edit documentation in R/sites.R
 \name{make_threshold_master}
 \alias{make_threshold_master}
-\title{Construct a threshold-CKKS master and the per-site secret shares}
+\title{Run threshold key generation across sites and construct the master}
 \usage{
-make_threshold_master(name, crypto_context, n_sites)
+make_threshold_master(name, crypto_context, sites)
 }
 \arguments{
 \item{name}{short identifier.}
@@ -16,23 +16,56 @@ scheme is read back from the context, so the same master drives
 the protocol over real-valued (CKKS) or exact-integer (BFV/BGV)
 arithmetic without further configuration.}
 
-\item{n_sites}{number of participating sites (>= 2).}
+\item{sites}{a list of at least two \link{Site}s, built with
+\code{\link[=make_worker]{make_worker()}}. The first is the lead site. Each ends up
+holding its own secret share and the joint public key.}
 }
 \value{
-a \link{ThresholdMaster}.
+a \link{ThresholdMaster}, wired to \code{sites}.
 }
 \description{
-Runs the chained \code{multiparty_key_gen()} setup across \code{n_sites}
-sites. The first site generates a fresh keypair \verb{(pk_1, sk_1)};
-each subsequent site \code{i} calls \verb{multiparty_key_gen(cc, pk_\{i-1\})}
-to produce \verb{(pk_\{1..i\}, sk_i)}. The final \verb{pk_\{1..n\}} is the
-joint public key under which everything is encrypted. Each site
-keeps its own \code{sk_i}; no single party holds the joint secret.
+Drives the chained key-generation ceremony \emph{through the sites} and
+returns a master wired to them. The lead site generates a fresh
+keypair \verb{(pk_1, sk_1)}; each subsequent site \code{i} derives
+\verb{(pk_\{1..i\}, sk_i)} from its predecessor's cumulative public key.
+The final \verb{pk_\{1..n\}} is the joint public key under which
+everything is encrypted.
 }
 \details{
-Decryption is n-of-n: each site contributes a partial
-decryption (\code{multiparty_decrypt_lead} for the first, then
-\code{multiparty_decrypt_main} for the rest), and the master fuses
-them via \code{multiparty_decrypt_fusion}. This happens automatically
-inside \code{\link[=master_decrypt]{master_decrypt()}} when called on a \code{ThresholdMaster}.
+Each step runs at the site, through \code{\link[=keygen_round]{keygen_round()}}: the site
+keeps \code{sk_i} in its own state and returns only the cumulative
+\emph{public} key. No share is ever generated centrally, and none is
+returned to this function, so the master cannot hold one even by
+accident. Only public keys travel between parties, which is exactly
+what can be sent over a wire to an untrusted peer.
+
+Decryption is n-of-n: \code{\link[=master_decrypt]{master_decrypt()}} asks each site for a
+partial decryption via \code{\link[=partial_decrypt]{partial_decrypt()}} and fuses the results
+with \code{multiparty_decrypt_fusion}. There is no path by which the
+master decrypts alone.
+
+The returned master is already wired, so \code{\link[=set_workers]{set_workers()}} is neither
+needed nor permitted afterwards — the site order fixed by the
+key-generation chain is the order partial decryptions must be
+fused in, and re-wiring would break it.
+}
+\section{What this does not defend against}{
+
+
+The construction assumes participants follow the protocol
+(honest-but-curious). A site that deviates can (a) return a
+well-formed ciphertext that is not its honest contribution, (b)
+return a malformed partial decryption, which corrupts the fused
+plaintext \emph{silently} — nothing in the scheme detects it — or (c)
+contribute a degenerate share during key generation, weakening the
+threshold. The chain is sequential, so each site also sees its
+predecessors' cumulative public key; OpenFHE's multiparty key
+generation carries no proofs of knowledge or commitments, so
+rogue-key behavior is not prevented here. Defending against any of
+this needs verifiable decryption and committed key generation,
+neither of which this package provides.
+}
+
+\seealso{
+\code{\link[=keygen_round]{keygen_round()}}, \code{\link[=partial_decrypt]{partial_decrypt()}}, \code{\link[=master_decrypt]{master_decrypt()}}.
 }

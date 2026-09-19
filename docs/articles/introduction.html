@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="d-none name"><code>introduction.Rmd</code></div>
@@ -201,13 +201,49 @@ protocols using only these terms.</p>
 <h2 id="how-the-pieces-fit-together">How the pieces fit together<a class="anchor" aria-label="anchor" href="#how-the-pieces-fit-together"></a>
 </h2>
 <p>Three objects carry the protocol.</p>
-<p>A <strong>site</strong> is built with <code><a href="../reference/make_site.html">make_site()</a></code>. It
-holds the site’s data and a function <code>local_fn(data, theta)</code>
-returning that site’s summary at the parameter value <code>theta</code>.
-If a parameter value breaks the local computation — an extreme value
-that the local solver cannot handle — the function returns
-<code>NA</code>, and that signal propagates back to the optimizer rather
-than corrupting the fit.</p>
+<p>A <strong>site</strong> is built with <code><a href="../reference/make_worker.html">make_worker()</a></code>. It
+holds the site’s data and a function
+<code>contribution_fn(data, theta)</code> returning that site’s summary
+at the parameter value <code>theta</code>. If a parameter value breaks
+the computation — an extreme value that the site’s solver cannot handle
+— the function returns <code>NA</code>, and that signal propagates back
+to the optimizer rather than corrupting the fit.</p>
+<p><code><a href="../reference/make_worker.html">make_worker()</a></code> builds a <code>LocalSite</code> — a site
+whose records are in this <span class="proglang">R</span> session. The
+master reaches every site through one generic,
+<code>contribute(site, theta)</code>, and what comes back is
+<strong>already encrypted</strong>: the site encrypts under the public
+key the master broadcast, so no individual site’s cleartext contribution
+ever reaches the aggregator. That is the property the whole protocol
+rests on, and it is why <code>contribution_fn</code> returns a plain
+number while <code><a href="../reference/contribute.html">contribute()</a></code> — not you — does the
+encrypting.</p>
+<p>When the records are not in this session, subclass
+<code>RemoteSite</code> and give it a <code><a href="../reference/contribute.html">contribute()</a></code> method.
+The package deliberately ships no implementation: transports differ too
+much, and a cryptography package has no business carrying an HTTP
+client. The extension is small:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">HttpSite</span> <span class="op">&lt;-</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"HttpSite"</span>, parent <span class="op">=</span> <span class="va">RemoteSite</span>,</span>
+<span>                          properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>url <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">contribute</span>, <span class="va">HttpSite</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span>, <span class="va">theta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co">## The far side holds the public key and encrypts before replying,</span></span>
+<span>    <span class="co">## so the wire carries ciphertext -- never a bare number.</span></span>
+<span>    <span class="fu">fetch_encrypted_contribution</span><span class="op">(</span><span class="va">site</span><span class="op">@</span><span class="va">url</span>, <span class="va">theta</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Read <code><a href="../reference/RemoteSite.html">?RemoteSite</a></code> before writing one. The contract has a
+few sharp edges, the sharpest being that <strong><code>NA</code> and
+“unreachable” are different events</strong>. <code>NA</code> means
+<em>this</em> <code>theta</code> broke the site’s solver, and the
+optimizer responds sensibly by trying a different parameter. A network
+or timeout failure is not that, and backing off to another
+<code>theta</code> does nothing about it — signal
+<code><a href="../reference/site_unavailable.html">site_unavailable()</a></code> instead, which aborts the round.
+Returning <code>NA</code> for an offline host, or quietly dropping the
+site, changes the set of sites being summed over between iterations and
+the fit converges to something that is not the estimand, with no error
+raised anywhere.</p>
 <p>An <strong>aggregator</strong> is built with either
 <code><a href="../reference/make_ckks_master.html">make_ckks_master()</a></code> or <code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code>.
 The two differ in exactly one respect, and it is the respect that
@@ -218,13 +254,19 @@ matters:</p>
 ordinary key pair. It is appropriate when one party is permitted to hold
 the secret key.</li>
 <li>
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> creates an aggregator using
-threshold keys, where no single party — including the aggregator itself
-— can decrypt alone.</li>
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> takes the sites and runs
+threshold key generation through them: each site generates its own share
+and keeps it, so no single party — including the aggregator itself — can
+decrypt alone. The aggregator it returns holds only public material, and
+is already wired to those sites.</li>
 </ul>
 <p>Because both are the same kind of object underneath, the protocol
 body is identical for either. Choosing a trust model means choosing a
-constructor, not rewriting the analysis.</p>
+constructor, not rewriting the analysis. The one setup difference
+follows from the cryptography rather than the API: a joint public key is
+built <em>from</em> the sites, so under threshold keys the sites are
+created first and handed to the constructor, instead of being wired to
+an aggregator afterwards with <code><a href="../reference/set_workers.html">set_workers()</a></code>.</p>
 <p><strong><code>master_aggregate(master, theta)</code></strong> runs
 one round. The aggregator sends <code>theta</code> to every site; each
 site computes its local summary and encrypts it; the aggregator adds the

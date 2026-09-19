@@ -3,19 +3,19 @@
 threshold key generation, under whichever scheme the supplied
 crypto context was built for (CKKS for real-valued work, BFV or
 BGV for exact integer work). There is no single secret key: each
-site holds a secret share sk_i, and the joint public key
-pk_{1..n} is built by chaining multiparty_key_gen() across
+site generates and keeps its own share sk_i, and the joint public
+key pk_{1..n} is built by chaining keygen_round() across the
 sites. Encryption goes under joint_pubkey. Decryption requires
-all n sites to contribute partial decryptions, which the master
-then fuses."><meta property="og:description" content="A Master that drives the protocol over openfhe.R with
+all n sites to return partial decryptions, which the master then
+fuses."><meta property="og:description" content="A Master that drives the protocol over openfhe.R with
 threshold key generation, under whichever scheme the supplied
 crypto context was built for (CKKS for real-valued work, BFV or
 BGV for exact integer work). There is no single secret key: each
-site holds a secret share sk_i, and the joint public key
-pk_{1..n} is built by chaining multiparty_key_gen() across
+site generates and keeps its own share sk_i, and the joint public
+key pk_{1..n} is built by chaining keygen_round() across the
 sites. Encryption goes under joint_pubkey. Decryption requires
-all n sites to contribute partial decryptions, which the master
-then fuses."><meta property="og:image" content="https://bnaras.github.io/homomorpheR/logo.png"></head><body>
+all n sites to return partial decryptions, which the master then
+fuses."><meta property="og:image" content="https://bnaras.github.io/homomorpheR/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -79,11 +79,11 @@ then fuses."><meta property="og:image" content="https://bnaras.github.io/homomor
 threshold key generation, under whichever scheme the supplied
 crypto context was built for (CKKS for real-valued work, BFV or
 BGV for exact integer work). There is no single secret key: each
-site holds a secret share <code>sk_i</code>, and the joint public key
-<code>pk_{1..n}</code> is built by chaining <code>multiparty_key_gen()</code> across
+site generates and keeps its own share <code>sk_i</code>, and the joint public
+key <code>pk_{1..n}</code> is built by chaining <code><a href="keygen_round.html">keygen_round()</a></code> across the
 sites. Encryption goes under <code>joint_pubkey</code>. Decryption requires
-all <code>n</code> sites to contribute partial decryptions, which the master
-then fuses.</p>
+all <code>n</code> sites to return partial decryptions, which the master then
+fuses.</p>
     </div>
 
     <div class="section level2">
@@ -92,8 +92,7 @@ then fuses.</p>
 <span>  name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  state <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  crypto_context <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  joint_pubkey <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  secret_keys <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  joint_pubkey <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -106,7 +105,8 @@ then fuses.</p>
 
 
 <dt id="arg-state">state<a class="anchor" aria-label="anchor" href="#arg-state"></a></dt>
-<dd><p>an environment for mutable bookkeeping.</p></dd>
+<dd><p>an environment for mutable bookkeeping (the wired
+sites, in the order the key-generation chain visited them).</p></dd>
 
 
 <dt id="arg-crypto-context">crypto_context<a class="anchor" aria-label="anchor" href="#arg-crypto-context"></a></dt>
@@ -116,26 +116,26 @@ then fuses.</p>
 
 <dt id="arg-joint-pubkey">joint_pubkey<a class="anchor" aria-label="anchor" href="#arg-joint-pubkey"></a></dt>
 <dd><p>the joint public key produced by chaining
-<code>multiparty_key_gen()</code> across the sites.</p></dd>
-
-
-<dt id="arg-secret-keys">secret_keys<a class="anchor" aria-label="anchor" href="#arg-secret-keys"></a></dt>
-<dd><p>a list of per-site secret keys, in site order
-(the first is the lead site whose <code>sk</code> started the chain).</p></dd>
+<code><a href="keygen_round.html">keygen_round()</a></code> across the sites.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>an S7 object of class <code>ThresholdMaster</code>, inheriting from <a href="Master.html">Master</a>,
-with properties <code>name</code>, <code>crypto_context</code>, <code>joint_pubkey</code>,
-<code>secret_keys</code> and <code>state</code>. There is no single secret key:
-<code>secret_keys</code> holds one share per site and decryption fuses partial
-decryptions from all of them, so no party can decrypt alone.
-Construct with <code><a href="make_threshold_master.html">make_threshold_master()</a></code>.</p>
+with properties <code>name</code>, <code>crypto_context</code>, <code>joint_pubkey</code> and
+<code>state</code>. It carries no secret key and no secret shares: decryption
+is driven by asking each site for a partial decryption and fusing
+the results, so no party — the master included — can decrypt
+alone. Construct with <code><a href="make_threshold_master.html">make_threshold_master()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Constructed by <code><a href="make_threshold_master.html">make_threshold_master()</a></code>.</p>
+    <p><strong>The master holds no secret material.</strong> Its properties are the
+crypto context and the joint public key, both public; the shares
+live at the sites that generated them and never travel. That is
+what makes the n-of-n claim true of the objects and not merely of
+the prose — see <code><a href="partial_decrypt.html">partial_decrypt()</a></code> for the decryption seam.</p>
+<p>Constructed by <code><a href="make_threshold_master.html">make_threshold_master()</a></code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

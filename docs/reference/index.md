@@ -11,6 +11,11 @@
 - [`DLBCL_gex`](https://bnaras.github.io/homomorpheR/reference/DLBCL_gex.md)
   : DLBCL Lymphochip gene-expression matrix
 
+- [`LocalSite()`](https://bnaras.github.io/homomorpheR/reference/LocalSite.md)
+  :
+
+  A site whose data lives in this R session
+
 - [`Master()`](https://bnaras.github.io/homomorpheR/reference/Master.md)
   : Abstract master class
 
@@ -35,6 +40,11 @@
 - [`PaillierPublicKey()`](https://bnaras.github.io/homomorpheR/reference/PaillierPublicKey.md)
   : Paillier public key
 
+- [`RemoteSite()`](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+  :
+
+  A site whose contribution is produced outside this R session
+
 - [`Site()`](https://bnaras.github.io/homomorpheR/reference/Site.md) : A
   site in a multi-party protocol
 
@@ -43,6 +53,9 @@
 
 - [`add_site()`](https://bnaras.github.io/homomorpheR/reference/add_site.md)
   : Add a site to a non-cooperating party
+
+- [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+  : A site's encrypted contribution at a parameter value
 
 - [`cvxr_consensus`](https://bnaras.github.io/homomorpheR/reference/cvxr_consensus.md)
   : Precomputed encrypted Cox-lasso consensus-ADMM results
@@ -56,6 +69,9 @@
 - [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md)
   : Encrypt a real number under a Paillier public key
 
+- [`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
+  : Encrypt a value under the public parameters a party holds
+
 - [`get_lambda()`](https://bnaras.github.io/homomorpheR/reference/get_lambda.md)
   : Return the secret lambda from a private key
 
@@ -66,6 +82,9 @@
   [`homomorpheR`](https://bnaras.github.io/homomorpheR/reference/homomorpheR.md)
   : homomorpheR: Homomorphic computations in R
 
+- [`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md)
+  : One site's step in the threshold key-generation chain
+
 - [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
   : Construct a CKKS-backed master
 
@@ -75,17 +94,11 @@
 - [`make_ncparty()`](https://bnaras.github.io/homomorpheR/reference/make_ncparty.md)
   : Construct an NCParty
 
-- [`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md)
-  : Construct a Site
-
 - [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-  : Construct a threshold-CKKS master and the per-site secret shares
+  : Run threshold key generation across sites and construct the master
 
 - [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)
-  :
-
-  Construct a worker (alias for
-  [`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md))
+  : Construct a worker
 
 - [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
   : Run one round of the master/worker protocol
@@ -93,11 +106,11 @@
 - [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
   : Decrypt the master's protocol result back to a scalar real
 
-- [`master_encrypt()`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)
-  : Encrypt a real value for a master's protocol
-
 - [`paillier_keypair()`](https://bnaras.github.io/homomorpheR/reference/paillier_keypair.md)
   : Generate a new Paillier key pair
+
+- [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
+  : One site's partial decryption of a ciphertext
 
 - [`random.bigz()`](https://bnaras.github.io/homomorpheR/reference/random.bigz.md)
   : Random big integer
@@ -118,3 +131,6 @@
 
 - [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
   : Wire a master to a flat list of workers
+
+- [`site_unavailable()`](https://bnaras.github.io/homomorpheR/reference/site_unavailable.md)
+  : Signal that a site could not be reached

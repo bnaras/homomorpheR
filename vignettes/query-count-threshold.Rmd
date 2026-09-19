@@ -161,18 +161,6 @@ cc <- openfhe.R::fhe_context("BFV",
                              features             = c(openfhe.R::Feature$MULTIPARTY))
 ```
 
-`make_threshold_master()` runs the chained key generation across the
-three sites and returns a master holding the joint public key and the
-per-site secret shares. The same master class drives CKKS or BFV — it
-reads the scheme back from the context — so the only thing that changed
-from the real-valued vignettes is the context above.
-
-```{r}
-master <- make_threshold_master("Aggregator",
-                                crypto_context = cc,
-                                n_sites        = 3)
-```
-
 Each site is a worker whose local function evaluates the query against
 its own private data and returns a count. The master broadcasts the
 query; no site sees another site's data, and the counts it returns are
@@ -182,11 +170,24 @@ encrypted before they leave.
 local_count <- function(data, query) sum(eval(query, data))
 
 workers <- Map(
-    function(nm, d) make_worker(nm, data = d, local_fn = local_count),
+    function(nm, d) make_worker(nm, data = d, contribution_fn = local_count),
     c("Site 1", "Site 2", "Site 3"),
     query_data)
+```
 
-set_workers(master, workers)
+The sites have to exist before the aggregator does, because the joint
+public key is built *from* them: `make_threshold_master()` walks the
+chain, each site generating and keeping its own share and passing on
+only a public key. What comes back is an aggregator holding the joint
+public key and nothing secret, already wired to the sites. The same
+master class drives CKKS or BFV — it reads the scheme back from the
+context — so the only thing that changed from the real-valued
+vignettes is the context above.
+
+```{r}
+master <- make_threshold_master("Aggregator",
+                                crypto_context = cc,
+                                sites          = workers)
 ```
 
 One call runs the protocol: each worker's encrypted count is summed

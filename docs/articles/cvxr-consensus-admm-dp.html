@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm-dp.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm-dp.Rmd</code></div>
@@ -170,20 +170,44 @@ contributions until the final fusion.</li>
 <li>The trust model matches <code>cox-threshold-dp</code>: each site is
 its own randomness boundary.</li>
 </ol>
+<p>Both are properties of the code below rather than of this paragraph:
+<code>site_contribution_dp()</code> draws the noise <em>and</em>
+encrypts inside the site, so <code>encrypted_consensus_dp()</code>
+receives ciphertexts and nothing else. Had the aggregator done the
+noising — reading each site’s
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">x_i + u_i</annotation></semantics></math>
+and adding a draw itself — every sentence above would be false while the
+numbers came out identical.</p>
 </div>
 <div class="section level2">
 <h2 id="the-stopping-rule-changes">The stopping rule changes<a class="anchor" aria-label="anchor" href="#the-stopping-rule-changes"></a>
 </h2>
 <p>Residual-based convergence checks are not meaningful under noise: the
-residuals never shrink below the per-iteration noise floor. We replace
-residual-based stopping with <strong>fixed
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math></strong>
-equal to the cleartext convergence iteration count for the chosen
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>.
-The
+residuals never shrink below the per-iteration noise floor. So
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+is <strong>fixed in advance</strong> rather than discovered.</p>
+<p>That is forced twice over. Even without noise, a residual-based stop
+is an adaptive, data-dependent decision — the iteration at which you
+halt is a function of the records — and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+is exactly the quantity that multiplies the privacy budget below. A
+protocol that reads
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+off the cohort and then bills
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+releases against
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
+has left the accounting open at the step that defines it. The next
+section picks
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+without touching the cohort at all.</p>
+<p>The
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
 row of the table below verifies that the protocol with the noise
-mechanism turned off lands on the lossless ADMM fit at the same fixed
+mechanism turned off lands on the lossless ADMM fit at that
+pre-committed
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>.</p>
 </div>
 <div class="section level2">
@@ -214,11 +238,12 @@ mechanism turned off lands on the lossless ADMM fit at the same fixed
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>prob <span class="op">=</span> <span class="va">prob</span>, x <span class="op">=</span> <span class="va">x</span>, zp <span class="op">=</span> <span class="va">zp</span>, up <span class="op">=</span> <span class="va">up</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
+<span><span class="co">## Inherits homomorpheR's abstract `Site` (which supplies `name` and the</span></span>
+<span><span class="co">## `state` environment), so it can take part in threshold key generation</span></span>
+<span><span class="co">## and keep its own share.</span></span>
 <span><span class="va">ConsensusSite</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"ConsensusSite"</span>,</span>
-<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        name  <span class="op">=</span> <span class="va">class_character</span>,</span>
-<span>        n     <span class="op">=</span> <span class="va">class_integer</span>,</span>
-<span>        state <span class="op">=</span> <span class="va">class_any</span><span class="op">)</span><span class="op">)</span></span>
+<span>    parent     <span class="op">=</span> <span class="fu">homomorpheR</span><span class="fu">::</span><span class="va"><a href="../reference/Site.html">Site</a></span>,</span>
+<span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">class_integer</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">make_consensus_site</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">X_i</span>, <span class="va">y_i</span>, <span class="va">rho_val</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">st</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -262,19 +287,76 @@ mechanism turned off lands on the lossless ADMM fit at the same fixed
 <span><span class="va">site_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">n_per_site</span>, <span class="va">make_site_data</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="cleartext-rho-sweep">Cleartext
+<h2 id="choosing-rho-and-t-without-touching-the-cohort">Choosing
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-sweep<a class="anchor" aria-label="anchor" href="#cleartext-rho-sweep"></a>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+without touching the cohort<a class="anchor" aria-label="anchor" href="#choosing-rho-and-t-without-touching-the-cohort"></a>
 </h2>
-<p>Pick
+<p>The lossless ADMM vignette tunes
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-programmatically — same idiom as the lossless ADMM vignette.</p>
+by sweeping candidates through the encrypted channel, <em>on the real
+data</em>. Under output DP that sweep is not available to us. Every read
+of the cohort is a release that has to be paid for, and a sweep is a
+large one: it solves at every site, at every candidate, at every
+iteration, and what comes out — the chosen
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
+and above all
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+— is a function of the records. Billing
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>⋅</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">T \cdot N</annotation></semantics></math>
+Gaussian releases while
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+itself was read off the data is not an accounting, it is an accounting
+with its own parameter left outside.</p>
+<p>There are two honest ways to close that. One is to <strong>pay for
+the selection</strong>: report-noisy-max or the exponential mechanism
+over the grid, with negative iteration count as utility. That is the
+principled route, but it needs a sensitivity bound for “iterations to
+convergence” under a one-record change, and we do not have one — it
+would trade this gap for a weaker one.</p>
+<p>The other is to make the selection <strong>data-independent</strong>,
+which is what DP deployments in practice do, and what we do here. The
+sweep runs on a <strong>surrogate cohort</strong> built only from facts
+the protocol already treats as public — how many sites there are,
+roughly how large they are, and the covariate schema — together with
+nominal effect sizes written into the analysis plan and claimed by
+nobody to be correct. No record from any site enters it.</p>
+<p>Two consequences worth being explicit about. First, this sweep needs
+<strong>no encrypted channel</strong>: there is no secret in it to
+protect. That is the exact opposite of the situation in
+<code><a href="../articles/cvxr-consensus-admm.html">vignette("cvxr-consensus-admm")</a></code>, where the sweep goes
+through the threshold channel <em>because</em> it touches real data.
+Cleartext here is a conclusion, not a convenience. Second, the cost is
+real but it is paid in <strong>utility, not privacy</strong>: a
+surrogate that misjudges the curvature returns a
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+the cohort would not have picked and a
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+shorter than it needed. There is no way to check that against the cohort
+without spending budget, so the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+below is a pre-commitment — and since the budget grows linearly in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>,
+pre-committing generously is not free either.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tol</span>      <span class="op">&lt;-</span> <span class="fl">1e-3</span></span>
 <span><span class="va">max_iter</span> <span class="op">&lt;-</span> <span class="fl">60L</span></span>
 <span></span>
-<span><span class="va">sweep_one_rho</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">rho_val</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">built</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">site_data</span>,</span>
+<span><span class="co">## Public design facts: three sites of these approximate sizes, four</span></span>
+<span><span class="co">## covariates of these types. Nominal effect sizes, not the cohort's.</span></span>
+<span><span class="va">beta_nominal</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">surrogate_seed</span> <span class="op">&lt;-</span> <span class="fl">20260413L</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">surrogate_seed</span><span class="op">)</span></span>
+<span><span class="va">surrogate_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">n_per_site</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">X</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">pr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">X</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">beta_nominal</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>X <span class="op">=</span> <span class="va">X</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">pr</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sweep_one_rho</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">cohort</span>, <span class="va">rho_val</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">built</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">cohort</span>,</span>
 <span>                    <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu">build_local_problem</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span>, <span class="va">s</span><span class="op">$</span><span class="va">y</span>, <span class="va">rho_val</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="va">x_curr</span> <span class="op">&lt;-</span> <span class="va">u_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">replicate</a></span><span class="op">(</span><span class="va">N</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">p</span><span class="op">)</span>, simplify <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>    <span class="va">z</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">p</span><span class="op">)</span></span>
@@ -301,10 +383,13 @@ programmatically — same idiom as the lossless ADMM vignette.</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">rho_grid</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">500</span><span class="op">)</span></span>
-<span><span class="va">rho_sweep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">rho_grid</span>, <span class="va">sweep_one_rho</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">rho_sweep</span>, caption <span class="op">=</span> <span class="st">"Cleartext consensus-ADMM convergence"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">rho_sweep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>,</span>
+<span>                     <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">rho_grid</span>,</span>
+<span>                            <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu">sweep_one_rho</span><span class="op">(</span><span class="va">surrogate_data</span>, <span class="va">r</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">rho_sweep</span>,</span>
+<span>             caption <span class="op">=</span> <span class="st">"Consensus-ADMM convergence on the surrogate cohort"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Cleartext consensus-ADMM convergence</caption>
+<caption>Consensus-ADMM convergence on the surrogate cohort</caption>
 <thead><tr class="header">
 <th align="right">rho</th>
 <th align="right">iters</th>
@@ -318,17 +403,17 @@ programmatically — same idiom as the lossless ADMM vignette.</p>
 </tr>
 <tr class="even">
 <td align="right">20</td>
-<td align="right">59</td>
-<td align="left">TRUE</td>
+<td align="right">60</td>
+<td align="left">FALSE</td>
 </tr>
 <tr class="odd">
 <td align="right">50</td>
-<td align="right">30</td>
+<td align="right">33</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="even">
 <td align="right">100</td>
-<td align="right">30</td>
+<td align="right">28</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="odd">
@@ -341,16 +426,18 @@ programmatically — same idiom as the lossless ADMM vignette.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">converged_rows</span> <span class="op">&lt;-</span> <span class="va">rho_sweep</span><span class="op">[</span><span class="va">rho_sweep</span><span class="op">$</span><span class="va">converged</span>, <span class="op">]</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">converged_rows</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No rho in the grid converged within max_iter."</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No rho in the grid converged within max_iter on the surrogate."</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">rho_chosen</span> <span class="op">&lt;-</span> <span class="va">converged_rows</span><span class="op">$</span><span class="va">rho</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">converged_rows</span><span class="op">$</span><span class="va">iters</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">T_fixed</span>    <span class="op">&lt;-</span> <span class="va">converged_rows</span><span class="op">$</span><span class="va">iters</span><span class="op">[</span><span class="va">converged_rows</span><span class="op">$</span><span class="va">rho</span> <span class="op">==</span> <span class="va">rho_chosen</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Chosen rho = %g (T = %d iterations cleartext).\n"</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Pre-committed rho = %g, T = %d (surrogate cohort).\n"</span>,</span>
 <span>            <span class="va">rho_chosen</span>, <span class="va">T_fixed</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Chosen rho = 50 (T = 30 iterations cleartext).</span></span></code></pre>
-<p>The DP-ADMM loop below runs for exactly
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">T = 30</annotation></semantics></math>
-iterations regardless of residuals.</p>
+<pre><code><span><span class="co">## Pre-committed rho = 100, T = 28 (surrogate cohort).</span></span></code></pre>
+<p>These two numbers are now constants of the protocol. The DP-ADMM loop
+below runs for exactly
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>28</mn></mrow><annotation encoding="application/x-tex">T = 28</annotation></semantics></math>
+iterations regardless of residuals, and nothing downstream is allowed to
+revisit them in light of what the cohort does.</p>
 </div>
 <div class="section level2">
 <h2 id="threshold-fhe-setup">Threshold-FHE setup<a class="anchor" aria-label="anchor" href="#threshold-fhe-setup"></a>
@@ -367,17 +454,25 @@ lossless ADMM vignette’s <code>encrypted_consensus()</code> is the
 <code>rnorm(p, ..., sd = sigma * sqrt(Nv))</code> term inside the
 per-site loop:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">encrypted_consensus_dp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span>, <span class="va">sigma</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="co">## Site-side, and this is the whole point of the DP variant: the site</span></span>
+<span><span class="co">## draws its own noise, adds it, and encrypts with the public bundle it</span></span>
+<span><span class="co">## was handed at setup -- all before anything leaves. The noiseless</span></span>
+<span><span class="co">## x_i + u_i exists nowhere but here, which is what "each site is its</span></span>
+<span><span class="co">## own randomness boundary" has to mean.</span></span>
+<span><span class="va">site_contribution_dp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span>, <span class="va">sigma</span>, <span class="va">Nv</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">st</span> <span class="op">&lt;-</span> <span class="va">site</span><span class="op">@</span><span class="va">state</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">site</span><span class="op">@</span><span class="va">name</span>, <span class="st">" has no public parameters."</span><span class="op">)</span></span>
+<span>    <span class="va">noised</span> <span class="op">&lt;-</span> <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">p</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="va">sigma</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">Nv</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span>, <span class="va">noised</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co">## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The</span></span>
+<span><span class="co">## 1/N scaling contracts the summed noise variance back to sigma^2.</span></span>
+<span><span class="va">encrypted_consensus_dp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span>, <span class="va">sigma</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">Nv</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span></span>
-<span>    <span class="va">cts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="va">Nv</span><span class="op">)</span></span>
-<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="va">st</span>  <span class="op">&lt;-</span> <span class="va">sites</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">state</span></span>
-<span>        <span class="va">val</span> <span class="op">&lt;-</span> <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">+</span></span>
-<span>               <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">p</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="va">sigma</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">Nv</span><span class="op">)</span><span class="op">)</span></span>
-<span>        <span class="va">cts</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_encrypt.html">master_encrypt</a></span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">val</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>    <span class="va">ct_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">cts</span><span class="op">)</span></span>
-<span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="va">ct_sum</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="va">Nv</span><span class="op">)</span></span>
+<span>    <span class="va">cts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">site_contribution_dp</span>, sigma <span class="op">=</span> <span class="va">sigma</span>, Nv <span class="op">=</span> <span class="va">Nv</span><span class="op">)</span></span>
+<span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">cts</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="va">Nv</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">ct_avg</span>, len <span class="op">=</span> <span class="va">p</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
@@ -387,13 +482,15 @@ per-site loop:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">run_dp_admm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">sigma</span>, <span class="va">T_iter</span> <span class="op">=</span> <span class="va">T_fixed</span>, <span class="va">seed</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span></span>
-<span>    <span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
-<span>                                    crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
-<span>                                    n_sites        <span class="op">=</span> <span class="va">N</span><span class="op">)</span></span>
+<span>    <span class="co">## The sites exist first: the joint public key is built from them,</span></span>
+<span>    <span class="co">## each keeping the share it generates.</span></span>
 <span>    <span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>        <span class="fu">make_consensus_site</span><span class="op">(</span><span class="st">"Site 1"</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span>, <span class="va">rho_chosen</span><span class="op">)</span>,</span>
 <span>        <span class="fu">make_consensus_site</span><span class="op">(</span><span class="st">"Site 2"</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span>, <span class="va">rho_chosen</span><span class="op">)</span>,</span>
 <span>        <span class="fu">make_consensus_site</span><span class="op">(</span><span class="st">"Site 3"</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span>, <span class="va">rho_chosen</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
+<span>                                    crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
+<span>                                    sites          <span class="op">=</span> <span class="va">sites</span><span class="op">)</span></span>
 <span></span>
 <span>    <span class="va">z_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">p</span><span class="op">)</span></span>
 <span>    <span class="va">z_hist</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="cn">NA_real_</span>, nrow <span class="op">=</span> <span class="va">T_iter</span>, ncol <span class="op">=</span> <span class="va">p</span>,</span>
@@ -412,6 +509,17 @@ per-site loop:</p>
 <div class="section level2">
 <h2 id="centralized-cvxr-fit">Centralized CVXR fit<a class="anchor" aria-label="anchor" href="#centralized-cvxr-fit"></a>
 </h2>
+<p>This fit, and every <code>max_dev</code> column derived from it
+below, is a <strong>simulation diagnostic and not part of the
+protocol</strong>. It pools the raw data, which the deployed protocol
+never does, and it is not charged to the budget because it is not
+released — it exists so that this document can show you how far the
+noise moved the answer. A real deployment has no access to it, which is
+precisely why
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+had to be pre-committed above.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">X_pooled</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">site_data</span>, <span class="va">`[[`</span>, <span class="st">"X"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">y_pooled</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">site_data</span>, <span class="va">`[[`</span>, <span class="st">"y"</span><span class="op">)</span><span class="op">)</span></span>
@@ -457,7 +565,7 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"DP-ADMM at sigma = 0 disagrees with the centralized fit."</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"</span>,</span>
 <span>            <span class="va">clean_dev</span>, <span class="va">agree_tol</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 8.66e-05 (tol 1e-02)</span></span></code></pre>
+<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 2.97e-05 (tol 1e-02)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="summary-table">Summary table<a class="anchor" aria-label="anchor" href="#summary-table"></a>
@@ -483,10 +591,10 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <caption>DP-ADMM coefficients vs centralized CVXR</caption>
 <colgroup>
 <col width="19%">
-<col width="8%">
-<col width="14%">
-<col width="14%">
-<col width="14%">
+<col width="9%">
+<col width="15%">
+<col width="13%">
+<col width="15%">
 <col width="13%">
 <col width="13%">
 </colgroup>
@@ -503,56 +611,56 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <tr class="odd">
 <td align="left">sigma=0</td>
 <td align="right">0e+00</td>
-<td align="right">-0.591018</td>
-<td align="right">0.402617</td>
-<td align="right">-0.325959</td>
-<td align="right">0.641609</td>
-<td align="right">0.000087</td>
+<td align="right">-0.591081</td>
+<td align="right">0.402672</td>
+<td align="right">-0.325982</td>
+<td align="right">0.641534</td>
+<td align="right">0.000030</td>
 </tr>
 <tr class="even">
 <td align="left">sigma=0.0001</td>
 <td align="right">1e-04</td>
-<td align="right">-0.591025</td>
-<td align="right">0.402670</td>
-<td align="right">-0.325838</td>
-<td align="right">0.641469</td>
-<td align="right">0.000145</td>
+<td align="right">-0.591148</td>
+<td align="right">0.402593</td>
+<td align="right">-0.326072</td>
+<td align="right">0.641677</td>
+<td align="right">0.000113</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma=0.001</td>
 <td align="right">1e-03</td>
-<td align="right">-0.591691</td>
-<td align="right">0.401580</td>
-<td align="right">-0.326375</td>
-<td align="right">0.643028</td>
-<td align="right">0.001464</td>
+<td align="right">-0.589677</td>
+<td align="right">0.401934</td>
+<td align="right">-0.325976</td>
+<td align="right">0.642103</td>
+<td align="right">0.001427</td>
 </tr>
 <tr class="even">
 <td align="left">sigma=0.01</td>
 <td align="right">1e-02</td>
-<td align="right">-0.605935</td>
-<td align="right">0.407191</td>
-<td align="right">-0.318839</td>
-<td align="right">0.657241</td>
-<td align="right">0.015677</td>
+<td align="right">-0.619390</td>
+<td align="right">0.398715</td>
+<td align="right">-0.323019</td>
+<td align="right">0.648941</td>
+<td align="right">0.028286</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma=0.1</td>
 <td align="right">1e-01</td>
-<td align="right">-0.777970</td>
-<td align="right">0.401483</td>
-<td align="right">-0.382908</td>
-<td align="right">0.519775</td>
-<td align="right">0.186866</td>
+<td align="right">-0.617981</td>
+<td align="right">0.428505</td>
+<td align="right">-0.372438</td>
+<td align="right">0.754537</td>
+<td align="right">0.112973</td>
 </tr>
 <tr class="even">
 <td align="left">sigma=1</td>
 <td align="right">1e+00</td>
-<td align="right">-0.461572</td>
-<td align="right">-0.677929</td>
-<td align="right">-0.499757</td>
-<td align="right">1.302195</td>
-<td align="right">1.080603</td>
+<td align="right">-3.460462</td>
+<td align="right">2.788707</td>
+<td align="right">2.514525</td>
+<td align="right">2.062808</td>
+<td align="right">2.869357</td>
 </tr>
 <tr class="odd">
 <td align="left">centralized</td>
@@ -583,7 +691,7 @@ not what the cryptographic channel does.</p>
 <p>Per-iteration zCDP:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ρ</mi><mtext mathvariant="normal">iter</mtext></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi mathvariant="normal">Δ</mi><mi>/</mi><mi>σ</mi><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup><mi>/</mi><mn>2</mn></mrow><annotation encoding="application/x-tex">\rho_{\text{iter}} = (\Delta/\sigma)^2/2</annotation></semantics></math>
 per <em>site</em> per coordinate. Across
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>30</mn></mrow><annotation encoding="application/x-tex">T = 30</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mn>28</mn></mrow><annotation encoding="application/x-tex">T = 28</annotation></semantics></math>
 iterations and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">N = 3</annotation></semantics></math>
 sites, total
@@ -609,31 +717,45 @@ via the standard formula.</p>
 <tbody>
 <tr class="odd">
 <td align="right">1e-04</td>
-<td align="right">4.5e+09</td>
-<td align="right">4.500455e+09</td>
+<td align="right">4.2e+09</td>
+<td align="right">4.200440e+09</td>
 </tr>
 <tr class="even">
 <td align="right">1e-03</td>
-<td align="right">4.5e+07</td>
-<td align="right">4.504552e+07</td>
+<td align="right">4.2e+07</td>
+<td align="right">4.204398e+07</td>
 </tr>
 <tr class="odd">
 <td align="right">1e-02</td>
-<td align="right">4.5e+05</td>
-<td align="right">4.545523e+05</td>
+<td align="right">4.2e+05</td>
+<td align="right">4.243979e+05</td>
 </tr>
 <tr class="even">
 <td align="right">1e-01</td>
-<td align="right">4.5e+03</td>
-<td align="right">4.955228e+03</td>
+<td align="right">4.2e+03</td>
+<td align="right">4.639792e+03</td>
 </tr>
 <tr class="odd">
 <td align="right">1e+00</td>
-<td align="right">4.5e+01</td>
-<td align="right">9.052280e+01</td>
+<td align="right">4.2e+01</td>
+<td align="right">8.597920e+01</td>
 </tr>
 </tbody>
 </table>
+<p>This total is the whole of the procedure’s data-dependent exposure,
+which is the point of having chosen
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+off the surrogate: the selection step contributes nothing to it, because
+it read nothing. The one quantity still taken on faith is the
+sensitivity
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Delta = 1</annotation></semantics></math>,
+and that is flagged as a placeholder in the limitations below — an
+honest budget with one declared placeholder, rather than a budget whose
+own
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+came from an unbilled read.</p>
 <p>Read <code>epsilon_at_delta_1e_minus_5</code>. The smallest
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
 attained — at
@@ -670,6 +792,18 @@ is large.</strong> zCDP composition over
 Gaussian releases inflates the budget; tightening it requires either
 fewer iterations, tighter sensitivity, or subsampling amplification —
 all out of scope for this demonstration.</li>
+<li>
+<strong>Hyperparameter selection is part of the budget, or it is
+outside the guarantee.</strong> The step that picks
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+looks like setup rather than analysis, which is exactly why it escapes
+scrutiny; here it also <em>sets the multiplier on the budget</em>.
+Making it data-independent keeps the accounting closed and costs utility
+instead. Composing a cryptographic channel with a DP guarantee does not
+make that step go away — encryption hides intermediates, not
+choices.</li>
 </ol>
 </div>
 <div class="section level2">
@@ -680,6 +814,21 @@ all out of scope for this demonstration.</li>
 <strong>Tight sensitivity bounds</strong> for the consensus update.
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Delta = 1</annotation></semantics></math>
 is a placeholder.</li>
+<li>
+<strong>Paying for the selection instead of avoiding it.</strong>
+Report-noisy-max or the exponential mechanism over the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+grid would let the cohort inform the choice for a declared cost. That
+needs a sensitivity bound on iterations-to-convergence under a
+one-record change, which we do not have.</li>
+<li>
+<strong>Surrogate quality.</strong> A surrogate that misjudges the
+cohort’s curvature costs accuracy — a worse
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
+or a
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+too short to converge — and there is no way to detect that from inside
+the protocol without spending budget.</li>
 <li>
 <strong>Adaptive noise</strong> schedules across iterations.</li>
 <li>

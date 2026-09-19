@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm.Rmd</code></div>
@@ -168,7 +168,7 @@ without rewriting the optimizer.</p>
 <div class="section level2">
 <h2 id="the-global-problem-and-its-consensus-split">The global problem and its consensus split<a class="anchor" aria-label="anchor" href="#the-global-problem-and-its-consensus-split"></a>
 </h2>
-<p>We pick L2-regularised logistic regression. With
+<p>We pick L2-regularized logistic regression. With
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
 sites, local data
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>,</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(X_i, y_i)</annotation></semantics></math>
@@ -267,26 +267,42 @@ per-site state, so we define <code>ConsensusSite</code> inline.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
 <span></span>
+<span><span class="co">## It inherits from homomorpheR's abstract `Site`, which supplies</span></span>
+<span><span class="co">## `name` and the `state` environment. That inheritance is what lets it</span></span>
+<span><span class="co">## take part in threshold key generation: `keygen_round()` and</span></span>
+<span><span class="co">## `partial_decrypt()` dispatch on `Site`, so each ConsensusSite</span></span>
+<span><span class="co">## generates and keeps its own share like any other party.</span></span>
 <span><span class="va">ConsensusSite</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"ConsensusSite"</span>,</span>
+<span>    parent     <span class="op">=</span> <span class="fu">homomorpheR</span><span class="fu">::</span><span class="va"><a href="../reference/Site.html">Site</a></span>,</span>
 <span>    properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        name  <span class="op">=</span> <span class="va">class_character</span>,</span>
-<span>        n     <span class="op">=</span> <span class="va">class_integer</span>,</span>
-<span>        state <span class="op">=</span> <span class="va">class_any</span></span>
+<span>        n <span class="op">=</span> <span class="va">class_integer</span></span>
 <span>    <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">make_consensus_site</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">X_i</span>, <span class="va">y_i</span>, <span class="va">rho_val</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co">## A site is a *party*: it persists across the whole analysis, because</span></span>
+<span><span class="co">## it holds a secret share that threshold key generation put there. Its</span></span>
+<span><span class="co">## local CVXR problem is a property of the current run, not of the</span></span>
+<span><span class="co">## party, so it is set separately and can be rebuilt for a new rho</span></span>
+<span><span class="co">## without destroying the share.</span></span>
+<span><span class="va">make_consensus_site</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">X_i</span>, <span class="va">y_i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">st</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">new.env</a></span><span class="op">(</span>parent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">emptyenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">X</span>      <span class="op">&lt;-</span> <span class="va">X_i</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">y</span>      <span class="op">&lt;-</span> <span class="va">y_i</span></span>
-<span>    <span class="va">built</span>     <span class="op">&lt;-</span> <span class="fu">build_local_problem</span><span class="op">(</span><span class="va">X_i</span>, <span class="va">y_i</span>, <span class="va">rho_val</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu">ConsensusSite</span><span class="op">(</span>name <span class="op">=</span> <span class="va">name</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span>, state <span class="op">=</span> <span class="va">st</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">set_rho</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span>, <span class="va">rho_val</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">st</span>        <span class="op">&lt;-</span> <span class="va">site</span><span class="op">@</span><span class="va">state</span></span>
+<span>    <span class="va">built</span>     <span class="op">&lt;-</span> <span class="fu">build_local_problem</span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">X</span>, <span class="va">st</span><span class="op">$</span><span class="va">y</span>, <span class="va">rho_val</span><span class="op">)</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">prob</span>   <span class="op">&lt;-</span> <span class="va">built</span><span class="op">$</span><span class="va">prob</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">x_var</span>  <span class="op">&lt;-</span> <span class="va">built</span><span class="op">$</span><span class="va">x</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">zp</span>     <span class="op">&lt;-</span> <span class="va">built</span><span class="op">$</span><span class="va">zp</span></span>
 <span>    <span class="va">st</span><span class="op">$</span><span class="va">up</span>     <span class="op">&lt;-</span> <span class="va">built</span><span class="op">$</span><span class="va">up</span></span>
-<span>    <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu">ConsensusSite</span><span class="op">(</span>name <span class="op">=</span> <span class="va">name</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">X_i</span><span class="op">)</span>, state <span class="op">=</span> <span class="va">st</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">local_update</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span>, <span class="va">z_curr</span><span class="op">)</span> <span class="op">{</span></span>
@@ -317,13 +333,20 @@ precision budget), and threshold-decrypt the result.</p>
 <p>We use the same threshold infrastructure as
 <code>cox-threshold.Rmd</code>: a CKKS context with
 <code>Feature$MULTIPARTY</code> enabled and
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code>, which runs the chained
-<code>multiparty_key_gen()</code> setup automatically. The consensus
-function calls <code><a href="../reference/master_encrypt.html">master_encrypt()</a></code> to encrypt each site’s
-contribution under the joint public key and
-<code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> to threshold-decrypt the result; the
-partial-decrypt fan-in across sites is handled inside the master
-class.</p>
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code>, which walks the chained
+<code>multiparty_key_gen()</code> setup across the sites.</p>
+<p>Note where the encryption happens. Each site encrypts its own
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_i + u_i)</annotation></semantics></math>
+under the joint public key and hands back a <em>ciphertext</em>; the
+aggregator adds those ciphertexts, scales, and calls
+<code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> to threshold-decrypt the total. Hoisting
+the encryption up to the aggregator — letting it read each site’s
+cleartext vector and encrypt on arrival — would be pointless: it would
+already have seen the per-site values the protocol exists to hide. The
+partial-decrypt fan-in runs the other way for the same reason: the
+aggregator sends the ciphertext out and each site applies its own share,
+because a share that traveled to the aggregator would make the whole
+construction pointless.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
@@ -331,16 +354,32 @@ class.</p>
 <span>                           first_mod_size       <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
 <span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Threshold key generation happens once, up front, and it runs
+<em>through</em> the sites: each generates its own share, keeps it, and
+passes on only a public key. So the sites have to exist before the
+aggregator does — we set them up below, once the data is in hand. The
+keys do not depend on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
+so the same sites and the same master serve both the tuning sweep and
+the final run; only each site’s local problem is rebuilt when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+changes.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">cts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="va">st</span>  <span class="op">&lt;-</span> <span class="va">sites</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">state</span></span>
-<span>        <span class="va">val</span> <span class="op">&lt;-</span> <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span></span>
-<span>        <span class="va">cts</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_encrypt.html">master_encrypt</a></span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">val</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>    <span class="va">ct_sum</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">cts</span><span class="op">)</span></span>
-<span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="va">ct_sum</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co">## Site-side. The site forms x_i + u_i and encrypts it with the public</span></span>
+<span><span class="co">## bundle it was handed at setup -- context and joint public key, no</span></span>
+<span><span class="co">## secrets. The cleartext vector never leaves this function.</span></span>
+<span><span class="va">site_contribution</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">st</span> <span class="op">&lt;-</span> <span class="va">site</span><span class="op">@</span><span class="va">state</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">site</span><span class="op">@</span><span class="va">name</span>, <span class="st">" has no public parameters."</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">st</span><span class="op">$</span><span class="va">params</span>, <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co">## Aggregator-side. It receives ciphertexts, adds them, scales by 1/N,</span></span>
+<span><span class="co">## and threshold-decrypts. At no point does it hold an individual</span></span>
+<span><span class="co">## (x_i + u_i).</span></span>
+<span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="va">site_contribution</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">ct_avg</span>, len <span class="op">=</span> <span class="va">p</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>What this protocol hides and reveals: every ADMM iteration the
@@ -378,13 +417,33 @@ coefficients across sites.</p>
 <span></span>
 <span><span class="va">X_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">site_data</span>, <span class="va">`[[`</span>, <span class="st">"X"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">y_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">site_data</span>, <span class="va">`[[`</span>, <span class="st">"y"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="the-parties-and-the-key-generation-chain">The parties, and the key-generation chain<a class="anchor" aria-label="anchor" href="#the-parties-and-the-key-generation-chain"></a>
+</h3>
+<p>Now the sites exist, so the chain can run through them. Each
+generates its own share and keeps it; what comes back is an aggregator
+holding the joint public key and nothing secret.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span></span>
+<span>    <span class="fu">make_consensus_site</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">i</span><span class="op">)</span>,</span>
+<span>                        <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
+<span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
+<span>                                sites          <span class="op">=</span> <span class="va">sites</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>aggregator_has_share <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">master</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sk</span><span class="op">)</span>,</span>
+<span>  every_site_has_one   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sk</span><span class="op">)</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## aggregator_has_share   every_site_has_one </span></span>
+<span><span class="co">##                FALSE                 TRUE</span></span></code></pre>
+</div>
 </div>
 <div class="section level2">
 <h2 id="centralized-cvxr-fit">Centralized CVXR fit<a class="anchor" aria-label="anchor" href="#centralized-cvxr-fit"></a>
 </h2>
 <p>For the comparison at the end of the run, we fit the same problem
 centrally. This is the target the federated fit should match.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x_central</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://www.cvxgrp.org/CVXR/reference/Variable.html" class="external-link">Variable</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="va">y_signs</span>  <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">y_all</span> <span class="op">-</span> <span class="fl">1</span></span>
 <span><span class="va">margins</span>  <span class="op">&lt;-</span> <span class="op">-</span><span class="va">y_signs</span> <span class="op">*</span> <span class="op">(</span><span class="va">X_all</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">x_central</span><span class="op">)</span></span>
@@ -393,7 +452,7 @@ centrally. This is the target the federated fit should match.</p>
 <span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://www.cvxgrp.org/CVXR/reference/psolve.html" class="external-link">psolve</a></span><span class="op">(</span><span class="va">central_prob</span>, solver <span class="op">=</span> <span class="st">"CLARABEL"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 552.3928</span></span></code></pre>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">beta_central</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://www.cvxgrp.org/CVXR/reference/value.html" class="external-link">value</a></span><span class="op">(</span><span class="va">x_central</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -403,26 +462,72 @@ before the loop<a class="anchor" aria-label="anchor" href="#tuning-rho-before-th
 </h2>
 <p>ADMM convergence depends on
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>.
-We sweep three candidate values against a <em>cleartext</em> copy of the
-protocol (no FHE) and pick the one that converges fastest. The chosen
-value is fixed for the encrypted run.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+We sweep three candidate values and keep the one that converges fastest,
+fixing it for the run that follows.</p>
+<p>The sweep goes through <strong>the same encrypted channel the main
+loop uses</strong>. It is worth being explicit about why it can, because
+the tempting shortcut — sweep in cleartext, then switch on the
+cryptography once
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+is settled — is not a shortcut at all.</p>
+<p>Tuning needs no cryptographic machinery beyond what a single ADMM run
+already needs. The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>-update
+is a site-local CVXR solve on site-local data, cleartext in both cases;
+the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>u</mi><annotation encoding="application/x-tex">u</annotation></semantics></math>-update
+is site-local arithmetic; only the consensus average crosses the
+channel, and it is the same one addition and one plaintext-scalar
+multiplication per iteration, so the sweep runs inside the same
+<code>multiplicative_depth = 1L</code> budget. Each iteration
+re-encrypts from fresh plaintext rather than building on the previous
+ciphertext, so neither depth nor noise accumulates across iterations,
+and nothing accumulates across candidates either. The stopping test and
+the <code>which.min</code> over the grid are comparisons, which CKKS
+cannot do natively — but they never touch a ciphertext. They are
+computed from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>,
+which this protocol decrypts every iteration by design, and from each
+site’s own
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>i</mi></msub><annotation encoding="application/x-tex">x_i</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>i</mi></msub><annotation encoding="application/x-tex">u_i</annotation></semantics></math>.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+itself is a public protocol constant that every site must agree on, so
+there is nothing there to hide.</p>
+<p>The cleartext sweep, by contrast, is not a deployable step. To
+average
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_i + u_i)</annotation></semantics></math>
+in the clear, each site has to hand the aggregator that vector in
+plaintext — once per iteration, once per candidate. That is precisely
+the quantity the paragraph above says never appears in the clear, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>x</mi><mi>i</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msubsup><annotation encoding="application/x-tex">x_i^{k+1}</annotation></semantics></math>
+is the minimizer of site
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>’s
+local loss, hence a direct function of its
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>,</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(X_i, y_i)</annotation></semantics></math>.
+Tuning in cleartext would leak several times over what the run it
+precedes is built to protect.</p>
+<p>The cost of not taking the shortcut is small: the encrypted channel
+moves a
+length-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
+vector, while each iteration pays for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
+interior-point solves.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rho_grid</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">50</span>, <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">sweep_iters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rho_grid</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">g</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">rho_grid</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">rho_val</span> <span class="op">&lt;-</span> <span class="va">rho_grid</span><span class="op">[</span><span class="va">g</span><span class="op">]</span></span>
-<span>    <span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span></span>
-<span>        <span class="fu">make_consensus_site</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">i</span><span class="op">)</span>,</span>
-<span>                            <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span>,</span>
-<span>                            rho_val <span class="op">=</span> <span class="va">rho_val</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="co">## The parties persist -- they hold the key shares. Only the local</span></span>
+<span>    <span class="co">## problem is rebuilt for this rho.</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="fu">set_rho</span><span class="op">(</span><span class="va">s</span>, <span class="va">rho_val</span><span class="op">)</span></span>
 <span>    <span class="va">z_curr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">p</span><span class="op">)</span></span>
 <span>    <span class="va">converged</span> <span class="op">&lt;-</span> <span class="cn">FALSE</span></span>
 <span>    <span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">40</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>        <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="fu">local_update</span><span class="op">(</span><span class="va">s</span>, <span class="va">z_curr</span><span class="op">)</span></span>
-<span>        <span class="va">means_xu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>,</span>
-<span>            <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">u_curr</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="va">N</span></span>
-<span>        <span class="va">z_new</span> <span class="op">&lt;-</span> <span class="va">means_xu</span></span>
+<span>        <span class="va">z_new</span> <span class="op">&lt;-</span> <span class="fu">encrypted_consensus</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span><span class="op">)</span></span>
 <span>        <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
 <span>            <span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">u_curr</span> <span class="op">+</span> <span class="op">(</span><span class="va">s</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">-</span> <span class="va">z_new</span><span class="op">)</span></span>
 <span>        <span class="op">}</span></span>
@@ -440,9 +545,10 @@ value is fixed for the encrypted run.</p>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">sweep_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>rho <span class="op">=</span> <span class="va">rho_grid</span>, iters <span class="op">=</span> <span class="va">sweep_iters</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">sweep_table</span>, caption <span class="op">=</span> <span class="st">"Cleartext ADMM iterations to convergence"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">sweep_table</span>,</span>
+<span>             caption <span class="op">=</span> <span class="st">"Threshold-FHE ADMM iterations to convergence"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Cleartext ADMM iterations to convergence</caption>
+<caption>Threshold-FHE ADMM iterations to convergence</caption>
 <thead><tr class="header">
 <th align="right">rho</th>
 <th align="right">iters</th>
@@ -462,27 +568,23 @@ value is fixed for the encrypted run.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rho_chosen</span> <span class="op">&lt;-</span> <span class="va">rho_grid</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">sweep_iters</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Selected rho = %g (converged in %d iterations).\n"</span>,</span>
 <span>            <span class="va">rho_chosen</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">sweep_iters</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Selected rho = 50 (converged in 19 iterations).</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="the-encrypted-admm-loop">The encrypted ADMM loop<a class="anchor" aria-label="anchor" href="#the-encrypted-admm-loop"></a>
+<h2 id="the-admm-run-at-the-chosen-rho">The ADMM run at the chosen
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math><a class="anchor" aria-label="anchor" href="#the-admm-run-at-the-chosen-rho"></a>
 </h2>
-<p>Threshold key generation, sites built with the chosen
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
-then the main loop:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
-<span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
-<span>                                n_sites        <span class="op">=</span> <span class="va">N</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span></span>
-<span>    <span class="fu">make_consensus_site</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Site "</span>, <span class="va">i</span><span class="op">)</span>,</span>
-<span>                        <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">X</span>, <span class="va">site_data</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">y</span>,</span>
-<span>                        rho_val <span class="op">=</span> <span class="va">rho_chosen</span><span class="op">)</span><span class="op">)</span></span>
+<p>Local problems rebuilt at the chosen
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
+— the same parties, holding the same shares from the key-generation
+chain above — then the main loop, identical to the sweep body except
+that it records the trajectory:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">sites</span><span class="op">)</span> <span class="fu">set_rho</span><span class="op">(</span><span class="va">s</span>, <span class="va">rho_chosen</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">z_curr</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">p</span><span class="op">)</span></span>
 <span><span class="va">max_iter</span>  <span class="op">&lt;-</span> <span class="fl">40</span></span>
@@ -517,7 +619,7 @@ then the main loop:</p>
 <div class="section level2">
 <h2 id="comparison-with-the-centralized-fit">Comparison with the centralized fit<a class="anchor" aria-label="anchor" href="#comparison-with-the-centralized-fit"></a>
 </h2>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    coefficient            <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"beta_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    threshold_distributed  <span class="op">=</span> <span class="va">z_curr</span>,</span>
@@ -545,7 +647,7 @@ then the main loop:</p>
 <td align="left">beta_2</td>
 <td align="right">-0.939203</td>
 <td align="right">-0.939209</td>
-<td align="right">6e-06</td>
+<td align="right">5e-06</td>
 </tr>
 <tr class="odd">
 <td align="left">beta_3</td>
@@ -561,12 +663,12 @@ then the main loop:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">max_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_curr</span> <span class="op">-</span> <span class="va">beta_central</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Max absolute coefficient difference vs. centralized fit: %.2e\n"</span>,</span>
 <span>            <span class="va">max_diff</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.58e-06</span></span></code></pre>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.44e-06</span></span></code></pre>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">max_diff</span> <span class="op">&gt;</span> <span class="fl">10</span> <span class="op">*</span> <span class="va">reltol</span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "</span>,</span>
 <span>         <span class="st">"investigate before publishing this run."</span><span class="op">)</span></span></code></pre></div>
@@ -583,11 +685,13 @@ have to rewrite their CVXR model for an encrypted setting — the same
 <code>Problem(Minimize(...))</code> they would write for cleartext data
 is used here verbatim.</li>
 <li>
-<strong>No single party holds the secret key.</strong>
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> distributes the secret across all
-sites; the aggregator holds only the joint public key. Encrypted
-intermediates are undecryptable by any single party, and the consensus
-result appears only after the n-of-n partial-decryption fusion.</li>
+<strong>No single party holds the secret key.</strong> Each site
+generated its own share during the key-generation chain and kept it; the
+aggregator holds only the joint public key, and has no property a share
+could sit in. Encrypted intermediates are undecryptable by any single
+party, and the consensus result appears only after the n-of-n
+partial-decryption fusion — which the aggregator can reach only by
+asking every site.</li>
 <li>
 <strong>DPP keeps the inner loop fast.</strong> Each site’s CVXR
 problem is built once at setup; ADMM iterations only update the
@@ -610,7 +714,15 @@ zero-knowledge proofs that this vignette does not implement.</li>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msup><mi>z</mi><mi>k</mi></msup><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{z^k\}</annotation></semantics></math>.</strong>
 Per-iteration consensus values are revealed in the clear (after fusion)
 so the optimizer can decide convergence. A subpoena to the aggregator
-yields this trajectory.</li>
+yields this trajectory — one per candidate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
+since the sweep runs the same protocol. Hiding the trajectory as well
+would mean keeping the residuals encrypted, which turns the stopping
+test and the <code>which.min</code> into comparisons on ciphertexts: a
+fixed iteration budget with a masked freeze in place of
+<code><a href="https://rdrr.io/r/base/Control.html" class="external-link">break</a></code>, and a polynomial or scheme-switched comparison in
+place of <code>&lt;</code>. Nothing rules that out in principle, but it
+is a different and far more expensive protocol than this one.</li>
 <li>
 <strong>No output privacy.</strong> The released
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>β</mi><mo accent="true">̂</mo></mover><mo>=</mo><msup><mi>z</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">\hat\beta = z^\star</annotation></semantics></math>

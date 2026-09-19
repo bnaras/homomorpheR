@@ -179,9 +179,12 @@ cc <- openfhe.R::fhe_context("CKKS",
                            batch_size           = 8L)
 keys <- openfhe.R::key_gen(cc)
 
-worker_gcb <- make_worker("GCB",      data = cox_data[["GCB"]],      local_fn = local_cox_nll)
-worker_abc <- make_worker("ABC",      data = cox_data[["ABC"]],      local_fn = local_cox_nll)
-worker_t3  <- make_worker("Type III", data = cox_data[["Type III"]], local_fn = local_cox_nll)
+worker_gcb <- make_worker(name = "GCB",      data = cox_data[["GCB"]],
+                          contribution_fn = local_cox_nll)
+worker_abc <- make_worker(name = "ABC",      data = cox_data[["ABC"]],
+                          contribution_fn = local_cox_nll)
+worker_t3  <- make_worker(name = "Type III", data = cox_data[["Type III"]],
+                          contribution_fn = local_cox_nll)
 master     <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
 set_workers(master, list(worker_gcb, worker_abc, worker_t3))
 ```
@@ -282,7 +285,7 @@ introduces no measurable error at the parameter sizes we use.
 4. **The master/worker classes are reusable.** The same exported
    `Site` / `Master` classes and `master_aggregate()` runner
    drive both this Cox vignette and the Poisson MLE vignette —
-   only the per-worker `local_fn` differs.
+   only the per-worker `contribution_fn` differs.
 
 ## Caveats and extensions
 

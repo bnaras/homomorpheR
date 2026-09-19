@@ -113,12 +113,54 @@ protocols using only these terms.
 Three objects carry the protocol.
 
 A **site** is built with
-[`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md).
-It holds the site’s data and a function `local_fn(data, theta)`
+[`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md).
+It holds the site’s data and a function `contribution_fn(data, theta)`
 returning that site’s summary at the parameter value `theta`. If a
-parameter value breaks the local computation — an extreme value that the
-local solver cannot handle — the function returns `NA`, and that signal
+parameter value breaks the computation — an extreme value that the
+site’s solver cannot handle — the function returns `NA`, and that signal
 propagates back to the optimizer rather than corrupting the fit.
+
+[`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)
+builds a `LocalSite` — a site whose records are in this R session. The
+master reaches every site through one generic,
+`contribute(site, theta)`, and what comes back is **already encrypted**:
+the site encrypts under the public key the master broadcast, so no
+individual site’s cleartext contribution ever reaches the aggregator.
+That is the property the whole protocol rests on, and it is why
+`contribution_fn` returns a plain number while
+[`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+— not you — does the encrypting.
+
+When the records are not in this session, subclass `RemoteSite` and give
+it a
+[`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+method. The package deliberately ships no implementation: transports
+differ too much, and a cryptography package has no business carrying an
+HTTP client. The extension is small:
+
+\
+`HttpSite`` ``<-`` ``S7``::`[`new_class`](https://rconsortium.github.io/S7/reference/new_class.html)`(``"HttpSite"``, parent ``=`` ``RemoteSite``,`\
+`                          properties ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``url ``=`` ``S7``::`[`class_character`](https://rconsortium.github.io/S7/reference/base_classes.html)`)``)`\
+\
+`S7``::`[`method`](https://rconsortium.github.io/S7/reference/method.html)`(``contribute``, ``HttpSite``)`` ``<-`` ``function``(``site``, ``theta``)`` ``{`\
+`    ``## The far side holds the public key and encrypts before replying,`\
+`    ``## so the wire carries ciphertext -- never a bare number.`\
+`    ``fetch_encrypted_contribution``(``site``@``url``, ``theta``)`\
+`}`
+
+Read
+[`?RemoteSite`](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+before writing one. The contract has a few sharp edges, the sharpest
+being that **`NA` and “unreachable” are different events**. `NA` means
+*this* `theta` broke the site’s solver, and the optimizer responds
+sensibly by trying a different parameter. A network or timeout failure
+is not that, and backing off to another `theta` does nothing about it —
+signal
+[`site_unavailable()`](https://bnaras.github.io/homomorpheR/reference/site_unavailable.md)
+instead, which aborts the round. Returning `NA` for an offline host, or
+quietly dropping the site, changes the set of sites being summed over
+between iterations and the fit converges to something that is not the
+estimand, with no error raised anywhere.
 
 An **aggregator** is built with either
 [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
@@ -131,12 +173,20 @@ matters:
   creates an aggregator holding an ordinary key pair. It is appropriate
   when one party is permitted to hold the secret key.
 - [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-  creates an aggregator using threshold keys, where no single party —
-  including the aggregator itself — can decrypt alone.
+  takes the sites and runs threshold key generation through them: each
+  site generates its own share and keeps it, so no single party —
+  including the aggregator itself — can decrypt alone. The aggregator it
+  returns holds only public material, and is already wired to those
+  sites.
 
 Because both are the same kind of object underneath, the protocol body
 is identical for either. Choosing a trust model means choosing a
-constructor, not rewriting the analysis.
+constructor, not rewriting the analysis. The one setup difference
+follows from the cryptography rather than the API: a joint public key is
+built *from* the sites, so under threshold keys the sites are created
+first and handed to the constructor, instead of being wired to an
+aggregator afterwards with
+[`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md).
 
 **`master_aggregate(master, theta)`** runs one round. The aggregator
 sends `theta` to every site; each site computes its local summary and

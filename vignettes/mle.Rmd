@@ -161,9 +161,9 @@ keys <- openfhe.R::key_gen(cc)
 ### 2. Build workers and master
 
 ```{r}
-worker1 <- make_worker("Site 1", data = y1, local_fn = local_nll)
-worker2 <- make_worker("Site 2", data = y2, local_fn = local_nll)
-worker3 <- make_worker("Site 3", data = y3, local_fn = local_nll)
+worker1 <- make_worker("Site 1", data = y1, contribution_fn = local_nll)
+worker2 <- make_worker("Site 2", data = y2, contribution_fn = local_nll)
+worker3 <- make_worker("Site 3", data = y3, contribution_fn = local_nll)
 master  <- make_ckks_master("Master", crypto_context = cc, keypair = keys)
 set_workers(master, list(worker1, worker2, worker3))
 ```

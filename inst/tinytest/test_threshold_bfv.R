@@ -24,10 +24,10 @@ query_data <- lapply(sample_size, function(n)
                bm  = rnorm(n)))
 query <- quote(age < 50 & sex == "F" & bm < 0.2)
 
-master  <- make_threshold_master("Coordinator", crypto_context = cc, n_sites = 3)
 workers <- Map(function(nm, d) make_worker(nm, d, local_count),
                c("S1", "S2", "S3"), query_data)
-set_workers(master, workers)
+master  <- make_threshold_master("Coordinator", crypto_context = cc,
+                                 sites = workers)
 
 cleartext <- sum(vapply(query_data, function(d) sum(eval(query, d)), integer(1)))
 encrypted <- master_aggregate(master, theta = query)
@@ -37,8 +37,7 @@ expect_identical(as.integer(encrypted), as.integer(cleartext))
 
 ## A plain integer sum with no query, to isolate the codec from the
 ## query machinery.
-m2 <- make_threshold_master("M2", crypto_context = cc, n_sites = 3)
 w  <- Map(function(nm, k) make_worker(nm, k, function(data, theta) data),
           c("A", "B", "C"), list(7L, 3L, 12L))
-set_workers(m2, w)
+m2 <- make_threshold_master("M2", crypto_context = cc, sites = w)
 expect_identical(as.integer(master_aggregate(m2, theta = 0)), 22L)

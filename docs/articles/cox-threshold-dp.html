@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold-dp.Rmd" class="external-link"><code>vignettes/cox-threshold-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold-dp.Rmd</code></div>
@@ -209,7 +209,7 @@ when each site adds
 </h2>
 <p>The threshold infrastructure is the same as
 <code>cox-threshold</code>. The DP twist lives entirely inside the
-per-worker <code>local_fn</code>: each worker adds an independent
+per-worker <code>contribution_fn</code>: each worker adds an independent
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mi>/</mi><mi>N</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{N}(0, \sigma^2/N)</annotation></semantics></math>
 draw to its local nLL before returning. The master/worker runner sees
 only the noisy local value and encrypts it as usual.</p>
@@ -228,7 +228,7 @@ only the noisy local value and encrypts it as usual.</p>
 <span>        <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span></span>
 <span>            <span class="va">nm</span>,</span>
 <span>            data     <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>            local_fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>            contribution_fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">beta</span><span class="op">)</span> <span class="op">{</span></span>
 <span>                <span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">local_cox_nll</span><span class="op">(</span><span class="va">data</span>, <span class="va">beta</span><span class="op">)</span></span>
 <span>                <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">nll</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_real_</span><span class="op">)</span></span>
 <span>                <span class="va">nll</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1L</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="va">sigma</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">n_sites</span><span class="op">)</span><span class="op">)</span></span>
@@ -238,10 +238,10 @@ only the noisy local value and encrypts it as usual.</p>
 <span></span>
 <span><span class="va">fit_at_sigma</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">sigma</span>, <span class="va">method</span> <span class="op">=</span> <span class="st">"BFGS"</span>, <span class="va">seed</span> <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span>   <span class="co"># stabilize the DP-noise draws across runs</span></span>
-<span>    <span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
-<span>                                    crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
-<span>                                    n_sites        <span class="op">=</span> <span class="va">n_sites</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/set_workers.html">set_workers</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu">build_dp_workers</span><span class="op">(</span><span class="va">sigma</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">workers</span> <span class="op">&lt;-</span> <span class="fu">build_dp_workers</span><span class="op">(</span><span class="va">sigma</span><span class="op">)</span></span>
+<span>    <span class="va">master</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
+<span>                                     crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
+<span>                                     sites          <span class="op">=</span> <span class="va">workers</span><span class="op">)</span></span>
 <span>    <span class="va">dp_nLL</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">GCB_sig</span>, <span class="va">LN_sig</span>, <span class="va">Prolif_sig</span>, <span class="va">BMP6</span>, <span class="va">MHC2_sig</span><span class="op">)</span></span>
 <span>        <span class="fu"><a href="../reference/master_aggregate.html">master_aggregate</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">GCB_sig</span>, <span class="va">LN_sig</span>, <span class="va">Prolif_sig</span>, <span class="va">BMP6</span>, <span class="va">MHC2_sig</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu">stats4</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="va">dp_nLL</span>,</span>
@@ -283,7 +283,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638716</td>
 <td align="right">-0.2638698</td>
-<td align="right">1.822e-06</td>
+<td align="right">1.823e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
@@ -381,24 +381,24 @@ threshold-DP encrypted nLL.</p>
 <tr class="even">
 <td align="left">sigma_0.001</td>
 <td align="right">1e-03</td>
-<td align="right">188</td>
-<td align="right">-0.261850</td>
-<td align="right">-0.257345</td>
-<td align="right">0.297219</td>
-<td align="right">0.307649</td>
-<td align="right">-0.320030</td>
-<td align="right">0.005907</td>
+<td align="right">95</td>
+<td align="right">-0.255596</td>
+<td align="right">-0.257797</td>
+<td align="right">0.284336</td>
+<td align="right">0.305723</td>
+<td align="right">-0.320768</td>
+<td align="right">0.018790</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="right">1e-02</td>
-<td align="right">192</td>
-<td align="right">-0.208114</td>
-<td align="right">-0.227125</td>
-<td align="right">0.345950</td>
-<td align="right">0.328699</td>
-<td align="right">-0.350792</td>
-<td align="right">0.055757</td>
+<td align="right">268</td>
+<td align="right">-0.261541</td>
+<td align="right">-0.246078</td>
+<td align="right">0.296769</td>
+<td align="right">0.311191</td>
+<td align="right">-0.310249</td>
+<td align="right">0.008897</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -414,13 +414,13 @@ threshold-DP encrypted nLL.</p>
 <tr class="odd">
 <td align="left">sigma_1</td>
 <td align="right">1e+00</td>
-<td align="right">90</td>
-<td align="right">-0.133843</td>
-<td align="right">-0.389685</td>
-<td align="right">0.034282</td>
-<td align="right">-0.045055</td>
-<td align="right">-0.336133</td>
-<td align="right">0.348692</td>
+<td align="right">158</td>
+<td align="right">-0.133839</td>
+<td align="right">-0.389813</td>
+<td align="right">0.034248</td>
+<td align="right">-0.045046</td>
+<td align="right">-0.336148</td>
+<td align="right">0.348684</td>
 </tr>
 </tbody>
 </table>
@@ -481,7 +481,7 @@ divisor. Noise still hurts it, but more gently than BFGS.</p>
 <span>                 <span class="va">fits_bfgs</span><span class="op">[[</span><span class="st">"sigma_1"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                 <span class="va">fit_nm_1</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 90 evals, NM 503
+<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 158 evals, NM 503
 evals)</caption>
 <thead><tr class="header">
 <th align="left">coefficient</th>
@@ -493,31 +493,31 @@ evals)</caption>
 <tr class="odd">
 <td align="left">GCB_sig</td>
 <td align="right">-0.263872</td>
-<td align="right">-0.133843</td>
+<td align="right">-0.133839</td>
 <td align="right">-0.046219</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
 <td align="right">-0.254359</td>
-<td align="right">-0.389685</td>
+<td align="right">-0.389813</td>
 <td align="right">-0.169005</td>
 </tr>
 <tr class="odd">
 <td align="left">Prolif_sig</td>
 <td align="right">0.303126</td>
-<td align="right">0.034282</td>
+<td align="right">0.034248</td>
 <td align="right">0.048707</td>
 </tr>
 <tr class="even">
 <td align="left">BMP6</td>
 <td align="right">0.303638</td>
-<td align="right">-0.045055</td>
+<td align="right">-0.045046</td>
 <td align="right">0.472601</td>
 </tr>
 <tr class="odd">
 <td align="left">MHC2_sig</td>
 <td align="right">-0.319147</td>
-<td align="right">-0.336133</td>
+<td align="right">-0.336148</td>
 <td align="right">-0.343019</td>
 </tr>
 </tbody>
@@ -592,19 +592,19 @@ zCDP composition gives:</p>
 <td align="left">sigma_0.001</td>
 <td align="left">BFGS</td>
 <td align="right">1e-03</td>
-<td align="right">188</td>
+<td align="right">95</td>
 <td align="right">5e+05</td>
-<td align="right">9.400e+07</td>
-<td align="right">9.406579e+07</td>
+<td align="right">4.750e+07</td>
+<td align="right">4.754677e+07</td>
 </tr>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="left">BFGS</td>
 <td align="right">1e-02</td>
-<td align="right">192</td>
+<td align="right">268</td>
 <td align="right">5e+03</td>
-<td align="right">9.600e+05</td>
-<td align="right">9.666490e+05</td>
+<td align="right">1.340e+06</td>
+<td align="right">1.347856e+06</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -619,10 +619,10 @@ zCDP composition gives:</p>
 <td align="left">sigma_1</td>
 <td align="left">BFGS</td>
 <td align="right">1e+00</td>
-<td align="right">90</td>
+<td align="right">158</td>
 <td align="right">5e-01</td>
-<td align="right">4.500e+01</td>
-<td align="right">9.052280e+01</td>
+<td align="right">7.900e+01</td>
+<td align="right">1.393165e+02</td>
 </tr>
 <tr class="even">
 <td align="left">1</td>

@@ -10,19 +10,21 @@ master_aggregate(master, theta)
 \item{master}{a \link{Master}, wired to workers via \code{\link[=set_workers]{set_workers()}}.}
 
 \item{theta}{the current parameter value (passed through to each
-worker's \code{local_fn}).}
+worker).}
 }
 \value{
-the aggregated value, or \code{NA_real_} on failure.
+the aggregated value, or \code{NA_real_} if some site found
+\code{theta} non-evaluable.
 }
 \description{
-Backend-agnostic via the \code{\link[=master_encrypt]{master_encrypt()}} / \code{\link[=master_decrypt]{master_decrypt()}}
-generics: works over \link{CKKSMaster}, \link{ThresholdMaster}, and the
-legacy \link{PaillierMaster}.
+Backend-agnostic: sites are reached through \code{\link[=contribute]{contribute()}} and the
+total is recovered through the \code{\link[=master_decrypt]{master_decrypt()}} generic, so the
+same body works over \link{CKKSMaster} and \link{ThresholdMaster}.
 }
 \details{
-The master broadcasts \code{theta} to each worker. Each worker computes
-its local summary \code{local_fn(data, theta)} and the result is
+The master broadcasts \code{theta} to each worker — and only \code{theta};
+each worker supplies its own \code{data}. Each worker returns
+\code{contribution_fn(data, theta)} and the result is
 encrypted under the master's public key. The master sums the
 encrypted contributions homomorphically and decrypts the total.
 
@@ -33,6 +35,20 @@ in principle decrypt individual contributions; the cryptographic
 guarantee strengthens when paired with threshold key generation
 (no single party holds the secret key).
 
-If any worker's \code{local_fn} returns \code{NA}, this function returns
-\code{NA_real_}.
+Each worker returns an \emph{already encrypted} contribution (see
+\code{\link[=contribute]{contribute()}}), so no individual site's cleartext value reaches the
+master. Only the aggregate is decrypted.
+
+Two failure modes, deliberately distinct. If a worker returns \code{NA},
+\code{theta} is non-evaluable there and this function returns \code{NA_real_},
+which optimizers read as "back off and try elsewhere". If a worker
+signals \code{\link[=site_unavailable]{site_unavailable()}}, it could not be reached at all; that
+condition propagates and aborts the round, because continuing would
+sum over a different set of sites and silently change the objective
+between optimizer iterations.
+
+\code{NA} is the one value that travels in the clear, since CKKS cannot
+represent it. A master that chooses \code{theta} adaptively therefore
+learns which parameter values break which site — a residual side
+channel that no amount of encryption here removes.
 }

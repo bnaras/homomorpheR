@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox.Rmd" class="external-link"><code>vignettes/cox.Rmd</code></a></small>
       <div class="d-none name"><code>cox.Rmd</code></div>
@@ -268,9 +268,12 @@ We lift <code>scaling_mod_size</code> from 50 to 59 and set
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span><span class="op">)</span></span>
 <span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">worker_gcb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"GCB"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"GCB"</span><span class="op">]</span><span class="op">]</span>,      local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
-<span><span class="va">worker_abc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"ABC"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"ABC"</span><span class="op">]</span><span class="op">]</span>,      local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
-<span><span class="va">worker_t3</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Type III"</span>, data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"Type III"</span><span class="op">]</span><span class="op">]</span>, local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span><span class="va">worker_gcb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"GCB"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"GCB"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span><span class="va">worker_abc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"ABC"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"ABC"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span><span class="va">worker_t3</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Type III"</span>, data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"Type III"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
 <span><span class="va">master</span>     <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_ckks_master.html">make_ckks_master</a></span><span class="op">(</span><span class="st">"Master"</span>, crypto_context <span class="op">=</span> <span class="va">cc</span>, keypair <span class="op">=</span> <span class="va">keys</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/set_workers.html">set_workers</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">worker_gcb</span>, <span class="va">worker_abc</span>, <span class="va">worker_t3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -308,7 +311,7 @@ master/worker round and returns a single decrypted scalar.</p>
 <span><span class="co">##              Estimate Std. Error</span></span>
 <span><span class="co">## GCB_sig    -0.2638698 0.11940447</span></span>
 <span><span class="co">## LN_sig     -0.2543587 0.08515178</span></span>
-<span><span class="co">## Prolif_sig  0.3031250 0.14981283</span></span>
+<span><span class="co">## Prolif_sig  0.3031250 0.14981284</span></span>
 <span><span class="co">## BMP6        0.3036367 0.10727837</span></span>
 <span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span>
 <span><span class="co">## </span></span>
@@ -371,7 +374,7 @@ coxph()</caption>
 <td align="left">GCB_sig</td>
 <td align="right">-0.2638698</td>
 <td align="right">-0.2638716</td>
-<td align="right">1.823e-06</td>
+<td align="right">1.822e-06</td>
 </tr>
 <tr class="even">
 <td align="left">LN_sig</td>
@@ -457,8 +460,8 @@ numbers.</li>
 <strong>The master/worker classes are reusable.</strong> The same
 exported <code>Site</code> / <code>Master</code> classes and
 <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> runner drive both this Cox vignette and
-the Poisson MLE vignette — only the per-worker <code>local_fn</code>
-differs.</li>
+the Poisson MLE vignette — only the per-worker
+<code>contribution_fn</code> differs.</li>
 </ol>
 </div>
 <div class="section level2">

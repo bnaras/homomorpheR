@@ -164,14 +164,37 @@ The vignette uses fully synthetic data so it renders quickly during
 package build. The phenotype-mixture model below is the simplest setup
 that gives a meaningful retrieval ground truth.
 
-[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(``{`` `` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` `[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`` ``}``)`` `[`set.seed`](https://rdrr.io/r/base/Random.html)`(``20260428``)`` `` ``p`` ``<-`` ``32L`` ``n_sites`` ``<-`` ``3L`` ``cohort_sizes`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``80L``, ``60L``, ``100L``)`` ``n_anchor`` ``<-`` ``100L`` ``n_phenotypes`` ``<-`` ``5L`` ``top_k`` ``<-`` ``5L`
+\
+[`suppressPackageStartupMessages`](https://rdrr.io/r/base/message.html)`(``{`\
+`  `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`\
+`  `[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`\
+`}``)`\
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``20260428``)`\
+\
+`p``             ``<-`` ``32L`\
+`n_sites``       ``<-`` ``3L`\
+`cohort_sizes``  ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``80L``, ``60L``, ``100L``)`\
+`n_anchor``      ``<-`` ``100L`\
+`n_phenotypes``  ``<-`` ``5L`\
+`top_k``         ``<-`` ``5L`
 
 A patient is one of `n_phenotypes` clinical phenotypes. Each phenotype
 is a Gaussian cluster in $`\mathbf{R}^p`$. Phenotype labels are the
 retrieval ground truth: a query of phenotype $`j`$ should be matched to
 database patients of phenotype $`j`$.
 
-`phenotype_centers`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_phenotypes`` ``*`` ``p``, sd ``=`` ``1``)``,`` `` ``n_phenotypes``, ``p``)`` `` ``embed_public`` ``<-`` ``function``(``n``)`` ``{`` `` ``labels`` ``<-`` `[`sample.int`](https://rdrr.io/r/base/sample.html)`(``n_phenotypes``, ``n``, replace ``=`` ``TRUE``)`` `` ``centers`` ``<-`` ``phenotype_centers``[``labels``, , drop ``=`` ``FALSE``]`` `` ``noise`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n`` ``*`` ``p``, sd ``=`` ``0.4``)``, ``n``, ``p``)`` `` ``z`` ``<-`` ``centers`` ``+`` ``noise`` `` ``z`` ``<-`` ``z`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``z``^``2``)``)`` ``# unit norm`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z``, label ``=`` ``labels``)`` ``}`
+\
+`phenotype_centers`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_phenotypes`` ``*`` ``p``, sd ``=`` ``1``)``,`\
+`                            ``n_phenotypes``, ``p``)`\
+\
+`embed_public`` ``<-`` ``function``(``n``)`` ``{`\
+`  ``labels``  ``<-`` `[`sample.int`](https://rdrr.io/r/base/sample.html)`(``n_phenotypes``, ``n``, replace ``=`` ``TRUE``)`\
+`  ``centers`` ``<-`` ``phenotype_centers``[``labels``, , drop ``=`` ``FALSE``]`\
+`  ``noise``   ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n`` ``*`` ``p``, sd ``=`` ``0.4``)``, ``n``, ``p``)`\
+`  ``z`` ``<-`` ``centers`` ``+`` ``noise`\
+`  ``z`` ``<-`` ``z`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``z``^``2``)``)``            ``# unit norm`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z``, label ``=`` ``labels``)`\
+`}`
 
 A site fine-tunes for its own purposes; it does not constrain the result
 to be an isometry of the public model. We therefore model the per-site
@@ -185,7 +208,26 @@ directions anisotropically, as a freely fine-tuned model generically
 would. The site’s embeddings are unit-normalized after the map, so the
 drift acts on the sphere.
 
-`random_drift`` ``<-`` ``function``(``p``, ``beta``)`` ``{`` `` ``## Free fine-tuning, simulated as B = Q D: a random rotation Q`` `` ``## composed with an anisotropic stretch D = diag(exp(beta g)).`` `` ``## beta = 0 gives an exactly orthogonal (isometric) drift;`` `` ``## beta > 0 is non-isometric, the generic fine-tuned case.`` `` ``Q`` ``<-`` `[`qr.Q`](https://rdrr.io/r/base/qraux.html)`(`[`qr`](https://rdrr.io/r/base/qr.html)`(`[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p`` ``*`` ``p``)``, ``p``, ``p``)``)``)`` `` ``if`` ``(``beta`` ``==`` ``0``)`` `[`return`](https://rdrr.io/r/base/function.html)`(``Q``)`` `` ``Q`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`exp`](https://rdrr.io/r/base/Log.html)`(``beta`` ``*`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``)``)``)`` ``}`` `` ``embed_private`` ``<-`` ``function``(``z_public``, ``B_k``)`` ``{`` `` ``## Site k's fine-tuned model in column-vector convention:`` `` ``## f_k(x) = B_k · f(x). For a matrix z_public of n row-stacked`` `` ``## vectors, the private embeddings are z_public %*% t(B_k),`` `` ``## then unit-normalized (the drift acts on the sphere; under a`` `` ``## non-isometric B the normalization is a genuine nonlinearity).`` `` ``v`` ``<-`` ``z_public`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`t`](https://rdrr.io/r/base/t.html)`(``B_k``)`` `` ``v`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``v``^``2``)``)`` ``}`
+\
+`random_drift`` ``<-`` ``function``(``p``, ``beta``)`` ``{`\
+`  ``## Free fine-tuning, simulated as B = Q D: a random rotation Q`\
+`  ``## composed with an anisotropic stretch D = diag(exp(beta g)).`\
+`  ``## beta = 0 gives an exactly orthogonal (isometric) drift;`\
+`  ``## beta > 0 is non-isometric, the generic fine-tuned case.`\
+`  ``Q`` ``<-`` `[`qr.Q`](https://rdrr.io/r/base/qraux.html)`(`[`qr`](https://rdrr.io/r/base/qr.html)`(`[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p`` ``*`` ``p``)``, ``p``, ``p``)``)``)`\
+`  ``if`` ``(``beta`` ``==`` ``0``)`` `[`return`](https://rdrr.io/r/base/function.html)`(``Q``)`\
+`  ``Q`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`exp`](https://rdrr.io/r/base/Log.html)`(``beta`` ``*`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``)``)``)`\
+`}`\
+\
+`embed_private`` ``<-`` ``function``(``z_public``, ``B_k``)`` ``{`\
+`  ``## Site k's fine-tuned model in column-vector convention:`\
+`  ``## f_k(x) = B_k · f(x). For a matrix z_public of n row-stacked`\
+`  ``## vectors, the private embeddings are z_public %*% t(B_k),`\
+`  ``## then unit-normalized (the drift acts on the sphere; under a`\
+`  ``## non-isometric B the normalization is a genuine nonlinearity).`\
+`  ``v`` ``<-`` ``z_public`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`t`](https://rdrr.io/r/base/t.html)`(``B_k``)`\
+`  ``v`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``v``^``2``)``)`\
+`}`
 
 The public anchor cohort is a small, publicly-available set of patient
 examples. Each site embeds the anchors twice — once with the public
@@ -212,7 +254,25 @@ query, $`\langle A_k q,\, v\rangle`$, which recovers the public-space
 cosine $`\langle q, u\rangle`$ when the adapter inverts the drift
 (exactly, in the orthogonal limit).
 
-`fit_adapter`` ``<-`` ``function``(``Z_priv``, ``Z_pub``, ``mu``)`` ``{`` `` ``## Compatibility adapter A (private -> public): Z_priv A ~ Z_pub,`` `` ``## with a near-isometry penalty mu * ||A^T A - I||^2.`` `` ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``Z_priv``)`` `` ``if`` ``(`[`is.infinite`](https://rdrr.io/r/base/is.finite.html)`(``mu``)``)`` ``{`` ``# orthogonal Procrustes`` `` ``sv`` ``<-`` `[`svd`](https://rdrr.io/r/base/svd.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)`` `` `[`return`](https://rdrr.io/r/base/function.html)`(``sv``$``u`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`t`](https://rdrr.io/r/base/t.html)`(``sv``$``v``)``)`` `` ``}`` `` ``A_ls`` ``<-`` `[`solve`](https://rdrr.io/r/base/solve.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``)`` ``+`` ``1e-6`` ``*`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)`` `` ``if`` ``(``mu`` ``==`` ``0``)`` `[`return`](https://rdrr.io/r/base/function.html)`(``A_ls``)`` ``# least squares`` `` ``fn`` ``<-`` ``function``(``par``)`` ``{`` ``A`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``par``, ``p``, ``p``)`` ``# near-orthogonal`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``Z_priv`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A`` ``-`` ``Z_pub``)``^``2``)`` ``+`` ``mu`` ``*`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``)``^``2``)`` ``}`` `` ``gr`` ``<-`` ``function``(``par``)`` ``{`` ``A`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``par``, ``p``, ``p``)`` `` `[`as.vector`](https://rdrr.io/r/base/vector.html)`(``2`` ``*`` `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_priv`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A`` ``-`` ``Z_pub``)`` ``+`` `` ``4`` ``*`` ``mu`` ``*`` ``(``A`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``)``)``)`` ``}`` `` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`optim`](https://rdrr.io/r/stats/optim.html)`(`[`as.vector`](https://rdrr.io/r/base/vector.html)`(``A_ls``)``, ``fn``, ``gr``, method ``=`` ``"L-BFGS-B"``,`` `` control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``maxit ``=`` ``400``)``)``$``par``, ``p``, ``p``)`` ``}`
+\
+`fit_adapter`` ``<-`` ``function``(``Z_priv``, ``Z_pub``, ``mu``)`` ``{`\
+`  ``## Compatibility adapter A (private -> public): Z_priv A ~ Z_pub,`\
+`  ``## with a near-isometry penalty mu * ||A^T A - I||^2.`\
+`  ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``Z_priv``)`\
+`  ``if`` ``(`[`is.infinite`](https://rdrr.io/r/base/is.finite.html)`(``mu``)``)`` ``{``                       ``# orthogonal Procrustes`\
+`    ``sv`` ``<-`` `[`svd`](https://rdrr.io/r/base/svd.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)`\
+`    `[`return`](https://rdrr.io/r/base/function.html)`(``sv``$``u`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`t`](https://rdrr.io/r/base/t.html)`(``sv``$``v``)``)`\
+`  ``}`\
+`  ``A_ls`` ``<-`` `[`solve`](https://rdrr.io/r/base/solve.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``)`` ``+`` ``1e-6`` ``*`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)`\
+`  ``if`` ``(``mu`` ``==`` ``0``)`` `[`return`](https://rdrr.io/r/base/function.html)`(``A_ls``)``                     ``# least squares`\
+`  ``fn`` ``<-`` ``function``(``par``)`` ``{`` ``A`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``par``, ``p``, ``p``)``  ``# near-orthogonal`\
+`    `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``Z_priv`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A`` ``-`` ``Z_pub``)``^``2``)`` ``+`` ``mu`` ``*`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``)``^``2``)`` ``}`\
+`  ``gr`` ``<-`` ``function``(``par``)`` ``{`` ``A`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``par``, ``p``, ``p``)`\
+`    `[`as.vector`](https://rdrr.io/r/base/vector.html)`(``2`` ``*`` `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_priv`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A`` ``-`` ``Z_pub``)`` ``+`\
+`              ``4`` ``*`` ``mu`` ``*`` ``(``A`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``)``)``)`` ``}`\
+`  `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`optim`](https://rdrr.io/r/stats/optim.html)`(`[`as.vector`](https://rdrr.io/r/base/vector.html)`(``A_ls``)``, ``fn``, ``gr``, method ``=`` ``"L-BFGS-B"``,`\
+`               control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``maxit ``=`` ``400``)``)``$``par``, ``p``, ``p``)`\
+`}`
 
 A convex alternative one might reach for is *Gram / metric learning*
 (§10.4 of the companion exploration): fit a positive-semidefinite $`M`$
@@ -223,19 +283,33 @@ Z_{\text{pub}}Z_{\text{pub}}^\top\rVert_F^2`$. Its minimizer is analytic
 square root. We include it only to show, below, that it is the *wrong*
 tool here.
 
-`fit_gram`` ``<-`` ``function``(``Z_priv``, ``Z_pub``)`` ``{`` `` ``M`` ``<-`` `[`tcrossprod`](https://rdrr.io/r/base/crossprod.html)`(`[`solve`](https://rdrr.io/r/base/solve.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``)`` ``+`` ``1e-6`` ``*`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`ncol`](https://rdrr.io/r/base/nrow.html)`(``Z_priv``)``)``,`` `` `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)``)`` `` ``e`` ``<-`` `[`eigen`](https://rdrr.io/r/base/eigen.html)`(``M``, symmetric ``=`` ``TRUE``)`` `` ``e``$``vectors`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``(`[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``e``$``values``, ``0``)``)`` ``*`` `[`t`](https://rdrr.io/r/base/t.html)`(``e``$``vectors``)``)`` ``# symmetric M^{1/2}`` ``}`` `` ``unit_rows`` ``<-`` ``function``(``Z``)`` ``Z`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``Z``^``2``)``)`` ``# for Design-1 folding`
+\
+`fit_gram`` ``<-`` ``function``(``Z_priv``, ``Z_pub``)`` ``{`\
+`  ``M`` ``<-`` `[`tcrossprod`](https://rdrr.io/r/base/crossprod.html)`(`[`solve`](https://rdrr.io/r/base/solve.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``)`` ``+`` ``1e-6`` ``*`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`ncol`](https://rdrr.io/r/base/nrow.html)`(``Z_priv``)``)``,`\
+`                        `[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Z_priv``, ``Z_pub``)``)``)`\
+`  ``e`` ``<-`` `[`eigen`](https://rdrr.io/r/base/eigen.html)`(``M``, symmetric ``=`` ``TRUE``)`\
+`  ``e``$``vectors`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``(`[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``e``$``values``, ``0``)``)`` ``*`` `[`t`](https://rdrr.io/r/base/t.html)`(``e``$``vectors``)``)``   ``# symmetric M^{1/2}`\
+`}`\
+\
+`unit_rows`` ``<-`` ``function``(``Z``)`` ``Z`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``Z``^``2``)``)``            ``# for Design-1 folding`
 
 A moderate non-isometry magnitude drives the protocol walk-through; the
 sweeps later vary it:
 
-`beta_demo`` ``<-`` ``0.6`` ``mu_demo`` ``<-`` ``Inf`` ``# orthogonal endpoint for the encrypted walk-through`
+\
+`beta_demo`` ``<-`` ``0.6`\
+`mu_demo``   ``<-`` ``Inf``      ``# orthogonal endpoint for the encrypted walk-through`
 
 The site cohorts and anchor cohort are sampled from the same
 phenotype-mixture model (in real deployments the anchor cohort is
 publicly distributed and its phenotype distribution is set once; we
 approximate by independent sampling).
 
-`public_anchor`` ``<-`` ``embed_public``(``n_anchor``)`` ``public_query`` ``<-`` ``embed_public``(``1L``)`` ``# one query for the protocol walk-through`` `` ``site_cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_public``)`
+\
+`public_anchor`` ``<-`` ``embed_public``(``n_anchor``)`\
+`public_query``  ``<-`` ``embed_public``(``1L``)``        ``# one query for the protocol walk-through`\
+\
+`site_cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_public``)`
 
 We later fit one adapter $`A_k`$ per site, build both the raw-private
 and folded public-compatible databases, and report retrieval recall as
@@ -244,20 +318,45 @@ the non-isometry $`\beta`$ and the penalty $`\mu`$ vary.
 ## Threshold key generation
 
 The three sites jointly construct a CKKS keypair so that the secret key
-is split $`n`$-of-$`n`$ across them. The familiar
+is split $`n`$-of-$`n`$ across them.
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-from `homomorpheR` wires the joint public key and the per-site
-secret-key shares for us; the master is given the joint public key but
-never holds usable secret material.
+from `homomorpheR` walks that chain across the sites: each site
+generates its own share, keeps it, and passes on only a public key. The
+master is handed the joint public key and holds no secret material at
+all.
 
-`cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(`` `` scheme ``=`` ``"CKKS"``,`` `` multiplicative_depth ``=`` ``3L``,`` `` scaling_mod_size ``=`` ``45L``,`` `` batch_size ``=`` ``p``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Feature``$``MULTIPARTY``, ``Feature``$``KEYSWITCH``)``)`` `` ``master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``name ``=`` ``"master"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``n_sites``)`
+Because the joint key is built *from* the sites, the sites are
+constructed first.
 
-The joint public key is `master@joint_pubkey`; the secret-key shares are
-`master@secret_keys[[k]]` for $`k = 1, \ldots, n`$. The
-`master_encrypt(master, x)` and `master_decrypt(master, ct, len)`
-generics dispatch on `ThresholdMaster` and run the $`n`$-of-$`n`$
-partial-decryption ceremony internally — no party ever holds a usable
-secret unilaterally.
+\
+`cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(`\
+`  scheme               ``=`` ``"CKKS"``,`\
+`  multiplicative_depth ``=`` ``3L``,`\
+`  scaling_mod_size     ``=`` ``45L``,`\
+`  batch_size           ``=`` ``p``,`\
+`  features             ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Feature``$``MULTIPARTY``, ``Feature``$``KEYSWITCH``)``)`\
+\
+`sites`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`  `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(`[`paste`](https://rdrr.io/r/base/paste.html)`(``"Site"``, ``k``)``, data ``=`` ``NULL``,`\
+`              contribution_fn ``=`` ``function``(``data``, ``theta``)`` ``NULL``)``)`\
+\
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``name ``=`` ``"master"``,`\
+`                                crypto_context ``=`` ``cc``,`\
+`                                sites ``=`` ``sites``)`\
+\
+`## Published once, when key generation completes, to every party that`\
+`## will encrypt -- the sites and the querying party alike. It is public`\
+`## in full, and it is the last thing anyone needs from the aggregator.`\
+`pub`` ``<-`` ``sites``[[``1``]``]``@``state``$``params`
+
+Site $`k`$’s share lives in `sites[[k]]@state$sk` and nowhere else.
+`master_decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
+runs the $`n`$-of-$`n`$ ceremony by asking each site for a partial
+decryption — no party ever holds a usable secret unilaterally, the
+aggregator included.
+
+Everything below encrypts with `pub`. No party consults the aggregator
+again; each holds what it was given and works from that.
 
 ## Joint rotation keys
 
@@ -283,7 +382,44 @@ $`p`$-vector into slot 0. The same set of rotation indices serves both
 purposes; we generate keys for indices $`1, \ldots, p-1`$ and rely on
 the subset that each step needs.
 
-`rotation_indices`` ``<-`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p`` ``-`` ``1L``)`` ``sks`` ``<-`` ``master``@``secret_keys`` ``pks`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``master``@``joint_pubkey``)`` ``# daisy-chain pubkey at step 1`` ``joint_pk_tag`` ``<-`` `[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``master``@``joint_pubkey``)`` `` ``## Lead-party rotation-key generation. Populates the crypto`` ``## context's automorphism-key registry under the lead party's`` ``## secret-key tag.`` `[`eval_rotate_key_gen`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate_key_gen.html)`(``cc``, ``sks``[[``1``]``]``, ``rotation_indices``)`` `` ``lead_tag`` ``<-`` `[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``sks``[[``1``]``]``)`` ``rot_running`` ``<-`` `[`get_eval_automorphism_key_map`](https://openfheorg.github.io/openfhe.R/reference/get_eval_automorphism_key_map.html)`(``lead_tag``)`` `` ``## Sites 2..n contribute their rotation-key shares in turn.`` ``## At each step, the running joint share is registered under`` ``` ## the cumulative-pubkey tag — which for our `make_threshold_master` ``` ``` ## is the same `joint_pk_tag` at every step (the master daisy-chains ``` ``## pubkeys forward but only retains the final joint pubkey).`` ``for`` ``(``k`` ``in`` ``2``:``n_sites``)`` ``{`` `` ``share_k`` ``<-`` `[`multi_eval_at_index_key_gen`](https://openfheorg.github.io/openfhe.R/reference/multi_eval_at_index_key_gen.html)`(`` `` ``cc``, ``sks``[[``k``]``]``, ``rot_running``,`` `` index_list ``=`` ``rotation_indices``,`` `` key_tag ``=`` ``joint_pk_tag``)`` `` ``rot_running`` ``<-`` `[`multi_add_eval_automorphism_keys`](https://openfheorg.github.io/openfhe.R/reference/multi_add_eval_automorphism_keys.html)`(`` `` ``cc``, ``rot_running``, ``share_k``, key_tag ``=`` ``joint_pk_tag``)`` ``}`` `` `[`insert_eval_automorphism_key`](https://openfheorg.github.io/openfhe.R/reference/insert_eval_automorphism_key.html)`(``rot_running``, key_tag ``=`` ``joint_pk_tag``)`
+\
+`rotation_indices`` ``<-`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p`` ``-`` ``1L``)`\
+`joint_pk_tag`` ``<-`` `[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``master``@``joint_pubkey``)`\
+\
+`## Each of the two functions below runs *at a site*, and touches only`\
+`## that site's own share. Nothing collects the shares into one list:`\
+`` ## a variable holding every `sk` would be exactly the single point of ``\
+`## compromise the n-of-n split exists to remove.`\
+\
+`## Lead site. Generates its rotation keys under its own share, which`\
+`## populates the context's automorphism-key registry under that`\
+`## share's tag, and returns the resulting (public) key map.`\
+`site_rotation_lead`` ``<-`` ``function``(``site``, ``indices``)`` ``{`\
+`  `[`eval_rotate_key_gen`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate_key_gen.html)`(``cc``, ``site``@``state``$``sk``, ``indices``)`\
+`  `[`get_eval_automorphism_key_map`](https://openfheorg.github.io/openfhe.R/reference/get_eval_automorphism_key_map.html)`(`[`get_key_tag`](https://openfheorg.github.io/openfhe.R/reference/key_tag.html)`(``site``@``state``$``sk``)``)`\
+`}`\
+\
+`## A following site. Contributes its share of the rotation keys to the`\
+`## running joint map and returns the contribution.`\
+`site_rotation_share`` ``<-`` ``function``(``site``, ``running``, ``indices``, ``tag``)`\
+`  `[`multi_eval_at_index_key_gen`](https://openfheorg.github.io/openfhe.R/reference/multi_eval_at_index_key_gen.html)`(``cc``, ``site``@``state``$``sk``, ``running``,`\
+`                              index_list ``=`` ``indices``, key_tag ``=`` ``tag``)`\
+\
+`rot_running`` ``<-`` ``site_rotation_lead``(``sites``[[``1``]``]``, ``rotation_indices``)`\
+\
+`## Sites 2..n contribute their rotation-key shares in turn.`\
+`## At each step, the running joint share is registered under`\
+`` ## the cumulative-pubkey tag — which for our `make_threshold_master` ``\
+`` ## is the same `joint_pk_tag` at every step (the chain daisy-chains ``\
+`## pubkeys forward but only the final joint pubkey is retained).`\
+`for`` ``(``k`` ``in`` ``2``:``n_sites``)`` ``{`\
+`  ``share_k`` ``<-`` ``site_rotation_share``(``sites``[[``k``]``]``, ``rot_running``,`\
+`                                 ``rotation_indices``, ``joint_pk_tag``)`\
+`  ``rot_running`` ``<-`` `[`multi_add_eval_automorphism_keys`](https://openfheorg.github.io/openfhe.R/reference/multi_add_eval_automorphism_keys.html)`(`\
+`    ``cc``, ``rot_running``, ``share_k``, key_tag ``=`` ``joint_pk_tag``)`\
+`}`\
+\
+[`insert_eval_automorphism_key`](https://openfheorg.github.io/openfhe.R/reference/insert_eval_automorphism_key.html)`(``rot_running``, key_tag ``=`` ``joint_pk_tag``)`
 
 After insertion, any value encrypted under the joint public key (i.e.,
 under `master@joint_pubkey`) can be rotated by any index in
@@ -294,9 +430,18 @@ encrypt a known vector, rotate by 3 slots, decrypt via the
 $`n`$-of-$`n`$ ceremony, and check that slot $`i`$ now holds
 $`x_{(i+3) \bmod p}`$:
 
-`x`` ``<-`` ``1``:``p`` ``ct_x`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``x``)`` ``ct_rot`` ``<-`` `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_x``, ``3L``)`` ``recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_rot``, len ``=`` ``p``)`` `` ``expected`` ``<-`` ``x``[``(``(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)`` ``-`` ``1L`` ``+`` ``3L``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]`` `[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)`` ``<`` ``1e-6``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(``"rotation round-trip max error:"``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.2e\n"``, `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)``)``)`
+\
+`x`` ``<-`` ``1``:``p`\
+`ct_x``      ``<-`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``pub``, ``x``)`\
+`ct_rot``    ``<-`` `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_x``, ``3L``)`\
+`recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_rot``, len ``=`` ``p``)`\
+\
+`expected`` ``<-`` ``x``[``(``(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)`` ``-`` ``1L`` ``+`` ``3L``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]`\
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)`` ``<`` ``1e-6``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(``"rotation round-trip max error:"``,`\
+`    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.2e\n"``, `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)``)``)`
 
-    ## rotation round-trip max error: 8.26e-12
+    ## rotation round-trip max error: 9.96e-12
 
 ## Per-site adapter fit and database setup
 
@@ -308,11 +453,46 @@ unit-norm result — the regime in which the raw-private-database matvec
 the drift. Each site’s fine-tuned model is the non-isometric $`B_k`$;
 the adapter $`A_k`$ is fit post hoc on the public anchor cohort.
 
-`B`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``random_drift``(``p``, ``beta_demo``)``)`` `` ``## Each site's private database, embedded under that site's`` ``## fine-tuned model and unit-normalized on the sphere.`` ``db`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`` `` ``cohort`` ``<-`` ``site_cohorts``[[``k``]``]`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohort``$``z``, ``B``[[``k``]``]``)``,`` `` label ``=`` ``cohort``$``label``)`` ``}``)`` `` ``## Each site fits its compatibility adapter on the anchor cohort.`` ``A_hat`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`` `` ``Z_pub`` ``<-`` ``public_anchor``$``z`` `` ``Z_priv`` ``<-`` ``embed_private``(``Z_pub``, ``B``[[``k``]``]``)`` `` ``fit_adapter``(``Z_priv``, ``Z_pub``, ``mu_demo``)`` ``}``)`` `` ``## Design-1 deployment: the adapter folded into the database`` ``## offline, giving unit-norm public-compatible vectors that an`` ``## encrypted public-model query scores directly. (At mu = Inf the`` ``## adapter is orthogonal, so folding is norm-preserving and`` ``## Design 1 and Design 2 coincide; they part company at finite mu.)`` ``db_fold`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``unit_rows``(``db``[[``k``]``]``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_hat``[[``k``]``]``)``, label ``=`` ``db``[[``k``]``]``$``label``)``)`` `` ``## Setup diagnostics the master would receive: anchor-reconstruction`` ``## error and the adapter's departure from isometry.`` `[`cat`](https://rdrr.io/r/base/cat.html)`(``"Per-site adapter diagnostics (beta ="``, ``beta_demo``, ``", mu = Inf):\n"``)`
+\
+`B`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``random_drift``(``p``, ``beta_demo``)``)`\
+\
+`## Each site's private database, embedded under that site's`\
+`## fine-tuned model and unit-normalized on the sphere.`\
+`db`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`\
+`  ``cohort`` ``<-`` ``site_cohorts``[[``k``]``]`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohort``$``z``, ``B``[[``k``]``]``)``,`\
+`       label ``=`` ``cohort``$``label``)`\
+`}``)`\
+\
+`## Each site fits its compatibility adapter on the anchor cohort.`\
+`A_hat`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`\
+`  ``Z_pub``  ``<-`` ``public_anchor``$``z`\
+`  ``Z_priv`` ``<-`` ``embed_private``(``Z_pub``, ``B``[[``k``]``]``)`\
+`  ``fit_adapter``(``Z_priv``, ``Z_pub``, ``mu_demo``)`\
+`}``)`\
+\
+`## Design-1 deployment: the adapter folded into the database`\
+`## offline, giving unit-norm public-compatible vectors that an`\
+`## encrypted public-model query scores directly. (At mu = Inf the`\
+`## adapter is orthogonal, so folding is norm-preserving and`\
+`## Design 1 and Design 2 coincide; they part company at finite mu.)`\
+`db_fold`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``unit_rows``(``db``[[``k``]``]``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_hat``[[``k``]``]``)``, label ``=`` ``db``[[``k``]``]``$``label``)``)`\
+\
+`## Setup diagnostics the master would receive: anchor-reconstruction`\
+`## error and the adapter's departure from isometry.`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(``"Per-site adapter diagnostics (beta ="``, ``beta_demo``, ``", mu = Inf):\n"``)`
 
     ## Per-site adapter diagnostics (beta = 0.6 , mu = Inf):
 
-`for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``)`` ``{`` `` ``Zr`` ``<-`` ``embed_private``(``public_anchor``$``z``, ``B``[[``k``]``]``)`` `` ``recon`` ``<-`` `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``Zr`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_hat``[[``k``]``]`` ``-`` ``public_anchor``$``z``, ``"F"``)`` `` ``aniso`` ``<-`` `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A_hat``[[``k``]``]``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, ``"F"``)`` `` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``" site %d: anchor recon %.2e, ||A^T A - I||_F %.2e\n"``,`` `` ``k``, ``recon``, ``aniso``)``)`` ``}`
+\
+`for`` ``(``k`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``)`` ``{`\
+`  ``Zr`` ``<-`` ``embed_private``(``public_anchor``$``z``, ``B``[[``k``]``]``)`\
+`  ``recon`` ``<-`` `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``Zr`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_hat``[[``k``]``]`` ``-`` ``public_anchor``$``z``, ``"F"``)`\
+`  ``aniso`` ``<-`` `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``A_hat``[[``k``]``]``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, ``"F"``)`\
+`  `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"  site %d: anchor recon %.2e,  ||A^T A - I||_F %.2e\n"``,`\
+`              ``k``, ``recon``, ``aniso``)``)`\
+`}`
 
     ##   site 1: anchor recon 2.28e+00,  ||A^T A - I||_F 8.63e-15
     ##   site 2: anchor recon 1.72e+00,  ||A^T A - I||_F 1.01e-14
@@ -347,14 +527,44 @@ what keeps that cost down: the adapter $`A_k`$ is the site’s own, so it
 never needs encrypting, and the operation is correspondingly cheaper
 than multiplying two encrypted quantities together.
 
-`build_diagonals`` ``<-`` ``function``(``M``, ``p``)`` ``{`` `` ``## d_i[j] = M[j, ((j-1 + i) %% p) + 1] (1-based R indexing)`` `` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``0``:``(``p`` ``-`` ``1L``)``, ``function``(``i``)`` ``{`` `` `[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)``,`` `` ``function``(``j``)`` ``M``[``j``, ``(``(``j`` ``-`` ``1L`` ``+`` ``i``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]``,`` `` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1L``)``)`` `` ``}``)`` ``}`` `` ``encrypted_matvec`` ``<-`` ``function``(``ct_q``, ``M``, ``cc``, ``p``)`` ``{`` `` ``diags`` ``<-`` ``build_diagonals``(``M``, ``p``)`` `` ``ct_acc`` ``<-`` ``NULL`` `` ``for`` ``(``i`` ``in`` ``0``:``(``p`` ``-`` ``1L``)``)`` ``{`` `` ``d_pt`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``diags``[[``i`` ``+`` ``1L``]``]``)`` `` ``ct_term`` ``<-`` ``if`` ``(``i`` ``==`` ``0L``)`` ``{`` `` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_q``, ``d_pt``)`` `` ``}`` ``else`` ``{`` `` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(`[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_q``, ``i``)``, ``d_pt``)`` `` ``}`` `` ``ct_acc`` ``<-`` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``ct_acc``)``)`` ``ct_term`` ``else`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct_acc``, ``ct_term``)`` `` ``}`` `` ``ct_acc`` ``}`
+\
+`build_diagonals`` ``<-`` ``function``(``M``, ``p``)`` ``{`\
+`  ``## d_i[j] = M[j, ((j-1 + i) %% p) + 1]   (1-based R indexing)`\
+`  `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``0``:``(``p`` ``-`` ``1L``)``, ``function``(``i``)`` ``{`\
+`    `[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)``,`\
+`           ``function``(``j``)`` ``M``[``j``, ``(``(``j`` ``-`` ``1L`` ``+`` ``i``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]``,`\
+`           `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1L``)``)`\
+`  ``}``)`\
+`}`\
+\
+`encrypted_matvec`` ``<-`` ``function``(``ct_q``, ``M``, ``cc``, ``p``)`` ``{`\
+`  ``diags`` ``<-`` ``build_diagonals``(``M``, ``p``)`\
+`  ``ct_acc`` ``<-`` ``NULL`\
+`  ``for`` ``(``i`` ``in`` ``0``:``(``p`` ``-`` ``1L``)``)`` ``{`\
+`    ``d_pt`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``diags``[[``i`` ``+`` ``1L``]``]``)`\
+`    ``ct_term`` ``<-`` ``if`` ``(``i`` ``==`` ``0L``)`` ``{`\
+`      `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_q``, ``d_pt``)`\
+`    ``}`` ``else`` ``{`\
+`      `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(`[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_q``, ``i``)``, ``d_pt``)`\
+`    ``}`\
+`    ``ct_acc`` ``<-`` ``if`` ``(`[`is.null`](https://rdrr.io/r/base/NULL.html)`(``ct_acc``)``)`` ``ct_term`` ``else`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct_acc``, ``ct_term``)`\
+`  ``}`\
+`  ``ct_acc`\
+`}`
 
 A round-trip smoke test on a known query vector confirms the matvec
 recovers $`A_1 \cdot q`$ to floating-point precision:
 
-`q_demo`` ``<-`` ``public_query``$``z``[``1``, ``]`` ``ct_q`` ``<-`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``q_demo``)`` ``ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_hat``[[``1``]``]``, ``cc``, ``p``)`` ``Aq_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_Aq``, len ``=`` ``p``)`` ``Aq_expected`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_hat``[[``1``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q_demo``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"matvec max error (site 1): %.2e\n"``,`` `` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Aq_recovered`` ``-`` ``Aq_expected``)``)``)``)`
+\
+`q_demo`` ``<-`` ``public_query``$``z``[``1``, ``]`\
+`ct_q``  ``<-`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``pub``, ``q_demo``)`\
+`ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_hat``[[``1``]``]``, ``cc``, ``p``)`\
+`Aq_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_Aq``, len ``=`` ``p``)`\
+`Aq_expected``  ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_hat``[[``1``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q_demo``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"matvec max error (site 1): %.2e\n"``,`\
+`            `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Aq_recovered`` ``-`` ``Aq_expected``)``)``)``)`
 
-    ## matvec max error (site 1): 2.07e-11
+    ## matvec max error (site 1): 2.24e-11
 
 ## Inner product against the local database
 
@@ -374,14 +584,37 @@ unencrypted $`v`$, followed by a log-$`p`$ rotate-and-add
 *slot-summation reduction* that places the summed inner product in slot
 0 (and uninteresting partial sums in the other slots).
 
-`slot_sum_reduction`` ``<-`` ``function``(``ct``, ``p``)`` ``{`` `` ``## Standard CKKS log-p reduction. After the loop, slot 0 of`` `` ``## the result holds sum_{j=1}^{p} ct[j]; other slots hold`` `` ``## partial sums and are not used.`` `` ``step`` ``<-`` ``p`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`` `` ``while`` ``(``step`` ``>=`` ``1L``)`` ``{`` `` ``ct`` ``<-`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct``, `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct``, ``step``)``)`` `` ``step`` ``<-`` ``step`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`` `` ``}`` `` ``ct`` ``}`` `` ``encrypted_inner_product`` ``<-`` ``function``(``ct_x``, ``v_plain``, ``cc``, ``p``)`` ``{`` `` ``pt_v`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``v_plain``)`` `` ``ct_prod`` ``<-`` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_x``, ``pt_v``)`` `` ``slot_sum_reduction``(``ct_prod``, ``p``)`` ``}`
+\
+`slot_sum_reduction`` ``<-`` ``function``(``ct``, ``p``)`` ``{`\
+`  ``## Standard CKKS log-p reduction. After the loop, slot 0 of`\
+`  ``## the result holds sum_{j=1}^{p} ct[j]; other slots hold`\
+`  ``## partial sums and are not used.`\
+`  ``step`` ``<-`` ``p`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`\
+`  ``while`` ``(``step`` ``>=`` ``1L``)`` ``{`\
+`    ``ct`` ``<-`` `[`eval_add`](https://openfheorg.github.io/openfhe.R/reference/eval_add.html)`(``ct``, `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct``, ``step``)``)`\
+`    ``step`` ``<-`` ``step`` `[`%/%`](https://rdrr.io/r/base/Arithmetic.html)` ``2L`\
+`  ``}`\
+`  ``ct`\
+`}`\
+\
+`encrypted_inner_product`` ``<-`` ``function``(``ct_x``, ``v_plain``, ``cc``, ``p``)`` ``{`\
+`  ``pt_v`` ``<-`` `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``v_plain``)`\
+`  ``ct_prod`` ``<-`` `[`eval_mult`](https://openfheorg.github.io/openfhe.R/reference/eval_mult.html)`(``ct_x``, ``pt_v``)`\
+`  ``slot_sum_reduction``(``ct_prod``, ``p``)`\
+`}`
 
 A smoke test against a single database vector confirms the inner product
 matches the unencrypted computation at slot 0:
 
-`v_test`` ``<-`` ``db``[[``1``]``]``$``z``[``1``, ``]`` ``ct_score`` ``<-`` ``encrypted_inner_product``(``ct_Aq``, ``v_test``, ``cc``, ``p``)`` ``score_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score``, len ``=`` ``1L``)`` ``score_expected`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``Aq_expected`` ``*`` ``v_test``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"inner-product error (site 1, patient 1): %.2e\n"``,`` `` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``score_recovered`` ``-`` ``score_expected``)``)``)`
+\
+`v_test`` ``<-`` ``db``[[``1``]``]``$``z``[``1``, ``]`\
+`ct_score`` ``<-`` ``encrypted_inner_product``(``ct_Aq``, ``v_test``, ``cc``, ``p``)`\
+`score_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score``, len ``=`` ``1L``)`\
+`score_expected``  ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``Aq_expected`` ``*`` ``v_test``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"inner-product error (site 1, patient 1): %.2e\n"``,`\
+`            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``score_recovered`` ``-`` ``score_expected``)``)``)`
 
-    ## inner-product error (site 1, patient 1): 1.34e-12
+    ## inner-product error (site 1, patient 1): 1.87e-11
 
 The same `encrypted_inner_product` serves the **Design 1** deployment
 without any matvec: the encrypted *public-model* query is scored
@@ -389,11 +622,16 @@ directly against the folded, public-compatible database vectors. At the
 orthogonal endpoint this matches the matvec route exactly; for a
 non-isometric adapter it is the route that stays a valid cosine.
 
-`ct_score_fold`` ``<-`` ``encrypted_inner_product``(``ct_q``, ``db_fold``[[``1``]``]``$``z``[``1``, ``]``, ``cc``, ``p``)`` ``fold_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score_fold``, len ``=`` ``1L``)`` ``fold_expected`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``q_demo`` ``*`` ``db_fold``[[``1``]``]``$``z``[``1``, ``]``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Design-1 inner-product error (site 1, patient 1): %.2e\n"``,`` `` `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fold_recovered`` ``-`` ``fold_expected``)``)``)`
+\
+`ct_score_fold`` ``<-`` ``encrypted_inner_product``(``ct_q``, ``db_fold``[[``1``]``]``$``z``[``1``, ``]``, ``cc``, ``p``)`\
+`fold_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score_fold``, len ``=`` ``1L``)`\
+`fold_expected``  ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``q_demo`` ``*`` ``db_fold``[[``1``]``]``$``z``[``1``, ``]``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Design-1 inner-product error (site 1, patient 1): %.2e\n"``,`\
+`            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fold_recovered`` ``-`` ``fold_expected``)``)``)`
 
-    ## Design-1 inner-product error (site 1, patient 1): 6.13e-12
+    ## Design-1 inner-product error (site 1, patient 1): 1.35e-12
 
-## Site `local_fn`: full per-site protocol step
+## Site `contribution_fn`: full per-site protocol step
 
 The site-side computation closes over the site’s adapter $`A_k`$ and
 database $`D_k`$, takes the encrypted query as input, and returns a list
@@ -402,14 +640,35 @@ This is the **Design 2** branch: the adapter is applied to the encrypted
 query (the matvec), and scoring runs against the site’s raw private
 database.
 
-`make_similarity_site_fn`` ``<-`` ``function``(``A_k``, ``db_k``, ``cc``, ``p``)`` ``{`` `` ``function``(``ct_q``)`` ``{`` `` ``ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_k``, ``cc``, ``p``)`` `` ``n_local`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``db_k``$``z``)`` `` ``ct_scores`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``, ``function``(``i``)`` ``{`` `` ``encrypted_inner_product``(``ct_Aq``, ``db_k``$``z``[``i``, ``]``, ``cc``, ``p``)`` `` ``}``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``scores ``=`` ``ct_scores``,`` `` local_index ``=`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``,`` `` label ``=`` ``db_k``$``label``)`` `` ``}`` ``}`` `` ``site_fns`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`` `` ``make_similarity_site_fn``(``A_hat``[[``k``]``]``, ``db``[[``k``]``]``, ``cc``, ``p``)`` ``}``)`
+\
+`make_similarity_site_fn`` ``<-`` ``function``(``A_k``, ``db_k``, ``cc``, ``p``)`` ``{`\
+`  ``function``(``ct_q``)`` ``{`\
+`    ``ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_k``, ``cc``, ``p``)`\
+`    ``n_local`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``db_k``$``z``)`\
+`    ``ct_scores`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``, ``function``(``i``)`` ``{`\
+`      ``encrypted_inner_product``(``ct_Aq``, ``db_k``$``z``[``i``, ``]``, ``cc``, ``p``)`\
+`    ``}``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``scores ``=`` ``ct_scores``,`\
+`         local_index ``=`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_local``)``,`\
+`         label ``=`` ``db_k``$``label``)`\
+`  ``}`\
+`}`\
+\
+`site_fns`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``{`\
+`  ``make_similarity_site_fn``(``A_hat``[[``k``]``]``, ``db``[[``k``]``]``, ``cc``, ``p``)`\
+`}``)`
 
 A timed end-to-end run on the demo query through site 1 returns one
 encrypted score per local patient:
 
-`t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``site1_out`` ``<-`` ``site_fns``[[``1``]``]``(``ct_q``)`` ``elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"site 1 produced %d encrypted scores in %.2f s\n"``,`` `` `[`length`](https://rdrr.io/r/base/length.html)`(``site1_out``$``scores``)``, ``elapsed``)``)`
+\
+`t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`\
+`site1_out`` ``<-`` ``site_fns``[[``1``]``]``(``ct_q``)`\
+`elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"site 1 produced %d encrypted scores in %.2f s\n"``,`\
+`            `[`length`](https://rdrr.io/r/base/length.html)`(``site1_out``$``scores``)``, ``elapsed``)``)`
 
-    ## site 1 produced 80 encrypted scores in 1.11 s
+    ## site 1 produced 80 encrypted scores in 1.24 s
 
 ## Master orchestration and threshold-decrypted top-`k`
 
@@ -419,23 +678,60 @@ and runs the $`n`$-of-$`n`$ threshold decryption ceremony for each score
 so it can sort them once they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score goes through
-one threshold-decrypt round
-([`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-calls `multiparty_decrypt_lead` on site 1, `multiparty_decrypt_main` on
-each remaining site, and `multiparty_decrypt_fusion` to combine). For
+one threshold-decrypt round.
+[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+sends the ciphertext to each site in turn — `multiparty_decrypt_lead` at
+site 1, `multiparty_decrypt_main` at each of the rest, every site
+applying its own share — and fuses the returned partials with
+`multiparty_decrypt_fusion`, which needs only the public context. For
 our 240 total patients this runs in a few seconds; production
 deployments would pack many patients into the slots of a single
 encrypted value and amortize the ceremony.
 
-`run_similarity_query`` ``<-`` ``function``(``ct_q``, ``site_fns``, ``master``, ``top_k``)`` ``{`` `` ``## Fan out to every site.`` `` ``site_results`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_fns``)``, ``function``(``k``)`` ``{`` `` ``out`` ``<-`` ``site_fns``[[``k``]``]``(``ct_q``)`` `` ``out``$``site_id`` ``<-`` ``k`` `` ``out`` `` ``}``)`` `` `` ``## Threshold-decrypt each per-patient inner-product`` `` ``## ciphertext. v1 runs one ceremony per patient; a packed`` `` ``## variant that fuses multiple inner products into a single`` `` ``## ciphertext (via slot tiling) is a natural extension.`` `` ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``s`` ``in`` ``site_results``)`` ``{`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``s``$``scores``)``)`` ``{`` `` ``score`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``s``$``scores``[[``i``]``]``, len ``=`` ``1L``)`` `` ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` site_id ``=`` ``s``$``site_id``,`` `` local_index ``=`` ``s``$``local_index``[``i``]``,`` `` label ``=`` ``s``$``label``[``i``]``,`` `` score ``=`` ``score``)`` `` ``}`` `` ``}`` `` ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`` `` ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`` ``}`` `` ``t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``top_result`` ``<-`` ``run_similarity_query``(``ct_q``, ``site_fns``, ``master``, top_k ``=`` ``top_k``)`` ``elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d retrieval over %d sites and %d patients in %.1f s\n"``,`` `` ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`
+\
+`run_similarity_query`` ``<-`` ``function``(``ct_q``, ``site_fns``, ``master``, ``top_k``)`` ``{`\
+`  ``## Fan out to every site.`\
+`  ``site_results`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_fns``)``, ``function``(``k``)`` ``{`\
+`    ``out`` ``<-`` ``site_fns``[[``k``]``]``(``ct_q``)`\
+`    ``out``$``site_id`` ``<-`` ``k`\
+`    ``out`\
+`  ``}``)`\
+\
+`  ``## Threshold-decrypt each per-patient inner-product`\
+`  ``## ciphertext. v1 runs one ceremony per patient; a packed`\
+`  ``## variant that fuses multiple inner products into a single`\
+`  ``## ciphertext (via slot tiling) is a natural extension.`\
+`  ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
+`  ``for`` ``(``s`` ``in`` ``site_results``)`` ``{`\
+`    ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``s``$``scores``)``)`` ``{`\
+`      ``score`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``s``$``scores``[[``i``]``]``, len ``=`` ``1L``)`\
+`      ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`        site_id     ``=`` ``s``$``site_id``,`\
+`        local_index ``=`` ``s``$``local_index``[``i``]``,`\
+`        label       ``=`` ``s``$``label``[``i``]``,`\
+`        score       ``=`` ``score``)`\
+`    ``}`\
+`  ``}`\
+`  ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`\
+`  ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`\
+`  `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`\
+`}`\
+\
+`t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`\
+`top_result`` ``<-`` ``run_similarity_query``(``ct_q``, ``site_fns``, ``master``, top_k ``=`` ``top_k``)`\
+`elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d retrieval over %d sites and %d patients in %.1f s\n"``,`\
+`            ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`
 
-    ## Top-5 retrieval over 3 sites and 240 patients in 7.9 s
+    ## Top-5 retrieval over 3 sites and 240 patients in 7.3 s
 
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`
 
     ## Query phenotype label: 4
 
-[`print`](https://rdrr.io/r/base/print.html)`(``top_result``, row.names ``=`` ``FALSE``)`
+\
+[`print`](https://rdrr.io/r/base/print.html)`(``top_result``, row.names ``=`` ``FALSE``)`
 
     ##  site_id local_index label     score
     ##        2          37     4 0.9048070
@@ -452,11 +748,46 @@ to within CKKS approximation error. The reference computation runs the
 same $`A_k \cdot q`$ adapter application and inner-product reduction
 unencrypted on each site’s database:
 
-`plaintext_top_k`` ``<-`` ``function``(``q``, ``site_data``, ``A_list``, ``top_k``)`` ``{`` `` ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``k`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_data``)``)`` ``{`` `` ``Aq`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_list``[[``k``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)`` `` ``s_k`` ``<-`` ``site_data``[[``k``]``]`` `` ``scores`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``s_k``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``Aq``)`` `` ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``scores``)``)`` ``{`` `` ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` site_id ``=`` ``k``,`` `` local_index ``=`` ``i``,`` `` label ``=`` ``s_k``$``label``[``i``]``,`` `` score ``=`` ``scores``[``i``]``)`` `` ``}`` `` ``}`` `` ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`` `` ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`` ``}`` `` ``plain_top`` ``<-`` ``plaintext_top_k``(``q_demo``, ``db``, ``A_hat``, ``top_k``)`` `` ``## Compare encrypted-domain top-k against the plaintext reference`` ``## by joining on (site_id, local_index).`` ``compare`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``top_result``, ``plain_top``,`` `` by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"site_id"``, ``"local_index"``)``,`` `` suffixes ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"_enc"``, ``"_plain"``)``)`` ``score_err`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``compare``$``score_enc`` ``-`` ``compare``$``score_plain``)``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs plaintext score max error: %.2e\n"``,`` `` ``top_k``, ``score_err``)``)`
+\
+`plaintext_top_k`` ``<-`` ``function``(``q``, ``site_data``, ``A_list``, ``top_k``)`` ``{`\
+`  ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
+`  ``for`` ``(``k`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_data``)``)`` ``{`\
+`    ``Aq``  ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_list``[[``k``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)`\
+`    ``s_k`` ``<-`` ``site_data``[[``k``]``]`\
+`    ``scores`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``s_k``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``Aq``)`\
+`    ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``scores``)``)`` ``{`\
+`      ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`        site_id     ``=`` ``k``,`\
+`        local_index ``=`` ``i``,`\
+`        label       ``=`` ``s_k``$``label``[``i``]``,`\
+`        score       ``=`` ``scores``[``i``]``)`\
+`    ``}`\
+`  ``}`\
+`  ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`\
+`  ``scored`` ``<-`` ``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]`\
+`  `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``, ``top_k``)`\
+`}`\
+\
+`plain_top`` ``<-`` ``plaintext_top_k``(``q_demo``, ``db``, ``A_hat``, ``top_k``)`\
+\
+`## Compare encrypted-domain top-k against the plaintext reference`\
+`## by joining on (site_id, local_index).`\
+`compare`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``top_result``, ``plain_top``,`\
+`                 by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"site_id"``, ``"local_index"``)``,`\
+`                 suffixes ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"_enc"``, ``"_plain"``)``)`\
+`score_err`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``compare``$``score_enc`` ``-`` ``compare``$``score_plain``)``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs plaintext score max error: %.2e\n"``,`\
+`            ``top_k``, ``score_err``)``)`
 
-    ## Top-5 encrypted vs plaintext score max error: 2.37e-11
+    ## Top-5 encrypted vs plaintext score max error: 2.35e-11
 
-`## Whether the encrypted-domain top-k contains the same`` ``## (site_id, local_index) pairs as the plaintext reference.`` ``enc_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``top_result``$``site_id``, ``top_result``$``local_index``, sep ``=`` ``":"``)`` ``plain_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``plain_top``$``site_id``, ``plain_top``$``local_index``, sep ``=`` ``":"``)`` `[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d set match: %d of %d\n"``,`` `` ``top_k``, `[`length`](https://rdrr.io/r/base/length.html)`(`[`intersect`](https://rdrr.io/r/base/sets.html)`(``enc_set``, ``plain_set``)``)``, ``top_k``)``)`
+\
+`## Whether the encrypted-domain top-k contains the same`\
+`## (site_id, local_index) pairs as the plaintext reference.`\
+`enc_set``   ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``top_result``$``site_id``, ``top_result``$``local_index``, sep ``=`` ``":"``)`\
+`plain_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``plain_top``$``site_id``,  ``plain_top``$``local_index``,  sep ``=`` ``":"``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d set match: %d of %d\n"``,`\
+`            ``top_k``, `[`length`](https://rdrr.io/r/base/length.html)`(`[`intersect`](https://rdrr.io/r/base/sets.html)`(``enc_set``, ``plain_set``)``)``, ``top_k``)``)`
 
     ## Top-5 set match: 5 of 5
 
@@ -485,11 +816,127 @@ walk-through (unit-norm phenotype centers, so noise competes with
 separation), letting alignment quality rather than trivial separability
 drive recall.
 
-`centers_u`` ``<-`` ``phenotype_centers`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``phenotype_centers``^``2``)``)`` ``embed_cfg`` ``<-`` ``function``(``n``, ``sep`` ``=`` ``0.85``, ``sd`` ``=`` ``0.40``)`` ``{`` `` ``labels`` ``<-`` `[`sample.int`](https://rdrr.io/r/base/sample.html)`(``n_phenotypes``, ``n``, replace ``=`` ``TRUE``)`` `` ``z`` ``<-`` ``sep`` ``*`` ``centers_u``[``labels``, , drop ``=`` ``FALSE``]`` ``+`` `` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n`` ``*`` ``p``, sd ``=`` ``sd``)``, ``n``, ``p``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``unit_rows``(``z``)``, label ``=`` ``labels``)`` ``}`` `` ``recall_at_k`` ``<-`` ``function``(``query_label``, ``top_rows``, ``k`` ``=`` ``top_k``)`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(``top_rows``$``label`` ``==`` ``query_label``)`` ``/`` ``k`` `` ``## Federated recall of a query population under one deployment.`` ``## design 1: fold A into the db (unit) and score <q, z>;`` ``## design 2: apply A to the query and score <Aq, h> against raw db.`` ``fed_recall`` ``<-`` ``function``(``q_pop``, ``db_list``, ``A_list``, ``design``)`` ``{`` `` `[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(`[`nrow`](https://rdrr.io/r/base/nrow.html)`(``q_pop``$``z``)``)``, ``function``(``qi``)`` ``{`` `` ``q`` ``<-`` ``q_pop``$``z``[``qi``, ``]`` `` ``parts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``db_list``)``, ``function``(``k``)`` ``{`` `` ``s`` ``<-`` ``db_list``[[``k``]``]`` `` ``sc`` ``<-`` ``if`` ``(``design`` ``==`` ``1L``)`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``unit_rows``(``s``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_list``[[``k``]``]``)`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)`` `` ``else`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``s``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_list``[[``k``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)``)`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``label ``=`` ``s``$``label``, score ``=`` ``sc``)`` `` ``}``)`` `` ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``parts``)`` `` ``recall_at_k``(``q_pop``$``label``[``qi``]``,`` `` `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]``, ``top_k``)``)`` `` ``}``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)``)`` ``}`` `` ``## A world at non-isometry beta with an anchor cohort of size na.`` ``make_world`` ``<-`` ``function``(``beta``, ``na``)`` ``{`` `` ``anchor`` ``<-`` ``embed_cfg``(``na``)`` `` ``cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_cfg``)`` `` ``Bs`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``random_drift``(``p``, ``beta``)``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``anchor ``=`` ``anchor``,`` `` pub_db ``=`` ``cohorts``, ``# public embeddings (ideal ref)`` `` priv_db ``=`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohorts``[[``k``]``]``$``z``, ``Bs``[[``k``]``]``)``,`` `` label ``=`` ``cohorts``[[``k``]``]``$``label``)``)``,`` `` Hanchor ``=`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` ``embed_private``(``anchor``$``z``, ``Bs``[[``k``]``]``)``)``)`` ``}`` `` ``I_list`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``n_sites``, `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, simplify ``=`` ``FALSE``)`` ``n_rep`` ``<-`` ``3L`` ``n_q`` ``<-`` ``40L`` ``mu_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0.1``, ``1``, ``10``, ``Inf``)`` `` ``## --- mu sweep at fixed beta, ample anchor: fidelity + posture + Gram ---`` ``mu_sweep`` ``<-`` ``function``(``beta``, ``na``)`` ``{`` `` ``tab`` ``<-`` ``0``; ``ideal`` ``<-`` ``0``; ``unaligned`` ``<-`` ``0``; ``gram`` ``<-`` ``0`` `` ``for`` ``(``r`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_rep``)``)`` ``{`` `` ``w`` ``<-`` ``make_world``(``beta``, ``na``)`` `` ``qp`` ``<-`` ``embed_cfg``(``n_q``)`` `` ``ideal`` ``<-`` ``ideal`` ``+`` ``fed_recall``(``qp``, ``w``$``pub_db``, ``I_list``, ``2L``)`` `` ``unaligned`` ``<-`` ``unaligned`` ``+`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``I_list``, ``2L``)`` `` ``Ag`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``fit_gram``(``w``$``Hanchor``[[``k``]``]``, ``w``$``anchor``$``z``)``)`` `` ``gram`` ``<-`` ``gram`` ``+`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``Ag``, ``1L``)`` `` ``rows`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``mu_grid``, ``function``(``mu``)`` ``{`` `` ``A`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` ``fit_adapter``(``w``$``Hanchor``[[``k``]``]``, ``w``$``anchor``$``z``, ``mu``)``)`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``mu ``=`` ``mu``,`` `` d1 ``=`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``A``, ``1L``)``,`` `` d2 ``=`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``A``, ``2L``)``,`` `` aniso ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``A``, ``function``(``Ak``)`` `` `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Ak``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, ``"F"``)``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)``)``)`` `` ``}``)`` `` ``tab`` ``<-`` ``tab`` ``+`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`` `` ``}`` `` ``tab`` ``<-`` ``tab`` ``/`` ``n_rep`` `` ``tab``$``mu`` ``<-`` ``mu_grid`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``tab ``=`` ``tab``, ideal ``=`` ``ideal`` ``/`` ``n_rep``,`` `` unaligned ``=`` ``unaligned`` ``/`` ``n_rep``, gram ``=`` ``gram`` ``/`` ``n_rep``)`` ``}`` `` ``mu_main`` ``<-`` ``mu_sweep``(``beta ``=`` ``0.6``, na ``=`` ``100L``)`` ``# ample calibration`` ``mu_scarce`` ``<-`` ``mu_sweep``(``beta ``=`` ``0.6``, na ``=`` ``24L``)`` ``# anchor < p = 32`` `` ``## --- beta sweep, ample anchor: Procrustes vs near-orthogonal vs LS ---`` ``## Common random numbers: within a replicate the public data and the`` ``## per-site drift directions are fixed and only the stretch magnitude`` ``## beta varies, so the no-drift ideal is a single drift-independent`` ``## reference rather than a wandering curve.`` ``beta_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0.3``, ``0.6``, ``1.0``)`` ``beta_acc`` ``<-`` ``0``; ``ideal_b`` ``<-`` ``0`` ``for`` ``(``r`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_rep``)``)`` ``{`` `` ``anchor`` ``<-`` ``embed_cfg``(``n_anchor``)`` `` ``cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_cfg``)`` `` ``qp`` ``<-`` ``embed_cfg``(``n_q``)`` `` ``Qg`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``Q ``=`` `[`qr.Q`](https://rdrr.io/r/base/qraux.html)`(`[`qr`](https://rdrr.io/r/base/qr.html)`(`[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p`` ``*`` ``p``)``, ``p``, ``p``)``)``)``, g ``=`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``)``)``)`` `` ``ideal_b`` ``<-`` ``ideal_b`` ``+`` ``fed_recall``(``qp``, ``cohorts``, ``I_list``, ``2L``)`` `` ``beta_acc`` ``<-`` ``beta_acc`` ``+`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``beta_grid``, ``function``(``b``)`` ``{`` `` ``Bs`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``Qg``, ``function``(``qg``)`` `` ``if`` ``(``b`` ``==`` ``0``)`` ``qg``$``Q`` ``else`` ``qg``$``Q`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`exp`](https://rdrr.io/r/base/Log.html)`(``b`` ``*`` ``qg``$``g``)``)``)`` `` ``priv`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohorts``[[``k``]``]``$``z``, ``Bs``[[``k``]``]``)``,`` `` label ``=`` ``cohorts``[[``k``]``]``$``label``)``)`` `` ``Hanc`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` ``embed_private``(``anchor``$``z``, ``Bs``[[``k``]``]``)``)`` `` ``fitb`` ``<-`` ``function``(``mu``)`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` `` ``fit_adapter``(``Hanc``[[``k``]``]``, ``anchor``$``z``, ``mu``)``)`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``beta ``=`` ``b``,`` `` LS ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``0``)``, ``1L``)``,`` `` near ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``1``)``, ``1L``)``,`` `` Proc ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``Inf``)``, ``2L``)``)`` `` ``}``)``)`` ``}`` ``beta_tab`` ``<-`` ``beta_acc`` ``/`` ``n_rep``; ``beta_tab``$``beta`` ``<-`` ``beta_grid`` ``ideal_b`` ``<-`` ``ideal_b`` ``/`` ``n_rep`` `` `[`cat`](https://rdrr.io/r/base/cat.html)`(``"mu sweep (beta=0.6, anchor=100): ideal="``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f"``, ``mu_main``$``ideal``)``, ``" unaligned="``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f"``, ``mu_main``$``unaligned``)``, ``" Gram="``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f\n"``, ``mu_main``$``gram``)``, sep ``=`` ``""``)`
+\
+`centers_u`` ``<-`` ``phenotype_centers`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`rowSums`](https://rdrr.io/r/base/colSums.html)`(``phenotype_centers``^``2``)``)`\
+`embed_cfg`` ``<-`` ``function``(``n``, ``sep`` ``=`` ``0.85``, ``sd`` ``=`` ``0.40``)`` ``{`\
+`  ``labels`` ``<-`` `[`sample.int`](https://rdrr.io/r/base/sample.html)`(``n_phenotypes``, ``n``, replace ``=`` ``TRUE``)`\
+`  ``z`` ``<-`` ``sep`` ``*`` ``centers_u``[``labels``, , drop ``=`` ``FALSE``]`` ``+`\
+`       `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n`` ``*`` ``p``, sd ``=`` ``sd``)``, ``n``, ``p``)`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``unit_rows``(``z``)``, label ``=`` ``labels``)`\
+`}`\
+\
+`recall_at_k`` ``<-`` ``function``(``query_label``, ``top_rows``, ``k`` ``=`` ``top_k``)`\
+`  `[`sum`](https://rdrr.io/r/base/sum.html)`(``top_rows``$``label`` ``==`` ``query_label``)`` ``/`` ``k`\
+\
+`## Federated recall of a query population under one deployment.`\
+`## design 1: fold A into the db (unit) and score <q, z>;`\
+`## design 2: apply A to the query and score <Aq, h> against raw db.`\
+`fed_recall`` ``<-`` ``function``(``q_pop``, ``db_list``, ``A_list``, ``design``)`` ``{`\
+`  `[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(`[`nrow`](https://rdrr.io/r/base/nrow.html)`(``q_pop``$``z``)``)``, ``function``(``qi``)`` ``{`\
+`    ``q`` ``<-`` ``q_pop``$``z``[``qi``, ``]`\
+`    ``parts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``db_list``)``, ``function``(``k``)`` ``{`\
+`      ``s`` ``<-`` ``db_list``[[``k``]``]`\
+`      ``sc`` ``<-`` ``if`` ``(``design`` ``==`` ``1L``)`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``unit_rows``(``s``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``A_list``[[``k``]``]``)`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)`\
+`            ``else``              `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``s``$``z`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_list``[[``k``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q``)``)`\
+`      `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``label ``=`` ``s``$``label``, score ``=`` ``sc``)`\
+`    ``}``)`\
+`    ``scored`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``parts``)`\
+`    ``recall_at_k``(``q_pop``$``label``[``qi``]``,`\
+`                `[`head`](https://rdrr.io/r/utils/head.html)`(``scored``[`[`order`](https://rdrr.io/r/base/order.html)`(``-``scored``$``score``)``, ``]``, ``top_k``)``)`\
+`  ``}``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)``)`\
+`}`\
+\
+`## A world at non-isometry beta with an anchor cohort of size na.`\
+`make_world`` ``<-`` ``function``(``beta``, ``na``)`` ``{`\
+`  ``anchor``  ``<-`` ``embed_cfg``(``na``)`\
+`  ``cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_cfg``)`\
+`  ``Bs`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``random_drift``(``p``, ``beta``)``)`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``anchor  ``=`` ``anchor``,`\
+`       pub_db  ``=`` ``cohorts``,                          ``# public embeddings (ideal ref)`\
+`       priv_db ``=`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`         `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohorts``[[``k``]``]``$``z``, ``Bs``[[``k``]``]``)``,`\
+`              label ``=`` ``cohorts``[[``k``]``]``$``label``)``)``,`\
+`       Hanchor ``=`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`         ``embed_private``(``anchor``$``z``, ``Bs``[[``k``]``]``)``)``)`\
+`}`\
+\
+`I_list``  ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``n_sites``, `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, simplify ``=`` ``FALSE``)`\
+`n_rep``   ``<-`` ``3L`\
+`n_q``     ``<-`` ``40L`\
+`mu_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0.1``, ``1``, ``10``, ``Inf``)`\
+\
+`## --- mu sweep at fixed beta, ample anchor: fidelity + posture + Gram ---`\
+`mu_sweep`` ``<-`` ``function``(``beta``, ``na``)`` ``{`\
+`  ``tab`` ``<-`` ``0``; ``ideal`` ``<-`` ``0``; ``unaligned`` ``<-`` ``0``; ``gram`` ``<-`` ``0`\
+`  ``for`` ``(``r`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_rep``)``)`` ``{`\
+`    ``w``  ``<-`` ``make_world``(``beta``, ``na``)`\
+`    ``qp`` ``<-`` ``embed_cfg``(``n_q``)`\
+`    ``ideal``     ``<-`` ``ideal``     ``+`` ``fed_recall``(``qp``, ``w``$``pub_db``,  ``I_list``, ``2L``)`\
+`    ``unaligned`` ``<-`` ``unaligned`` ``+`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``I_list``, ``2L``)`\
+`    ``Ag``   ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``fit_gram``(``w``$``Hanchor``[[``k``]``]``, ``w``$``anchor``$``z``)``)`\
+`    ``gram`` ``<-`` ``gram`` ``+`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``Ag``, ``1L``)`\
+`    ``rows`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``mu_grid``, ``function``(``mu``)`` ``{`\
+`      ``A`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`        ``fit_adapter``(``w``$``Hanchor``[[``k``]``]``, ``w``$``anchor``$``z``, ``mu``)``)`\
+`      `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``mu ``=`` ``mu``,`\
+`                 d1 ``=`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``A``, ``1L``)``,`\
+`                 d2 ``=`` ``fed_recall``(``qp``, ``w``$``priv_db``, ``A``, ``2L``)``,`\
+`                 aniso ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``A``, ``function``(``Ak``)`\
+`                   `[`norm`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`crossprod`](https://rdrr.io/r/base/crossprod.html)`(``Ak``)`` ``-`` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(``p``)``, ``"F"``)``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)``)``)`\
+`    ``}``)`\
+`    ``tab`` ``<-`` ``tab`` ``+`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``rows``)`\
+`  ``}`\
+`  ``tab`` ``<-`` ``tab`` ``/`` ``n_rep`\
+`  ``tab``$``mu`` ``<-`` ``mu_grid`\
+`  `[`list`](https://rdrr.io/r/base/list.html)`(``tab ``=`` ``tab``, ideal ``=`` ``ideal`` ``/`` ``n_rep``,`\
+`       unaligned ``=`` ``unaligned`` ``/`` ``n_rep``, gram ``=`` ``gram`` ``/`` ``n_rep``)`\
+`}`\
+\
+`mu_main``   ``<-`` ``mu_sweep``(``beta ``=`` ``0.6``, na ``=`` ``100L``)``   ``# ample calibration`\
+`mu_scarce`` ``<-`` ``mu_sweep``(``beta ``=`` ``0.6``, na ``=`` ``24L``)``    ``# anchor < p = 32`\
+\
+`## --- beta sweep, ample anchor: Procrustes vs near-orthogonal vs LS ---`\
+`## Common random numbers: within a replicate the public data and the`\
+`## per-site drift directions are fixed and only the stretch magnitude`\
+`## beta varies, so the no-drift ideal is a single drift-independent`\
+`## reference rather than a wandering curve.`\
+`beta_grid`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0.3``, ``0.6``, ``1.0``)`\
+`beta_acc`` ``<-`` ``0``; ``ideal_b`` ``<-`` ``0`\
+`for`` ``(``r`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_rep``)``)`` ``{`\
+`  ``anchor``  ``<-`` ``embed_cfg``(``n_anchor``)`\
+`  ``cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_cfg``)`\
+`  ``qp``      ``<-`` ``embed_cfg``(``n_q``)`\
+`  ``Qg`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``Q ``=`` `[`qr.Q`](https://rdrr.io/r/base/qraux.html)`(`[`qr`](https://rdrr.io/r/base/qr.html)`(`[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p`` ``*`` ``p``)``, ``p``, ``p``)``)``)``, g ``=`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``)``)``)`\
+`  ``ideal_b``  ``<-`` ``ideal_b`` ``+`` ``fed_recall``(``qp``, ``cohorts``, ``I_list``, ``2L``)`\
+`  ``beta_acc`` ``<-`` ``beta_acc`` ``+`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``beta_grid``, ``function``(``b``)`` ``{`\
+`    ``Bs``   ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``Qg``, ``function``(``qg``)`\
+`      ``if`` ``(``b`` ``==`` ``0``)`` ``qg``$``Q`` ``else`` ``qg``$``Q`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` `[`diag`](https://www.cvxgrp.org/CVXR/reference/math_atoms.html)`(`[`exp`](https://rdrr.io/r/base/Log.html)`(``b`` ``*`` ``qg``$``g``)``)``)`\
+`    ``priv`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`      `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``embed_private``(``cohorts``[[``k``]``]``$``z``, ``Bs``[[``k``]``]``)``,`\
+`           label ``=`` ``cohorts``[[``k``]``]``$``label``)``)`\
+`    ``Hanc`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`      ``embed_private``(``anchor``$``z``, ``Bs``[[``k``]``]``)``)`\
+`    ``fitb`` ``<-`` ``function``(``mu``)`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`\
+`      ``fit_adapter``(``Hanc``[[``k``]``]``, ``anchor``$``z``, ``mu``)``)`\
+`    `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``beta ``=`` ``b``,`\
+`               LS   ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``0``)``, ``1L``)``,`\
+`               near ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``1``)``, ``1L``)``,`\
+`               Proc ``=`` ``fed_recall``(``qp``, ``priv``, ``fitb``(``Inf``)``, ``2L``)``)`\
+`  ``}``)``)`\
+`}`\
+`beta_tab`` ``<-`` ``beta_acc`` ``/`` ``n_rep``; ``beta_tab``$``beta`` ``<-`` ``beta_grid`\
+`ideal_b``  ``<-`` ``ideal_b`` ``/`` ``n_rep`\
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(``"mu sweep (beta=0.6, anchor=100):  ideal="``,`\
+`    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f"``, ``mu_main``$``ideal``)``, ``" unaligned="``,`\
+`    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f"``, ``mu_main``$``unaligned``)``, ``" Gram="``,`\
+`    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f\n"``, ``mu_main``$``gram``)``, sep ``=`` ``""``)`
 
     ## mu sweep (beta=0.6, anchor=100):  ideal=0.557 unaligned=0.175 Gram=0.198
 
-[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``mu_main``$``tab``, ``3``)``, row.names ``=`` ``FALSE``)`
+\
+[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``mu_main``$``tab``, ``3``)``, row.names ``=`` ``FALSE``)`
 
     ##    mu    d1    d2  aniso
     ##   0.0 0.557 0.542 28.150
@@ -498,12 +945,15 @@ drive recall.
     ##  10.0 0.515 0.505  0.532
     ##   Inf 0.505 0.505  0.000
 
-[`cat`](https://rdrr.io/r/base/cat.html)`(``"\nbeta sweep (anchor=100, common random numbers): ideal="``,`` `` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f\n"``, ``ideal_b``)``, sep ``=`` ``""``)`
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(``"\nbeta sweep (anchor=100, common random numbers):  ideal="``,`\
+`    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.3f\n"``, ``ideal_b``)``, sep ``=`` ``""``)`
 
     ## 
     ## beta sweep (anchor=100, common random numbers):  ideal=0.528
 
-[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``beta_tab``, ``3``)``, row.names ``=`` ``FALSE``)`
+\
+[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``beta_tab``, ``3``)``, row.names ``=`` ``FALSE``)`
 
     ##  beta    LS  near  Proc
     ##   0.0 0.528 0.528 0.528
@@ -511,12 +961,14 @@ drive recall.
     ##   0.6 0.515 0.505 0.493
     ##   1.0 0.533 0.493 0.442
 
-[`cat`](https://rdrr.io/r/base/cat.html)`(``"\nmu sweep at scarce anchor=24:\n"``)`
+\
+[`cat`](https://rdrr.io/r/base/cat.html)`(``"\nmu sweep at scarce anchor=24:\n"``)`
 
     ## 
     ## mu sweep at scarce anchor=24:
 
-[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``mu_scarce``$``tab``[`[`c`](https://rdrr.io/r/base/c.html)`(``"mu"``, ``"d1"``, ``"d2"``)``]``, ``3``)``, row.names ``=`` ``FALSE``)`
+\
+[`print`](https://rdrr.io/r/base/print.html)`(`[`round`](https://rdrr.io/r/base/Round.html)`(``mu_scarce``$``tab``[`[`c`](https://rdrr.io/r/base/c.html)`(``"mu"``, ``"d1"``, ``"d2"``)``]``, ``3``)``, row.names ``=`` ``FALSE``)`
 
     ##    mu    d1    d2
     ##   0.0 0.478 0.493
@@ -542,10 +994,57 @@ scarce calibration. The Gram-PSD reference sits near the unaligned
 floor: its rotation invariance loses the public-frame orientation, so it
 is the wrong tool for a public-query retrieval (see the discussion).
 
-`op`` ``<-`` `[`par`](https://rdrr.io/r/graphics/par.html)`(``mfrow ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``2``)``, mar ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``4.2``, ``4.2``, ``2.4``, ``1.0``)``)`` ``xi`` ``<-`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``mu_grid``)`` ``mulab`` ``<-`` ``function``(``m``)`` `[`ifelse`](https://rdrr.io/r/base/ifelse.html)`(`[`is.infinite`](https://rdrr.io/r/base/is.finite.html)`(``m``)``, ``"Inf"``, `[`formatC`](https://rdrr.io/r/base/formatc.html)`(``m``, format ``=`` ``"g"``)``)`` `` ``## (1) recall vs mu: Design 1 vs Design 2, with Gram / ideal / floor`` `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_main``$``tab``$``d1``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``, xaxt ``=`` ``"n"``,`` `` xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu`` ``~`` ``"(0 = LS -> Inf = Procrustes)"``)``,`` `` ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d"``, ``top_k``)``, main ``=`` ``"Recall vs mu (beta = 0.6)"``)`` `[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`` `[`lines`](https://rdrr.io/r/graphics/lines.html)`(``xi``, ``mu_main``$``tab``$``d2``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"firebrick"``)`` `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``ideal``, lty ``=`` ``3``, col ``=`` ``"darkgreen"``)`` `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``unaligned``, lty ``=`` ``3``, col ``=`` ``"grey60"``)`` `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``gram``, lty ``=`` ``4``, lwd ``=`` ``2``, col ``=`` ``"orange"``)`` `[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"right"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`` `` legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Design 1 (fold)"``, ``"Design 2 (matvec)"``, ``"Gram-PSD"``,`` `` ``"ideal"``, ``"unaligned"``)``,`` `` col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"firebrick"``, ``"orange"``, ``"darkgreen"``, ``"grey60"``)``,`` `` lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``, ``4``, ``3``, ``3``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``, ``NA``, ``NA``, ``NA``)``)`` `` ``## (2) recall vs beta: Procrustes vs near-orthogonal vs LS`` `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``beta_tab``$``beta``, ``beta_tab``$``Proc``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``,`` `` xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``beta`` ``~`` ``"(non-isometry)"``)``, ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d"``, ``top_k``)``,`` `` main ``=`` ``"Procrustes vs relaxed adapters"``)`` `[`lines`](https://rdrr.io/r/graphics/lines.html)`(``beta_tab``$``beta``, ``beta_tab``$``near``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"blue"``)`` `[`lines`](https://rdrr.io/r/graphics/lines.html)`(``beta_tab``$``beta``, ``beta_tab``$``LS``, type ``=`` ``"b"``, pch ``=`` ``2``, lty ``=`` ``3``, col ``=`` ``"firebrick"``)`` `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``ideal_b``, lty ``=`` ``3``, col ``=`` ``"darkgreen"``)`` `[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"bottomleft"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`` `` legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Procrustes (mu=Inf)"``, ``"near-orth (mu=1)"``, ``"LS (mu=0)"``, ``"ideal"``)``,`` `` col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"blue"``, ``"firebrick"``, ``"darkgreen"``)``,`` `` lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``, ``3``, ``3``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``, ``2``, ``NA``)``)`` `` ``## (3) recall vs mu at scarce anchor (< p): the regularization sweet spot`` `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_scarce``$``tab``$``d1``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``, xaxt ``=`` ``"n"``,`` `` xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu``)``, ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d (Design 1)"``, ``top_k``)``,`` `` main ``=`` ``"Scarce anchor (n = 24 < p = 32)"``)`` `[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`` `[`lines`](https://rdrr.io/r/graphics/lines.html)`(``xi``, ``mu_scarce``$``tab``$``d2``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"firebrick"``)`` `[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"bottomleft"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`` `` legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Design 1 (fold)"``, ``"Design 2 (matvec)"``)``,`` `` col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"firebrick"``)``, lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``)``)`` `` ``## (4) departure from isometry vs mu (the Design-2 / matvec budget)`` `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_main``$``tab``$``aniso`` ``+`` ``1e-12``, type ``=`` ``"b"``, pch ``=`` ``19``, log ``=`` ``"y"``, xaxt ``=`` ``"n"``,`` `` xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu``)``, ylab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``"||"`` ``*`` ``A``^``T`` ``*`` ``A`` ``-`` ``I`` ``*`` ``"||"``[``F``]``)``,`` `` main ``=`` ``"Departure from isometry"``)`` `[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`
+\
+`op`` ``<-`` `[`par`](https://rdrr.io/r/graphics/par.html)`(``mfrow ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``2``)``, mar ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``4.2``, ``4.2``, ``2.4``, ``1.0``)``)`\
+`xi`` ``<-`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``mu_grid``)`\
+`mulab`` ``<-`` ``function``(``m``)`` `[`ifelse`](https://rdrr.io/r/base/ifelse.html)`(`[`is.infinite`](https://rdrr.io/r/base/is.finite.html)`(``m``)``, ``"Inf"``, `[`formatC`](https://rdrr.io/r/base/formatc.html)`(``m``, format ``=`` ``"g"``)``)`\
+\
+`## (1) recall vs mu: Design 1 vs Design 2, with Gram / ideal / floor`\
+[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_main``$``tab``$``d1``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``, xaxt ``=`` ``"n"``,`\
+`     xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu`` ``~`` ``"(0 = LS    ->    Inf = Procrustes)"``)``,`\
+`     ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d"``, ``top_k``)``, main ``=`` ``"Recall vs mu (beta = 0.6)"``)`\
+[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`\
+[`lines`](https://rdrr.io/r/graphics/lines.html)`(``xi``, ``mu_main``$``tab``$``d2``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"firebrick"``)`\
+[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``ideal``, lty ``=`` ``3``, col ``=`` ``"darkgreen"``)`\
+[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``unaligned``, lty ``=`` ``3``, col ``=`` ``"grey60"``)`\
+[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``mu_main``$``gram``, lty ``=`` ``4``, lwd ``=`` ``2``, col ``=`` ``"orange"``)`\
+[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"right"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`\
+`       legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Design 1 (fold)"``, ``"Design 2 (matvec)"``, ``"Gram-PSD"``,`\
+`                  ``"ideal"``, ``"unaligned"``)``,`\
+`       col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"firebrick"``, ``"orange"``, ``"darkgreen"``, ``"grey60"``)``,`\
+`       lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``, ``4``, ``3``, ``3``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``, ``NA``, ``NA``, ``NA``)``)`\
+\
+`## (2) recall vs beta: Procrustes vs near-orthogonal vs LS`\
+[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``beta_tab``$``beta``, ``beta_tab``$``Proc``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``,`\
+`     xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``beta`` ``~`` ``"(non-isometry)"``)``, ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d"``, ``top_k``)``,`\
+`     main ``=`` ``"Procrustes vs relaxed adapters"``)`\
+[`lines`](https://rdrr.io/r/graphics/lines.html)`(``beta_tab``$``beta``, ``beta_tab``$``near``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"blue"``)`\
+[`lines`](https://rdrr.io/r/graphics/lines.html)`(``beta_tab``$``beta``, ``beta_tab``$``LS``, type ``=`` ``"b"``, pch ``=`` ``2``, lty ``=`` ``3``, col ``=`` ``"firebrick"``)`\
+[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``ideal_b``, lty ``=`` ``3``, col ``=`` ``"darkgreen"``)`\
+[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"bottomleft"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`\
+`       legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Procrustes (mu=Inf)"``, ``"near-orth (mu=1)"``, ``"LS (mu=0)"``, ``"ideal"``)``,`\
+`       col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"blue"``, ``"firebrick"``, ``"darkgreen"``)``,`\
+`       lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``, ``3``, ``3``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``, ``2``, ``NA``)``)`\
+\
+`## (3) recall vs mu at scarce anchor (< p): the regularization sweet spot`\
+[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_scarce``$``tab``$``d1``, type ``=`` ``"b"``, pch ``=`` ``19``, ylim ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1``)``, xaxt ``=`` ``"n"``,`\
+`     xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu``)``, ylab ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"recall@%d (Design 1)"``, ``top_k``)``,`\
+`     main ``=`` ``"Scarce anchor (n = 24 < p = 32)"``)`\
+[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`\
+[`lines`](https://rdrr.io/r/graphics/lines.html)`(``xi``, ``mu_scarce``$``tab``$``d2``, type ``=`` ``"b"``, pch ``=`` ``1``, lty ``=`` ``2``, col ``=`` ``"firebrick"``)`\
+[`legend`](https://rdrr.io/r/graphics/legend.html)`(``"bottomleft"``, bty ``=`` ``"n"``, cex ``=`` ``0.75``,`\
+`       legend ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Design 1 (fold)"``, ``"Design 2 (matvec)"``)``,`\
+`       col ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"black"``, ``"firebrick"``)``, lty ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``1``, ``2``)``, pch ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``19``, ``1``)``)`\
+\
+`## (4) departure from isometry vs mu (the Design-2 / matvec budget)`\
+[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``xi``, ``mu_main``$``tab``$``aniso`` ``+`` ``1e-12``, type ``=`` ``"b"``, pch ``=`` ``19``, log ``=`` ``"y"``, xaxt ``=`` ``"n"``,`\
+`     xlab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``mu``)``, ylab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``"||"`` ``*`` ``A``^``T`` ``*`` ``A`` ``-`` ``I`` ``*`` ``"||"``[``F``]``)``,`\
+`     main ``=`` ``"Departure from isometry"``)`\
+[`axis`](https://rdrr.io/r/graphics/axis.html)`(``1``, ``xi``, ``mulab``(``mu_grid``)``)`
 
 ![](similarity_files/figure-html/recall-figure-1.png)
 
+\
 [`par`](https://rdrr.io/r/graphics/par.html)`(``op``)`
 
 ## Discussion
@@ -657,8 +1156,8 @@ Cox-threshold and ADMM use a master/worker fan-in — each worker’s
 encrypted contribution is summed by the master; the similarity protocol
 uses a broadcast-and-aggregate shape: encrypted query in, per-site
 scoring, master-side threshold decryption of the released top-$`k`$. The
-actor surface (`make_threshold_master`, `make_worker`,
-`master_encrypt`/`master_decrypt`) carries over unchanged.
+actor surface (`make_threshold_master`, `make_worker`, `encrypt_under`,
+`master_decrypt`) carries over unchanged.
 
 The closest precedents in the literature combine some but not all of the
 ingredients used here: FRAG (Lin et al., arXiv:2410.13272) federates

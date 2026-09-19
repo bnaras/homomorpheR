@@ -7,7 +7,7 @@
 set_workers(master, workers)
 }
 \arguments{
-\item{master}{a \link{Master}.}
+\item{master}{a \link{CKKSMaster}, or the frozen legacy \link{PaillierMaster}.}
 
 \item{workers}{a list of worker \link{Site}s.}
 }
@@ -15,12 +15,19 @@ set_workers(master, workers)
 the master, invisibly.
 }
 \description{
-Stashes the workers in the master's state and broadcasts the
-master's public key to each worker. After this call,
+Stashes the workers in the master's state and publishes
+its public parameters to each one. That bundle is public: it is the
+setup broadcast a coordinator would send over the wire, and it is
+all a site needs in order to encrypt. After this call,
 \code{\link[=master_aggregate]{master_aggregate()}} can drive an iteration of the protocol.
 }
 \details{
 Use this for the realistic master/worker (star) topology that
 distcomp- and DataSHIELD-style federated analyses follow. For the
 legacy Paillier round-robin idiom, use \code{\link[=round_robin_chain]{round_robin_chain()}} instead.
+
+A \link{ThresholdMaster} does \strong{not} use this function: its joint public
+key does not exist until key generation has run through every site,
+so \code{\link[=make_threshold_master]{make_threshold_master()}} takes the sites and returns a master
+already wired to them, in the order the chain fixed.
 }

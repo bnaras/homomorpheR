@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/mle.Rmd" class="external-link"><code>vignettes/mle.Rmd</code></a></small>
       <div class="d-none name"><code>mle.Rmd</code></div>
@@ -250,9 +250,9 @@ reads naturally.</p>
 <h3 id="build-workers-and-master">2. Build workers and master<a class="anchor" aria-label="anchor" href="#build-workers-and-master"></a>
 </h3>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">worker1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">y1</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
-<span><span class="va">worker2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">y2</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
-<span><span class="va">worker3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">y3</span>, local_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">worker1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 1"</span>, data <span class="op">=</span> <span class="va">y1</span>, contribution_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<span><span class="va">worker2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 2"</span>, data <span class="op">=</span> <span class="va">y2</span>, contribution_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
+<span><span class="va">worker3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Site 3"</span>, data <span class="op">=</span> <span class="va">y3</span>, contribution_fn <span class="op">=</span> <span class="va">local_nll</span><span class="op">)</span></span>
 <span><span class="va">master</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_ckks_master.html">make_ckks_master</a></span><span class="op">(</span><span class="st">"Master"</span>, crypto_context <span class="op">=</span> <span class="va">cc</span>, keypair <span class="op">=</span> <span class="va">keys</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/set_workers.html">set_workers</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">worker1</span>, <span class="va">worker2</span>, <span class="va">worker3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>

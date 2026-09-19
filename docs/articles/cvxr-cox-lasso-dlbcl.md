@@ -46,7 +46,15 @@ confirm the encrypted fit reproduces the in-the-clear reference.
 > [`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) and running
 > them. To verify the results, do exactly that yourself:
 >
-> `vig`` ``<-`` `[`system.file`](https://rdrr.io/r/base/system.file.html)`(``"doc"``, ``"cvxr-cox-lasso-dlbcl.Rmd"``,`` `` package ``=`` ``"homomorpheR"``)`` ``RECOMPUTE`` ``<-`` ``TRUE`` ``# un-gate the chunks`` ``src`` ``<-`` ``knitr``::`[`purl`](https://rdrr.io/pkg/knitr/man/knit.html)`(``vig``, output ``=`` `[`tempfile`](https://rdrr.io/r/base/tempfile.html)`(``fileext ``=`` ``".R"``)``, quiet ``=`` ``TRUE``)`` `[`source`](https://rdrr.io/r/base/source.html)`(``src``)`` ``# runs the pipeline (minutes)`` ``fresh`` ``<-`` ``cvxr_consensus`` ``# just recomputed`` `[`data`](https://rdrr.io/r/utils/data.html)`(``cvxr_consensus``, package ``=`` ``"homomorpheR"``)`` ``# the shipped copy`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fresh``$``z_enc`` ``-`` ``cvxr_consensus``$``z_enc``)``)`` ``# ~1e-7`
+> \
+> `vig`` ``<-`` `[`system.file`](https://rdrr.io/r/base/system.file.html)`(``"doc"``, ``"cvxr-cox-lasso-dlbcl.Rmd"``,`\
+> `                   package ``=`` ``"homomorpheR"``)`\
+> `RECOMPUTE`` ``<-`` ``TRUE``                                  ``# un-gate the chunks`\
+> `src`` ``<-`` ``knitr``::`[`purl`](https://rdrr.io/pkg/knitr/man/knit.html)`(``vig``, output ``=`` `[`tempfile`](https://rdrr.io/r/base/tempfile.html)`(``fileext ``=`` ``".R"``)``, quiet ``=`` ``TRUE``)`\
+> [`source`](https://rdrr.io/r/base/source.html)`(``src``)``                                        ``# runs the pipeline (minutes)`\
+> `fresh`` ``<-`` ``cvxr_consensus``                            ``# just recomputed`\
+> [`data`](https://rdrr.io/r/utils/data.html)`(``cvxr_consensus``, package ``=`` ``"homomorpheR"``)``      ``# the shipped copy`\
+> [`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fresh``$``z_enc`` ``-`` ``cvxr_consensus``$``z_enc``)``)``       ``# ~1e-7`
 >
 > Threshold key generation is randomized, so a re-run reproduces the
 > shipped coefficients up to CKKS approximation noise (~1e-7), not
@@ -103,7 +111,11 @@ at the aggregator and adds no cryptographic depth.
 The pipeline needs `survival` and [CVXR](https://cvxr.rbind.io)
 alongside the encryption packages.
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`CVXR`](https://cvxr.rbind.io)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`` `[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`survival`](https://github.com/therneau/survival)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`CVXR`](https://cvxr.rbind.io)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`openfhe.R`](https://openfheorg.github.io/openfhe.R/)`)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`
 
 ## The federated fit in the clear
 
@@ -111,7 +123,22 @@ The three subgroups are our sites. We load the cohort, split it by
 subgroup, and keep each site’s raw expression matrix, event times, and
 status.
 
-[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``, package ``=`` ``"homomorpheR"``)`` ``# 235 patients: survival + signatures`` `[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL_gex``, package ``=`` ``"homomorpheR"``)`` ``# 235 patients x 6416 Lymphochip probes`` ``dlbcl`` ``<-`` ``DLBCL`` ``dlbcl``$``Subgroup`` ``<-`` `[`factor`](https://rdrr.io/r/base/factor.html)`(``dlbcl``$``Subgroup``, levels ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"GCB"``,``"ABC"``,``"Type III"``)``)`` `[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`identical`](https://rdrr.io/r/base/identical.html)`(`[`as.character`](https://rdrr.io/r/base/character.html)`(``dlbcl``$``ID``)``, `[`rownames`](https://rdrr.io/r/base/colnames.html)`(``DLBCL_gex``)``)``)`` ``# rows aligned`` `` ``sites_raw`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`levels`](https://rdrr.io/r/base/levels.html)`(``dlbcl``$``Subgroup``)``, ``function``(``s``)`` ``{`` `` ``idx`` ``<-`` `[`which`](https://rdrr.io/r/base/which.html)`(``dlbcl``$``Subgroup`` ``==`` ``s``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``name ``=`` ``s``, X ``=`` ``DLBCL_gex``[``idx``, ``]``, time ``=`` ``dlbcl``$``time``[``idx``]``,`` `` status ``=`` ``dlbcl``$``status``[``idx``]``)`` ``}``)`` `[`names`](https://rdrr.io/r/base/names.html)`(``sites_raw``)`` ``<-`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dlbcl``$``Subgroup``)`` ``N_sites`` ``<-`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites_raw``)`` ``N_total`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``sites_raw``, ``function``(``s``)`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``s``$``X``)``, ``1L``)``)`` ``P_raw`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``DLBCL_gex``)`
+\
+[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL``,     package ``=`` ``"homomorpheR"``)``  ``# 235 patients: survival + signatures`\
+[`data`](https://rdrr.io/r/utils/data.html)`(``DLBCL_gex``, package ``=`` ``"homomorpheR"``)``  ``# 235 patients x 6416 Lymphochip probes`\
+`dlbcl`` ``<-`` ``DLBCL`\
+`dlbcl``$``Subgroup`` ``<-`` `[`factor`](https://rdrr.io/r/base/factor.html)`(``dlbcl``$``Subgroup``, levels ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"GCB"``,``"ABC"``,``"Type III"``)``)`\
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`identical`](https://rdrr.io/r/base/identical.html)`(`[`as.character`](https://rdrr.io/r/base/character.html)`(``dlbcl``$``ID``)``, `[`rownames`](https://rdrr.io/r/base/colnames.html)`(``DLBCL_gex``)``)``)``  ``# rows aligned`\
+\
+`sites_raw`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`levels`](https://rdrr.io/r/base/levels.html)`(``dlbcl``$``Subgroup``)``, ``function``(``s``)`` ``{`\
+`    ``idx`` ``<-`` `[`which`](https://rdrr.io/r/base/which.html)`(``dlbcl``$``Subgroup`` ``==`` ``s``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``name ``=`` ``s``, X ``=`` ``DLBCL_gex``[``idx``, ``]``, time ``=`` ``dlbcl``$``time``[``idx``]``,`\
+`         status ``=`` ``dlbcl``$``status``[``idx``]``)`\
+`}``)`\
+[`names`](https://rdrr.io/r/base/names.html)`(``sites_raw``)`` ``<-`` `[`levels`](https://rdrr.io/r/base/levels.html)`(``dlbcl``$``Subgroup``)`\
+`N_sites`` ``<-`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites_raw``)`\
+`N_total`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``sites_raw``, ``function``(``s``)`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``s``$``X``)``, ``1L``)``)`\
+`P_raw``   ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``DLBCL_gex``)`
 
 We standardize the features so the L1 penalty applies uniformly across
 predictors on different scales. The pooled mean and variance are
@@ -121,7 +148,19 @@ $`\mu=\tfrac1{N_{\mathrm{tot}}}\sum_k S_k`$ and
 $`\sigma^2=\tfrac1{N_{\mathrm{tot}}}\sum_k Q_k-\mu^2`$. In the clear
 this is a pair of `colSums`.
 
-`pool_plain`` ``<-`` ``function``(``sites``, ``n_total``)`` ``{`` `` ``s`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``)`` `` ``q`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`` `` ``mu`` ``<-`` ``s`` ``/`` ``n_total`` `` ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``q`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``mu ``=`` ``mu``, sigma ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``sigma2``)``)`` ``}`` ``pool`` ``<-`` ``pool_plain``(``sites_raw``, ``N_total``)`` ``sites_std`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_raw``, ``function``(``s``)`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` name ``=`` ``s``$``name``,`` `` X ``=`` `[`sweep`](https://rdrr.io/r/base/sweep.html)`(`[`sweep`](https://rdrr.io/r/base/sweep.html)`(``s``$``X``, ``2``, ``pool``$``mu``, ``"-"``)``, ``2``, ``pool``$``sigma``, ``"/"``)``,`` `` time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`
+\
+`pool_plain`` ``<-`` ``function``(``sites``, ``n_total``)`` ``{`\
+`    ``s`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``)`\
+`    ``q`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`\
+`    ``mu``     ``<-`` ``s`` ``/`` ``n_total`\
+`    ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``q`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``mu ``=`` ``mu``, sigma ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``sigma2``)``)`\
+`}`\
+`pool``      ``<-`` ``pool_plain``(``sites_raw``, ``N_total``)`\
+`sites_std`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_raw``, ``function``(``s``)`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`    name ``=`` ``s``$``name``,`\
+`    X    ``=`` `[`sweep`](https://rdrr.io/r/base/sweep.html)`(`[`sweep`](https://rdrr.io/r/base/sweep.html)`(``s``$``X``, ``2``, ``pool``$``mu``, ``"-"``)``, ``2``, ``pool``$``sigma``, ``"/"``)``,`\
+`    time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`
 
 Solving the full Cox-lasso at $`p = 6416`$ exhausts memory during
 [CVXR](https://cvxr.rbind.io) canonicalization, so we pre-screen to the
@@ -135,7 +174,37 @@ $`I_g^{(k)}=\sum_{i\in k,\delta_i=1}\widehat{\operatorname{Var}}_{R_i^{(k)}}(X_{
 the information; both sum across sites, and the screen ranks probes by
 $`|Z_g|=|U_g|/\sqrt{I_g}`$.
 
-`K`` ``<-`` ``100L`` `` ``score_info_at_zero`` ``<-`` ``function``(``X``, ``time``, ``status``)`` ``{`` `` ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X``)`` `` ``ord`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``time``, ``-``status``)`` `` ``X_o`` ``<-`` ``X``[``ord``, , drop ``=`` ``FALSE``]``; ``stat_o`` ``<-`` ``status``[``ord``]`` `` ``n`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_o``)``; ``U`` ``<-`` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``p``)``; ``I`` ``<-`` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``p``)`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n``)``)`` ``{`` `` ``if`` ``(``stat_o``[``i``]`` ``==`` ``1L``)`` ``{`` `` ``risk`` ``<-`` ``X_o``[``i``:``n``, , drop ``=`` ``FALSE``]`` `` ``mu_R`` ``<-`` `[`colMeans`](https://rdrr.io/r/base/colSums.html)`(``risk``)`` `` ``U`` ``<-`` ``U`` ``+`` ``(``X_o``[``i``, ``]`` ``-`` ``mu_R``)`` `` ``I`` ``<-`` ``I`` ``+`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(`[`sweep`](https://rdrr.io/r/base/sweep.html)`(``risk``, ``2``, ``mu_R``, ``"-"``)``^``2``)`` ``/`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``risk``)`` `` ``}`` `` ``}`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``U ``=`` ``U``, I ``=`` ``I``)`` ``}`` `` ``screen_plain`` ``<-`` ``function``(``sites``, ``K``)`` ``{`` `` ``UI`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` ``score_info_at_zero``(``s``$``X``, ``s``$``time``, ``s``$``status``)``)`` `` ``U`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)`` `` ``I`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)`` `` ``Z`` ``<-`` ``U`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``I``, ``.Machine``$``double.eps``)``)`` `` `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`` ``}`` ``top_idx`` ``<-`` ``screen_plain``(``sites_std``, ``K``)`` ``sites_KS`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_std``, ``function``(``s``)`` `[`list`](https://rdrr.io/r/base/list.html)`(`` `` name ``=`` ``s``$``name``, X ``=`` ``s``$``X``[``, ``top_idx``]``,`` `` time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`` ``sigma_K`` ``<-`` ``pool``$``sigma``[``top_idx``]`
+\
+`K`` ``<-`` ``100L`\
+\
+`score_info_at_zero`` ``<-`` ``function``(``X``, ``time``, ``status``)`` ``{`\
+`    ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X``)`\
+`    ``ord`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``time``, ``-``status``)`\
+`    ``X_o`` ``<-`` ``X``[``ord``, , drop ``=`` ``FALSE``]``; ``stat_o`` ``<-`` ``status``[``ord``]`\
+`    ``n`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_o``)``; ``U`` ``<-`` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``p``)``; ``I`` ``<-`` `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``p``)`\
+`    ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n``)``)`` ``{`\
+`        ``if`` ``(``stat_o``[``i``]`` ``==`` ``1L``)`` ``{`\
+`            ``risk`` ``<-`` ``X_o``[``i``:``n``, , drop ``=`` ``FALSE``]`\
+`            ``mu_R`` ``<-`` `[`colMeans`](https://rdrr.io/r/base/colSums.html)`(``risk``)`\
+`            ``U`` ``<-`` ``U`` ``+`` ``(``X_o``[``i``, ``]`` ``-`` ``mu_R``)`\
+`            ``I`` ``<-`` ``I`` ``+`` `[`colSums`](https://rdrr.io/r/base/colSums.html)`(`[`sweep`](https://rdrr.io/r/base/sweep.html)`(``risk``, ``2``, ``mu_R``, ``"-"``)``^``2``)`` ``/`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``risk``)`\
+`        ``}`\
+`    ``}`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``U ``=`` ``U``, I ``=`` ``I``)`\
+`}`\
+\
+`screen_plain`` ``<-`` ``function``(``sites``, ``K``)`` ``{`\
+`    ``UI`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` ``score_info_at_zero``(``s``$``X``, ``s``$``time``, ``s``$``status``)``)`\
+`    ``U``  ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)`\
+`    ``I``  ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)`\
+`    ``Z``  ``<-`` ``U`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``I``, ``.Machine``$``double.eps``)``)`\
+`    `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`\
+`}`\
+`top_idx``  ``<-`` ``screen_plain``(``sites_std``, ``K``)`\
+`sites_KS`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_std``, ``function``(``s``)`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
+`    name ``=`` ``s``$``name``, X ``=`` ``s``$``X``[``, ``top_idx``]``,`\
+`    time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`\
+`sigma_K``  ``<-`` ``pool``$``sigma``[``top_idx``]`
 
 `sites_KS` now holds each stratum on the $`K = 100`$ screened probes,
 and `sigma_K` keeps their pooled SDs for the back-transform to the
@@ -145,7 +214,30 @@ The centralized stratified Cox-lasso fit — our ground truth — is a
 single [CVXR](https://cvxr.rbind.io) solve summing the per-stratum
 Breslow partial likelihoods plus the L1 penalty.
 
-`LAMBDA`` ``<-`` ``5`` ``build_cox_breslow_nll`` ``<-`` ``function``(``beta_var``, ``X_s``, ``time_s``, ``status_s``)`` ``{`` `` ``ord`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``time_s``, ``-``status_s``)`` `` ``X_o`` ``<-`` ``X_s``[``ord``, , drop ``=`` ``FALSE``]``; ``stat_o`` ``<-`` ``status_s``[``ord``]`` `` ``n`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_o``)``; ``eta_o`` ``<-`` ``X_o`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_var`` `` ``terms`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n``)``)`` ``{`` `` ``if`` ``(``stat_o``[``i``]`` ``==`` ``1L``)`` ``{`` `` ``terms``[[`[`length`](https://rdrr.io/r/base/length.html)`(``terms``)`` ``+`` ``1L``]``]`` ``<-`` `` `[`log_sum_exp`](https://www.cvxgrp.org/CVXR/reference/log_sum_exp.html)`(``eta_o``[``i``:``n``, ``1``]``)`` ``-`` ``eta_o``[``i``, ``1``]`` `` ``}`` `` ``}`` `` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``terms``)`` ``}`` `` ``beta_var`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``K``, name ``=`` ``"beta"``)`` ``nll_per`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_KS``, ``function``(``s``)`` `` ``build_cox_breslow_nll``(``beta_var``, ``s``$``X``, ``s``$``time``, ``s``$``status``)``)`` ``agg_prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(`[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``nll_per``)`` ``+`` `` ``LAMBDA`` ``*`` `[`p_norm`](https://www.cvxgrp.org/CVXR/reference/p_norm.html)`(``beta_var``, ``1``)``)``)`` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``agg_prob``, solver ``=`` ``"CLARABEL"``, verbose ``=`` ``FALSE``)``)``)`` ``agg_beta`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``beta_var``)``)`
+\
+`LAMBDA`` ``<-`` ``5`\
+`build_cox_breslow_nll`` ``<-`` ``function``(``beta_var``, ``X_s``, ``time_s``, ``status_s``)`` ``{`\
+`    ``ord`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``time_s``, ``-``status_s``)`\
+`    ``X_o`` ``<-`` ``X_s``[``ord``, , drop ``=`` ``FALSE``]``; ``stat_o`` ``<-`` ``status_s``[``ord``]`\
+`    ``n`` ``<-`` `[`nrow`](https://rdrr.io/r/base/nrow.html)`(``X_o``)``; ``eta_o`` ``<-`` ``X_o`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``beta_var`\
+`    ``terms`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
+`    ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n``)``)`` ``{`\
+`        ``if`` ``(``stat_o``[``i``]`` ``==`` ``1L``)`` ``{`\
+`            ``terms``[[`[`length`](https://rdrr.io/r/base/length.html)`(``terms``)`` ``+`` ``1L``]``]`` ``<-`\
+`                `[`log_sum_exp`](https://www.cvxgrp.org/CVXR/reference/log_sum_exp.html)`(``eta_o``[``i``:``n``, ``1``]``)`` ``-`` ``eta_o``[``i``, ``1``]`\
+`        ``}`\
+`    ``}`\
+`    `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``terms``)`\
+`}`\
+\
+`beta_var`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``K``, name ``=`` ``"beta"``)`\
+`nll_per``  ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_KS``, ``function``(``s``)`\
+`    ``build_cox_breslow_nll``(``beta_var``, ``s``$``X``, ``s``$``time``, ``s``$``status``)``)`\
+`agg_prob`` ``<-`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(`[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``nll_per``)`` ``+`\
+`                                 ``LAMBDA`` ``*`` `[`p_norm`](https://www.cvxgrp.org/CVXR/reference/p_norm.html)`(``beta_var``, ``1``)``)``)`\
+[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`\
+`    `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``agg_prob``, solver ``=`` ``"CLARABEL"``, verbose ``=`` ``FALSE``)``)``)`\
+`agg_beta`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``beta_var``)``)`
 
 The distributed fit splits this objective into per-site subproblems tied
 by a consensus variable. Each local problem is built so DPP applies:
@@ -153,7 +245,18 @@ $`z`$ and $`u`$ enter as `Parameter`s whose values change every ADMM
 iteration while the symbolic structure does not; $`X_k`$, time, status,
 and $`\rho`$ are constants.
 
-`RHO`` ``<-`` ``50`` `` ``build_local`` ``<-`` ``function``(``X_k``, ``time_k``, ``status_k``, ``rho``)`` ``{`` `` ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_k``)`` `` ``x`` ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)``; ``zp`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)``; ``up`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)`` `` ``nll`` ``<-`` ``build_cox_breslow_nll``(``x``, ``X_k``, ``time_k``, ``status_k``)`` `` ``aug`` ``<-`` ``(``rho`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x`` ``-`` ``zp`` ``+`` ``up``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``prob ``=`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(``nll`` ``+`` ``aug``)``)``, x ``=`` ``x``, zp ``=`` ``zp``, up ``=`` ``up``)`` ``}`` ``sites_problem`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_KS``, ``function``(``s``)`` `` ``build_local``(``s``$``X``, ``s``$``time``, ``s``$``status``, ``RHO``)``)`
+\
+`RHO`` ``<-`` ``50`\
+\
+`build_local`` ``<-`` ``function``(``X_k``, ``time_k``, ``status_k``, ``rho``)`` ``{`\
+`    ``p`` ``<-`` `[`ncol`](https://rdrr.io/r/base/nrow.html)`(``X_k``)`\
+`    ``x``  ``<-`` `[`Variable`](https://www.cvxgrp.org/CVXR/reference/Variable.html)`(``p``)``; ``zp`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)``; ``up`` ``<-`` `[`Parameter`](https://www.cvxgrp.org/CVXR/reference/Parameter.html)`(``p``)`\
+`    ``nll`` ``<-`` ``build_cox_breslow_nll``(``x``, ``X_k``, ``time_k``, ``status_k``)`\
+`    ``aug`` ``<-`` ``(``rho`` ``/`` ``2``)`` ``*`` `[`sum_squares`](https://www.cvxgrp.org/CVXR/reference/sum_squares.html)`(``x`` ``-`` ``zp`` ``+`` ``up``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``prob ``=`` `[`Problem`](https://www.cvxgrp.org/CVXR/reference/Problem.html)`(`[`Minimize`](https://www.cvxgrp.org/CVXR/reference/Minimize.html)`(``nll`` ``+`` ``aug``)``)``, x ``=`` ``x``, zp ``=`` ``zp``, up ``=`` ``up``)`\
+`}`\
+`sites_problem`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_KS``, ``function``(``s``)`\
+`    ``build_local``(``s``$``X``, ``s``$``time``, ``s``$``status``, ``RHO``)``)`
 
 The ADMM driver below is the whole federated algorithm, and it is
 deliberately agnostic to *how* the cross-site average is formed: the
@@ -171,7 +274,39 @@ iteration 147. Smaller $`\rho`$ reaches the tolerance in fewer
 iterations but at a looser fit, so we keep $`\rho = 50`$ for the
 tightest agreement with the centralized solve.
 
-`MAX_ITER`` ``<-`` ``200L``; ``TOL`` ``<-`` ``5e-3`` ``soft_threshold`` ``<-`` ``function``(``v``, ``tau``)`` `[`sign`](https://rdrr.io/r/base/sign.html)`(``v``)`` ``*`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``v``)`` ``-`` ``tau``, ``0``)`` `` ``run_admm`` ``<-`` ``function``(``sites_problem``, ``consensus``)`` ``{`` `` ``site_x`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`` `` ``site_u`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`` `` ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``; ``trajectory`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`` `` ``for`` ``(``iter`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``MAX_ITER``)``)`` ``{`` `` ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N_sites``)``)`` ``{`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``zp``)`` ``<-`` ``z_curr`` `` `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``up``)`` ``<-`` ``site_u``[[``i``]``]`` `` `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`` `` `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``sites_problem``[[``i``]``]``$``prob``, solver ``=`` ``"CLARABEL"``,`` `` verbose ``=`` ``FALSE``)``)``)`` `` ``site_x``[[``i``]``]`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``x``)``)`` `` ``}`` `` ``w_avg`` ``<-`` ``consensus``(``site_x``, ``site_u``)`` `` ``z_new`` ``<-`` ``soft_threshold``(``w_avg``, ``LAMBDA`` ``/`` ``(``N_sites`` ``*`` ``RHO``)``)`` `` ``site_u`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``function``(``u``, ``x``)`` ``u`` ``+`` ``(``x`` ``-`` ``z_new``)``, ``site_u``, ``site_x``)`` `` ``primal`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``site_x``, ``function``(``x``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``x`` ``-`` ``z_new``)``^``2``)``, ``0``)``)``)`` `` ``dual`` ``<-`` ``RHO`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`` `` ``z_curr`` ``<-`` ``z_new``; ``trajectory``[[``iter``]``]`` ``<-`` ``z_new`` `` ``if`` ``(``primal`` ``<`` ``TOL`` ``&&`` ``dual`` ``<`` ``TOL``)`` ``break`` `` ``}`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z_curr``, trajectory ``=`` ``trajectory``)`` ``}`` `` ``plain_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` `` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`Map`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``site_x``, ``site_u``)``)`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)`` `` ``ref`` ``<-`` ``run_admm``(``sites_problem``, ``plain_consensus``)`` ``z_ref`` ``<-`` ``ref``$``z`
+\
+`MAX_ITER`` ``<-`` ``200L``; ``TOL`` ``<-`` ``5e-3`\
+`soft_threshold`` ``<-`` ``function``(``v``, ``tau``)`` `[`sign`](https://rdrr.io/r/base/sign.html)`(``v``)`` ``*`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``v``)`` ``-`` ``tau``, ``0``)`\
+\
+`run_admm`` ``<-`` ``function``(``sites_problem``, ``consensus``)`` ``{`\
+`    ``site_x`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`\
+`    ``site_u`` ``<-`` `[`replicate`](https://rdrr.io/r/base/lapply.html)`(``N_sites``, `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``, simplify ``=`` ``FALSE``)`\
+`    ``z_curr`` ``<-`` `[`rep`](https://rdrr.io/r/base/rep.html)`(``0``, ``K``)``; ``trajectory`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
+`    ``for`` ``(``iter`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``MAX_ITER``)``)`` ``{`\
+`        ``for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``N_sites``)``)`` ``{`\
+`            `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``zp``)`` ``<-`` ``z_curr`\
+`            `[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``up``)`` ``<-`` ``site_u``[[``i``]``]`\
+`            `[`suppressMessages`](https://rdrr.io/r/base/message.html)`(`[`suppressWarnings`](https://rdrr.io/r/base/warning.html)`(`\
+`                `[`psolve`](https://www.cvxgrp.org/CVXR/reference/psolve.html)`(``sites_problem``[[``i``]``]``$``prob``, solver ``=`` ``"CLARABEL"``,`\
+`                       verbose ``=`` ``FALSE``)``)``)`\
+`            ``site_x``[[``i``]``]`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``sites_problem``[[``i``]``]``$``x``)``)`\
+`        ``}`\
+`        ``w_avg``  ``<-`` ``consensus``(``site_x``, ``site_u``)`\
+`        ``z_new``  ``<-`` ``soft_threshold``(``w_avg``, ``LAMBDA`` ``/`` ``(``N_sites`` ``*`` ``RHO``)``)`\
+`        ``site_u`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``function``(``u``, ``x``)`` ``u`` ``+`` ``(``x`` ``-`` ``z_new``)``, ``site_u``, ``site_x``)`\
+`        ``primal`` ``<-`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`mean`](https://rdrr.io/r/base/mean.html)`(`[`vapply`](https://rdrr.io/r/base/lapply.html)`(``site_x``, ``function``(``x``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(``x`` ``-`` ``z_new``)``^``2``)``, ``0``)``)``)`\
+`        ``dual``   ``<-`` ``RHO`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(``(``z_new`` ``-`` ``z_curr``)``^``2``)``)`\
+`        ``z_curr`` ``<-`` ``z_new``; ``trajectory``[[``iter``]``]`` ``<-`` ``z_new`\
+`        ``if`` ``(``primal`` ``<`` ``TOL`` ``&&`` ``dual`` ``<`` ``TOL``)`` ``break`\
+`    ``}`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``z ``=`` ``z_curr``, trajectory ``=`` ``trajectory``)`\
+`}`\
+\
+`plain_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`\
+`    `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`Map`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``site_x``, ``site_u``)``)`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)`\
+\
+`ref``   ``<-`` ``run_admm``(``sites_problem``, ``plain_consensus``)`\
+`z_ref`` ``<-`` ``ref``$``z`
 
 In the clear the consensus is a single line — the average of the
 $`(x_k+u_k)`$ vectors. The unencrypted ADMM converges in 147 iterations
@@ -195,11 +330,42 @@ partial decryption. The local [CVXR](https://cvxr.rbind.io) work and
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` and
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md),
-which runs the chained
+which walks the
 [`multiparty_key_gen()`](https://openfheorg.github.io/openfhe.R/reference/multiparty_key_gen.html)
-ceremony internally so no single party ever holds the secret key.
+chain across the sites. Each site generates its own share and keeps it;
+only public keys move along the chain, so no party — the aggregator
+included — ever holds the joint secret.
 
-`cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`` `` multiplicative_depth ``=`` ``1L``,`` `` scaling_mod_size ``=`` ``59L``,`` `` first_mod_size ``=`` ``60L``,`` `` batch_size ``=`` ``8192L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Feature``$``MULTIPARTY``)``)`` ``master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``, n_sites ``=`` ``N_sites``)`
+That means the key-holding parties have to exist before the aggregator
+does. The subgroups are already our sites; here we give each one an
+object to hold its share in.
+
+\
+`cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
+`                  multiplicative_depth ``=`` ``1L``,`\
+`                  scaling_mod_size     ``=`` ``59L``,`\
+`                  first_mod_size       ``=`` ``60L``,`\
+`                  batch_size           ``=`` ``8192L``,`\
+`                  features             ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``Feature``$``MULTIPARTY``)``)`\
+\
+`key_sites`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`levels`](https://rdrr.io/r/base/levels.html)`(``dlbcl``$``Subgroup``)``, ``function``(``s``)`\
+`    `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``s``, data ``=`` ``NULL``, contribution_fn ``=`` ``function``(``data``, ``theta``)`` ``NULL``)``)`\
+\
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`\
+`                                crypto_context ``=`` ``cc``, sites ``=`` ``key_sites``)`\
+\
+`## What each site kept from that one exchange: its own secret share,`\
+`## and a copy of the public parameters -- a scheme tag, the crypto`\
+`## context, the joint public key, and no share of anyone else's.`\
+`site_params`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``key_sites``, ``function``(``s``)`` ``s``@``state``$``params``)`
+
+That wiring is the one and only exchange between the aggregator and the
+sites, apart from the ciphertexts each round carries. From here on each
+site is autonomous: everything below encrypts with `site_params`, which
+the site already holds, and nothing reaches back for the aggregator.
+
+\
+[`names`](https://rdrr.io/r/base/names.html)`(``site_params``[[``1``]``]``)`
 
 The standardization round is `pool_plain` with the two `colSums`
 encrypted: each site encrypts $`S_k`$ and $`Q_k`$, the aggregator sums
@@ -207,7 +373,28 @@ under encryption and threshold-decrypts the pooled moments. (For brevity
 we treat $`N_{\mathrm{tot}}`$ as known to the aggregator; hiding the
 per-site head-counts is one more sum of the same kind.)
 
-`encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`` `` ``s_ct`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``)`` `` ``q_ct`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`` `` ``pooled_sum`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``s_ct``)``, len ``=`` ``p_raw``)`` `` ``pooled_sumsq`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``q_ct``)``, len ``=`` ``p_raw``)`` `` ``mu`` ``<-`` ``pooled_sum`` ``/`` ``n_total`` `` ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``pooled_sumsq`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`` `` `[`list`](https://rdrr.io/r/base/list.html)`(``mu ``=`` ``mu``, sigma ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``sigma2``)``)`` ``}`` ``fhe_pool`` ``<-`` ``encrypt_pool``(``master``, ``sites_raw``, ``N_total``, ``P_raw``)`
+\
+`## Site side. Each site forms its own moments and encrypts them under`\
+`## the joint key; what leaves is ciphertext. Encrypting at the`\
+`## aggregator instead would mean handing it the per-site column sums in`\
+`## the clear first, which is the disclosure this round exists to avoid.`\
+`site_moments`` ``<-`` ``function``(``s``, ``params``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``sum   ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``,`\
+`         sumsq ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`\
+\
+`## Aggregator side. It reduces ciphertexts and decrypts only the total.`\
+`encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`\
+`    ``## Each site encrypts with the parameters it kept from wiring.`\
+`    ``parts`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_moments``, ``sites``, ``site_params``)`\
+`    ``pooled_sum``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
+`        ``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``parts``, ``` `[[` ```, ``"sum"``)``)``,   len ``=`` ``p_raw``)`\
+`    ``pooled_sumsq`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
+`        ``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``parts``, ``` `[[` ```, ``"sumsq"``)``)``, len ``=`` ``p_raw``)`\
+`    ``mu``     ``<-`` ``pooled_sum`` ``/`` ``n_total`\
+`    ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``pooled_sumsq`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``mu ``=`` ``mu``, sigma ``=`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``sigma2``)``)`\
+`}`\
+`fhe_pool`` ``<-`` ``encrypt_pool``(``master``, ``sites_raw``, ``N_total``, ``P_raw``)`
 
 The encrypted moments agree with the unencrypted `pool` to 4.4^{-16}
 (mean) and 3.1^{-15} (SD) — essentially machine precision, since these
@@ -216,17 +403,53 @@ identical, the same `score_info_at_zero` summands $`(U^{(k)},I^{(k)})`$
 encrypted and summed the same way, so we show it compactly and confirm
 it selects the same probes.
 
-`encrypt_screen`` ``<-`` ``function``(``master``, ``sites``, ``p_raw``, ``K``)`` ``{`` `` ``enc`` ``<-`` ``function``(``v``)`` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``v``)`` `` ``UI`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``function``(``s``)`` ``score_info_at_zero``(``s``$``X``, ``s``$``time``, ``s``$``status``)``)`` `` ``U`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``function``(``z``)`` ``enc``(``z``$``U``)``)``)``,`` `` len ``=`` ``p_raw``)`` `` ``I`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``function``(``z``)`` ``enc``(``z``$``I``)``)``)``,`` `` len ``=`` ``p_raw``)`` `` ``Z`` ``<-`` ``U`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``I``, ``.Machine``$``double.eps``)``)`` `` `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`` ``}`` ``fhe_top`` ``<-`` ``encrypt_screen``(``master``, ``sites_std``, ``P_raw``, ``K``)`` `[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`setequal`](https://rdrr.io/r/base/sets.html)`(``fhe_top``, ``top_idx``)``)`` ``# same probes as the plaintext screen`
+\
+`## Site side: compute the score and information at beta = 0 on the`\
+`## site's own rows, and encrypt both before returning them.`\
+`site_score_info`` ``<-`` ``function``(``s``, ``params``)`` ``{`\
+`    ``z`` ``<-`` ``score_info_at_zero``(``s``$``X``, ``s``$``time``, ``s``$``status``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``U ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``z``$``U``)``, I ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``z``$``I``)``)`\
+`}`\
+\
+`## Aggregator side: sum the encrypted (U, I) and decrypt the totals.`\
+`encrypt_screen`` ``<-`` ``function``(``master``, ``sites``, ``p_raw``, ``K``)`` ``{`\
+`    ``UI``  ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_score_info``, ``sites``, ``site_params``)`\
+`    ``U``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)``,`\
+`                          len ``=`` ``p_raw``)`\
+`    ``I``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)``,`\
+`                          len ``=`` ``p_raw``)`\
+`    ``Z``   ``<-`` ``U`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``I``, ``.Machine``$``double.eps``)``)`\
+`    `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`\
+`}`\
+`fhe_top`` ``<-`` ``encrypt_screen``(``master``, ``sites_std``, ``P_raw``, ``K``)`\
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`setequal`](https://rdrr.io/r/base/sets.html)`(``fhe_top``, ``top_idx``)``)``   ``# same probes as the plaintext screen`
 
 With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`: encrypt each $`(x_k+u_k)`$, sum the encrypted
-vectors, scale by $`1/N`$ under encryption (one multiplication by an
-unencrypted constant, which costs one level of the precision budget),
-and threshold-decrypt the length-$`K`$ average. Soft-thresholding stays
-in the clear at the aggregator.
+`plain_consensus`, with the encryption on the site’s side of the
+boundary: each site encrypts its own $`(x_k+u_k)`$, the aggregator sums
+the ciphertexts, scales by $`1/N`$ under encryption (one multiplication
+by an unencrypted constant, which costs one level of the precision
+budget), and threshold-decrypts the length-$`K`$ average.
+Soft-thresholding stays in the clear at the aggregator, on the
+aggregate.
 
-`encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`` `` ``cts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``site_x``)``, ``function``(``i``)`` `` `[`master_encrypt`](https://bnaras.github.io/homomorpheR/reference/master_encrypt.md)`(``master``, ``site_x``[[``i``]``]`` ``+`` ``site_u``[[``i``]``]``)``)`` `` ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)``)`` `` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_avg``, len ``=`` ``K``)`` ``}`` ``fhe`` ``<-`` ``run_admm``(``sites_problem``, ``encrypted_consensus``)`` ``z_curr`` ``<-`` ``fhe``$``z`` ``trajectory`` ``<-`` ``fhe``$``trajectory`
+\
+`## Site side: form x_k + u_k and encrypt it there. The per-site vector`\
+`## never exists in the clear outside this function.`\
+`site_consensus_term`` ``<-`` ``function``(``x_k``, ``u_k``, ``params``)`\
+`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``x_k`` ``+`` ``u_k``)`\
+\
+`## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the`\
+`## average. It sees no individual (x_k + u_k).`\
+`encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`\
+`    ``cts``    ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_consensus_term``, ``site_x``, ``site_u``, ``site_params``)`\
+`    ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)``)`\
+`    `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_avg``, len ``=`` ``K``)`\
+`}`\
+`fhe``        ``<-`` ``run_admm``(``sites_problem``, ``encrypted_consensus``)`\
+`z_curr``     ``<-`` ``fhe``$``z`\
+`trajectory`` ``<-`` ``fhe``$``trajectory`
 
 Passing `encrypted_consensus` in place of `plain_consensus` is the
 *entire* change. The encrypted ADMM ran for 147 iterations and lands on
@@ -239,7 +462,18 @@ We compare the threshold-FHE consensus to the centralized
 [CVXR](https://cvxr.rbind.io) fit on both the standardized scale (where
 ADMM lives) and the back-transformed original gene-expression scale.
 
-`beta_orig_agg`` ``<-`` ``agg_beta`` ``/`` ``sigma_K`` ``beta_orig_enc`` ``<-`` ``z_enc`` ``/`` ``sigma_K`` ``cmp`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` check.names ``=`` ``FALSE``,`` `` Scale ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"standardized"``, ``"original"``)``,`` ```  `Max abs diff`  ```=`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc`` ``-`` ``agg_beta``)``)``,`` `` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``,`` ```  `L1 diff`  ```=`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc`` ``-`` ``agg_beta``)``)``,`` `` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``cmp``, digits ``=`` ``4``,`` `` caption ``=`` ``"Threshold-FHE consensus ADMM vs. centralized Cox-lasso"``)`
+\
+`beta_orig_agg`` ``<-`` ``agg_beta`` ``/`` ``sigma_K`\
+`beta_orig_enc`` ``<-`` ``z_enc``    ``/`` ``sigma_K`\
+`cmp`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`    check.names    ``=`` ``FALSE``,`\
+`    Scale          ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"standardized"``, ``"original"``)``,`\
+``     `Max abs diff`  ```=`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc`` ``-`` ``agg_beta``)``)``,`\
+`                       `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``,`\
+``     `L1 diff`       ```=`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc`` ``-`` ``agg_beta``)``)``,`\
+`                       `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``)`\
+`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``cmp``, digits ``=`` ``4``,`\
+`             caption ``=`` ``"Threshold-FHE consensus ADMM vs. centralized Cox-lasso"``)`
 
 | Scale        | Max abs diff | L1 diff |
 |:-------------|-------------:|--------:|
@@ -248,7 +482,10 @@ ADMM lives) and the back-transformed original gene-expression scale.
 
 Threshold-FHE consensus ADMM vs. centralized Cox-lasso {.table}
 
-`n_agg`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``agg_beta``)`` ``>`` ``1e-7``)`` ``n_enc`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)`` ``>`` ``1e-7``)`` ``n_inter`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``agg_beta``)`` ``>`` ``1e-7``)`` ``&`` ``(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)`` ``>`` ``1e-7``)``)`
+\
+`n_agg``   ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``agg_beta``)`` ``>`` ``1e-7``)`\
+`n_enc``   ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)``    ``>`` ``1e-7``)`\
+`n_inter`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``agg_beta``)`` ``>`` ``1e-7``)`` ``&`` ``(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)`` ``>`` ``1e-7``)``)`
 
 The active set has 38 nonzero coefficients in the centralized fit and 38
 in the encrypted ADMM fit; the intersection is 38 — every probe selected
@@ -260,7 +497,16 @@ probes with largest $`|z|`$ at convergence, with the centralized fit
 drawn as a horizontal reference. The encrypted iterates converge along
 the path the centralized solver would take.
 
-`top8`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``-`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)``)``[``1``:``8``]`` ``labs`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``"probe"``, `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``DLBCL_gex``)``[``top_idx``]``[``top8``]``)`` ``op`` ``<-`` `[`par`](https://rdrr.io/r/graphics/par.html)`(``mfrow ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``4``)``, mar ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``4``, ``4``, ``2``, ``1``)``, cex ``=`` ``0.8``)`` ``for`` ``(``j`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``top8``)``)`` ``{`` `` ``vals`` ``<-`` `[`vapply`](https://rdrr.io/r/base/lapply.html)`(``trajectory``, ``function``(``z``)`` ``z``[``top8``[``j``]``]``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)`` `` `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``vals``)``, ``vals``, type ``=`` ``"l"``, lwd ``=`` ``1.6``, col ``=`` ``"steelblue4"``,`` `` xlab ``=`` ``"ADMM iteration"``, ylab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``z``^``t``)``, main ``=`` ``labs``[``j``]``)`` `` `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``agg_beta``[``top8``[``j``]``]``, lty ``=`` ``2``)`` ``}`
+\
+`top8`` ``<-`` `[`order`](https://rdrr.io/r/base/order.html)`(``-`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc``)``)``[``1``:``8``]`\
+`labs`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``"probe"``, `[`colnames`](https://rdrr.io/r/base/colnames.html)`(``DLBCL_gex``)``[``top_idx``]``[``top8``]``)`\
+`op`` ``<-`` `[`par`](https://rdrr.io/r/graphics/par.html)`(``mfrow ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``4``)``, mar ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``4``, ``4``, ``2``, ``1``)``, cex ``=`` ``0.8``)`\
+`for`` ``(``j`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``top8``)``)`` ``{`\
+`    ``vals`` ``<-`` `[`vapply`](https://rdrr.io/r/base/lapply.html)`(``trajectory``, ``function``(``z``)`` ``z``[``top8``[``j``]``]``, `[`numeric`](https://rdrr.io/r/base/numeric.html)`(``1``)``)`\
+`    `[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``vals``)``, ``vals``, type ``=`` ``"l"``, lwd ``=`` ``1.6``, col ``=`` ``"steelblue4"``,`\
+`         xlab ``=`` ``"ADMM iteration"``, ylab ``=`` `[`expression`](https://rdrr.io/r/base/expression.html)`(``z``^``t``)``, main ``=`` ``labs``[``j``]``)`\
+`    `[`abline`](https://rdrr.io/r/graphics/abline.html)`(``h ``=`` ``agg_beta``[``top8``[``j``]``]``, lty ``=`` ``2``)`\
+`}`
 
 ![Consensus trajectories for the eight largest-magnitude coefficients.
 Solid lines are the encrypted ADMM iterates; dashed lines are the
@@ -271,6 +517,7 @@ Consensus trajectories for the eight largest-magnitude coefficients.
 Solid lines are the encrypted ADMM iterates; dashed lines are the
 centralized CVXR fit. Standardized scale.
 
+\
 [`par`](https://rdrr.io/r/graphics/par.html)`(``op``)`
 
 ## What the protocol hides and reveals
@@ -286,6 +533,28 @@ ever appear in cleartext anywhere in the protocol. Decryption at every
 step is $`n`$-of-$`n`$ threshold: no single party — the aggregator
 included — can recover any intermediate quantity unilaterally.
 
+Two things in this document sit outside that sentence, and both are
+artifacts of writing it rather than parts of the protocol. The
+unencrypted reference pass forms exactly the per-site averages just
+ruled out; we can run it, and the centralized solve we check against,
+only because this vignette holds all three sites’ data in one R session.
+The constants inherit the same caveat — as the note above says,
+$`\rho = 50`$ was kept for the tightest agreement with that centralized
+solve, which is a comparison no deployment can make.
+
+This is worth naming, because it is the kind of thing a threat model
+misses: the guarded computation gets audited, while the step that
+*chooses its constants* looks like setup and does not. It need not be
+exposed.
+[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md)
+sweeps $`\rho`$ over the encrypted channel itself — the tuning needs no
+cryptographic machinery beyond what one run already needs, and the
+crypto is small beside the per-iteration [CVXR](https://cvxr.rbind.io)
+solves. Where the protocol also carries a privacy budget, as in
+[`vignette("cvxr-consensus-admm-dp")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm-dp.md),
+encrypting the sweep is not enough and the constants have to come from
+data the protocol may read for free.
+
 ## Discussion
 
 1.  **CVXR symbolic problems compose with threshold FHE.** The local
@@ -300,11 +569,12 @@ included — can recover any intermediate quantity unilaterally.
     recovers the identical active set; the residual gap to the one-shot
     centralized solve (8.3^{-4}) is the ADMM iteration budget, not the
     cryptography.
-3.  **No single party holds the secret key.**
-    [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-    distributes the secret across all sites; encrypted intermediates are
-    undecryptable by any one party, and each round’s result appears only
-    after $`n`$-of-$`n`$ partial-decryption fusion.
+3.  **No single party holds the secret key.** Each site generated its
+    own share during the key-generation chain and kept it; the
+    aggregator holds only the joint public key. Encrypted intermediates
+    are undecryptable by any one party, and each round’s result appears
+    only after $`n`$-of-$`n`$ partial-decryption fusion, which the
+    aggregator can only obtain by asking every site.
 4.  **DPP keeps the inner loop fast.** Each site’s
     [CVXR](https://cvxr.rbind.io) problem is built once at setup; ADMM
     iterations only update the `Parameter` values.

@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-07</h4>
+            <h4 data-toc-skip class="date">2026-09-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold.Rmd" class="external-link"><code>vignettes/cox-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold.Rmd</code></div>
@@ -206,15 +206,16 @@ homomorphically.</li>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>.</li>
 </ol>
 <p><code>homomorpheR</code> exports a
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> constructor that runs the chained
-key generation in one call and returns a [ThresholdMaster] holding the
-joint public key plus the per-site secret shares. The same
-<code><a href="../reference/set_workers.html">set_workers()</a></code> and <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> helpers
-used by the single-decrypter <code>cox.Rmd</code> work unchanged here:
-the threshold-specific encrypt/partial-decrypt/fuse logic lives inside
-<code><a href="../reference/master_encrypt.html">master_encrypt()</a></code> and <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> methods
-on <code>ThresholdMaster</code>, so the per-iteration code looks the
-same as the single-decrypter case.</p>
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> constructor that runs this chain
+across the sites in one call and returns a [ThresholdMaster] holding the
+joint public key. Each site keeps the share it generated; the master
+holds no secret material at all, and decrypts by asking every site for a
+partial and fusing the results. The <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code>
+runner used by the single-decrypter <code>cox.Rmd</code> works unchanged
+here — the threshold-specific partial-decrypt and fuse logic lives
+inside the <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> method on
+<code>ThresholdMaster</code>, so the per-iteration code looks the same
+as the single-decrypter case.</p>
 </div>
 <div class="section level2">
 <h2 id="implementation">Implementation<a class="anchor" aria-label="anchor" href="#implementation"></a>
@@ -241,22 +242,32 @@ the chained <code>multiparty_key_gen()</code> calls work:</p>
 <span>                           first_mod_size       <span class="op">=</span> <span class="fl">60L</span>,</span>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
 <span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><code>make_threshold_master(name, cc, n_sites)</code> runs the
-chained key generation and returns a master holding the joint public key
-and a list of per-site secret shares. The master’s
-<code>master_encrypt</code> / <code>master_decrypt</code> methods
-automatically use the joint pk for encryption and the partial-decrypt
-fan-in for decryption.</p>
+<p>The sites come first, because the joint public key is built from
+them. <code>make_threshold_master(name, cc, sites)</code> walks the
+chain — each site generating and retaining its own share, passing on
+only a public key — and returns a master that holds the joint public
+key, holds nothing secret, and is already wired to the sites. Its
+<code>master_decrypt</code> method drives the partial-decrypt fan-in by
+asking each site in turn.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
+<code class="sourceCode R"><span><span class="va">worker_gcb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"GCB"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"GCB"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span><span class="va">worker_abc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"ABC"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"ABC"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span><span class="va">worker_t3</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"Type III"</span>, data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"Type III"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
 <span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
-<span>                                n_sites        <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">worker_gcb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"GCB"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"GCB"</span><span class="op">]</span><span class="op">]</span>,      local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
-<span><span class="va">worker_abc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"ABC"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"ABC"</span><span class="op">]</span><span class="op">]</span>,      local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
-<span><span class="va">worker_t3</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span><span class="st">"Type III"</span>, data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"Type III"</span><span class="op">]</span><span class="op">]</span>, local_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/set_workers.html">set_workers</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">worker_gcb</span>, <span class="va">worker_abc</span>, <span class="va">worker_t3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>                                sites <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">worker_gcb</span>, <span class="va">worker_abc</span>, <span class="va">worker_t3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The share each site generated stays in that site’s own state; nothing
+in the returned master can decrypt on its own. We can check that rather
+than assert it:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>master_holds_shares <span class="op">=</span> <span class="st">"secret_keys"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/props.html" class="external-link">props</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  gcb_holds_own_share <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">worker_gcb</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sk</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## master_holds_shares gcb_holds_own_share </span></span>
+<span><span class="co">##               FALSE                TRUE</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="iterative-mle-through-the-threshold-protocol">Iterative MLE through the threshold protocol<a class="anchor" aria-label="anchor" href="#iterative-mle-through-the-threshold-protocol"></a>
@@ -265,7 +276,7 @@ fan-in for decryption.</p>
 <code>cox.Rmd</code>. Same <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> runner, same
 <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> driver — only the underlying master class
 changed.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stats4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">encrypted_nLL</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">GCB_sig</span>, <span class="va">LN_sig</span>, <span class="va">Prolif_sig</span>, <span class="va">BMP6</span>, <span class="va">MHC2_sig</span><span class="op">)</span> <span class="op">{</span></span>
@@ -289,19 +300,19 @@ changed.</p>
 <span><span class="co">##              Estimate Std. Error</span></span>
 <span><span class="co">## GCB_sig    -0.2638698 0.11940447</span></span>
 <span><span class="co">## LN_sig     -0.2543587 0.08515178</span></span>
-<span><span class="co">## Prolif_sig  0.3031250 0.14981283</span></span>
+<span><span class="co">## Prolif_sig  0.3031250 0.14981284</span></span>
 <span><span class="co">## BMP6        0.3036367 0.10727837</span></span>
 <span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## -2 log L: 990.458</span></span></code></pre>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## 'log Lik.' -495.229 (df=5)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="comparison-with-the-cleartext-fit">Comparison with the cleartext fit<a class="anchor" aria-label="anchor" href="#comparison-with-the-cleartext-fit"></a>
 </h2>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">agg_model</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Call:</span></span>
 <span><span class="co">## coxph(formula = Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig + </span></span>
@@ -329,11 +340,11 @@ changed.</p>
 <span><span class="co">## Likelihood ratio test= 42.74  on 5 df,   p=4e-08</span></span>
 <span><span class="co">## Wald test            = 44.78  on 5 df,   p=2e-08</span></span>
 <span><span class="co">## Score (logrank) test = 44.83  on 5 df,   p=2e-08</span></span></code></pre>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"logLik(threshold-distributed encrypted): %f\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## logLik(threshold-distributed encrypted): -495.229022</span></span></code></pre>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"logLik(aggregated cleartext)            : %f\n"</span>,</span>
 <span>            <span class="va">agg_model</span><span class="op">$</span><span class="va">loglik</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## logLik(aggregated cleartext)            : -495.229022</span></span></code></pre>
@@ -385,11 +396,11 @@ coxph()</caption>
 </h2>
 <ol style="list-style-type: decimal">
 <li>
-<strong>No single party holds the decryption key.</strong>
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> distributes the secret across three
-sites; the master holds only the joint public key. Encrypted
-intermediate values are undecryptable by any single party in the
-system.</li>
+<strong>No single party holds the decryption key.</strong> Each site
+generated its own share and kept it; the master holds only the joint
+public key, and has no property in which a share could sit. Encrypted
+intermediate values are undecryptable by any single party in the system,
+the aggregator included.</li>
 <li>
 <strong>Same statistical fit as the trusted-master version.</strong>
 The coefficients and standard errors agree with <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code> to
@@ -397,11 +408,11 @@ the precision the optimizer cares about. Threshold key generation is a
 trust-model improvement; it does not change the fit.</li>
 <li>
 <strong>Same optimizer, same callback shape, same code
-structure.</strong> The only line that changed compared to
-<code>cox.Rmd</code> is the master constructor
-(<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> instead of
-<code><a href="../reference/make_ckks_master.html">make_ckks_master()</a></code>). The optimizer sees nothing
-different.</li>
+structure.</strong> Compared to <code>cox.Rmd</code> only the setup
+changed: the workers are built first and handed to
+<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> instead of being wired to a
+<code><a href="../reference/make_ckks_master.html">make_ckks_master()</a></code> afterwards, because the joint key cannot
+exist before the sites do. The optimizer sees nothing different.</li>
 </ol>
 </div>
 <div class="section level2">

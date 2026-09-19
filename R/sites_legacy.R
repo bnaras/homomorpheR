@@ -64,9 +64,20 @@ make_master <- function(name, keypair, den = gmp::as.bigq(2)^256) {
     m
 }
 
-method(master_encrypt, PaillierMaster) <- function(master, value) {
-    encrypt_real(master@keypair@pubkey, value, master@den)
-}
+## Paillier's public setup is a public key plus the fixed-point
+## denominator its real-valued encoding needs. Both are public, so a
+## Paillier site encrypts its own contribution in contribute() exactly
+## like an OpenFHE one.
+method(public_params, PaillierMaster) <- function(master)
+    list(scheme = "paillier", pk = master@keypair@pubkey, den = master@den)
+
+## There is deliberately no `master_encrypt()` generic anywhere in the
+## package. Encryption needs only public material, so naming an
+## encryption entry point after one party would advertise a privilege
+## that does not exist -- and, worse, invite site-side code to reach
+## for a master it has no business holding. The frozen chain below
+## really does encrypt at the master, but it does so through the same
+## internal path everyone else uses.
 method(master_decrypt, PaillierMaster) <- function(master, ciphertext) {
     decrypt(get_private_key(master@keypair), ciphertext)
 }
@@ -195,14 +206,22 @@ method(set_next_site, Master) <- function(obj, next_site) {
 #' @export
 add_local_and_forward <- new_generic("add_local_and_forward", "obj")
 
-method(add_local_and_forward, Site) <- function(obj, theta, running, master) {
+## Dispatches on LocalSite, not Site: the round-robin chain reads the
+## site's `data` and `contribution_fn` directly, and those properties
+## moved to LocalSite when Site became abstract. The frozen Paillier
+## chain only ever carried co-located sites, so this is the same set of
+## objects it always served.
+method(add_local_and_forward, LocalSite) <- function(obj, theta, running, master) {
     if (isTRUE(master@state$failed)) return(invisible(NULL))
-    local_value <- obj@local_fn(obj@data, theta)
+    local_value <- obj@contribution_fn(obj@data, theta)
     if (length(local_value) == 1 && is.na(local_value)) {
         master@state$failed <- TRUE
         return(invisible(NULL))
     }
-    enc_local <- master_encrypt(master, local_value)
+    ## The Paillier-era anti-pattern, preserved: the site hands its
+    ## cleartext along and it is encrypted here, not at the site. The
+    ## supported topology inverts this -- see contribute().
+    enc_local <- encrypt_under(public_params(master), local_value)
     add_local_and_forward(obj@state$next_site, theta, running + enc_local, master)
 }
 
@@ -238,10 +257,11 @@ round_robin_chain <- function(master, sites) {
 
 #' Run one round of the round-robin protocol
 #'
-#' Backend-agnostic via the [master_encrypt()] / [master_decrypt()]
-#' generics, but part of the frozen Paillier-era legacy surface: the
-#' random-offset chain idiom compensated for Paillier-era trust
-#' assumptions. The supported pattern is [master_aggregate()].
+#' Backend-agnostic via the [master_decrypt()] generic, but part of the
+#' frozen Paillier-era legacy surface: the random-offset chain idiom
+#' compensated for Paillier-era trust assumptions, and it encrypts each
+#' site's value *at the master*, which the supported topology
+#' deliberately does not. The supported pattern is [master_aggregate()].
 #'
 #' The master generates a random real offset, encrypts it under its
 #' public key, and sends it around the chain. Each worker site adds its
@@ -249,18 +269,18 @@ round_robin_chain <- function(master, sites) {
 #' return, the master decrypts the running total, subtracts the offset
 #' in the clear, and returns the resulting scalar.
 #'
-#' If any worker's `local_fn` returns `NA`, the chain stops and this
+#' If any worker's `contribution_fn` returns `NA`, the chain stops and this
 #' function returns `NA_real_`.
 #'
 #' @param master a [Master], wired to a chain via [round_robin_chain()].
 #' @param theta the current parameter value (passed through to each
-#'   worker's `local_fn`).
+#'   worker's `contribution_fn`).
 #' @return the aggregated value, or `NA_real_` on failure.
 #' @export
 run_round_robin <- function(master, theta) {
     master@state$failed <- FALSE
     offset     <- runif(1, -1e6, 1e6)
-    enc_offset <- master_encrypt(master, offset)
+    enc_offset <- encrypt_under(public_params(master), offset)
     add_local_and_forward(master@state$next_site, theta, enc_offset, master)
     if (isTRUE(master@state$failed)) return(NA_real_)
     master_decrypt(master, master@state$result) - offset

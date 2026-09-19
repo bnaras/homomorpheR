@@ -1,16 +1,15 @@
-# Construct a threshold-CKKS master and the per-site secret shares
+# Run threshold key generation across sites and construct the master
 
-Runs the chained `multiparty_key_gen()` setup across `n_sites` sites.
-The first site generates a fresh keypair `(pk_1, sk_1)`; each subsequent
-site `i` calls `multiparty_key_gen(cc, pk_{i-1})` to produce
-`(pk_{1..i}, sk_i)`. The final `pk_{1..n}` is the joint public key under
-which everything is encrypted. Each site keeps its own `sk_i`; no single
-party holds the joint secret.
+Drives the chained key-generation ceremony *through the sites* and
+returns a master wired to them. The lead site generates a fresh keypair
+`(pk_1, sk_1)`; each subsequent site `i` derives `(pk_{1..i}, sk_i)`
+from its predecessor's cumulative public key. The final `pk_{1..n}` is
+the joint public key under which everything is encrypted.
 
 ## Usage
 
 ``` r
-make_threshold_master(name, crypto_context, n_sites)
+make_threshold_master(name, crypto_context, sites)
 ```
 
 ## Arguments
@@ -27,20 +26,60 @@ make_threshold_master(name, crypto_context, n_sites)
   same master drives the protocol over real-valued (CKKS) or
   exact-integer (BFV/BGV) arithmetic without further configuration.
 
-- n_sites:
+- sites:
 
-  number of participating sites (\>= 2).
+  a list of at least two
+  [Site](https://bnaras.github.io/homomorpheR/reference/Site.md)s, built
+  with
+  [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md).
+  The first is the lead site. Each ends up holding its own secret share
+  and the joint public key.
 
 ## Value
 
 a
-[ThresholdMaster](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md).
+[ThresholdMaster](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md),
+wired to `sites`.
 
 ## Details
 
-Decryption is n-of-n: each site contributes a partial decryption
-(`multiparty_decrypt_lead` for the first, then `multiparty_decrypt_main`
-for the rest), and the master fuses them via
-`multiparty_decrypt_fusion`. This happens automatically inside
+Each step runs at the site, through
+[`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md):
+the site keeps `sk_i` in its own state and returns only the cumulative
+*public* key. No share is ever generated centrally, and none is returned
+to this function, so the master cannot hold one even by accident. Only
+public keys travel between parties, which is exactly what can be sent
+over a wire to an untrusted peer.
+
+Decryption is n-of-n:
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-when called on a `ThresholdMaster`.
+asks each site for a partial decryption via
+[`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
+and fuses the results with `multiparty_decrypt_fusion`. There is no path
+by which the master decrypts alone.
+
+The returned master is already wired, so
+[`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
+is neither needed nor permitted afterwards — the site order fixed by the
+key-generation chain is the order partial decryptions must be fused in,
+and re-wiring would break it.
+
+## What this does not defend against
+
+The construction assumes participants follow the protocol
+(honest-but-curious). A site that deviates can (a) return a well-formed
+ciphertext that is not its honest contribution, (b) return a malformed
+partial decryption, which corrupts the fused plaintext *silently* —
+nothing in the scheme detects it — or (c) contribute a degenerate share
+during key generation, weakening the threshold. The chain is sequential,
+so each site also sees its predecessors' cumulative public key;
+OpenFHE's multiparty key generation carries no proofs of knowledge or
+commitments, so rogue-key behavior is not prevented here. Defending
+against any of this needs verifiable decryption and committed key
+generation, neither of which this package provides.
+
+## See also
+
+[`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md),
+[`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md),
+[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md).

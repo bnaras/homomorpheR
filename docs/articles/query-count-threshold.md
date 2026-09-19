@@ -12,7 +12,23 @@ count.
 
 We simulate three sites, each with `sex`, `age`, and a biomarker `bm`.
 
-[`set.seed`](https://rdrr.io/r/base/Random.html)`(``130``)`` ``sample_size`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``60``, ``15``, ``25``)`` ``query_data`` ``<-`` `[`local`](https://rdrr.io/r/base/eval.html)`(``{`` `` ``tmp`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, `[`cumsum`](https://rdrr.io/r/base/cumsum.html)`(``sample_size``)``)`` `` ``start`` ``<-`` ``tmp``[``1``:``3``]`` ``+`` ``1`` `` ``end`` ``<-`` ``tmp``[``-``1``]`` `` ``id_list`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``seq``, from ``=`` ``start``, to ``=`` ``end``)`` `` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sample_size``)``, ``function``(``i``)`` ``{`` `` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` id ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"P%4d"``, ``id_list``[[``i``]``]``)``,`` `` sex ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(`[`c`](https://rdrr.io/r/base/c.html)`(``"F"``, ``"M"``)``, ``sample_size``[``i``]``, replace ``=`` ``TRUE``)``,`` `` age ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(``40``:``70``, ``sample_size``[``i``]``, replace ``=`` ``TRUE``)``,`` `` bm ``=`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``sample_size``[``i``]``)``,`` `` stringsAsFactors ``=`` ``FALSE``)`` `` ``}``)`` ``}``)`
+\
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``130``)`\
+`sample_size`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``60``, ``15``, ``25``)`\
+`query_data`` ``<-`` `[`local`](https://rdrr.io/r/base/eval.html)`(``{`\
+`    ``tmp``   ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, `[`cumsum`](https://rdrr.io/r/base/cumsum.html)`(``sample_size``)``)`\
+`    ``start`` ``<-`` ``tmp``[``1``:``3``]`` ``+`` ``1`\
+`    ``end``   ``<-`` ``tmp``[``-``1``]`\
+`    ``id_list`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``seq``, from ``=`` ``start``, to ``=`` ``end``)`\
+`    `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sample_size``)``, ``function``(``i``)`` ``{`\
+`        `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`            id  ``=`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"P%4d"``, ``id_list``[[``i``]``]``)``,`\
+`            sex ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(`[`c`](https://rdrr.io/r/base/c.html)`(``"F"``, ``"M"``)``, ``sample_size``[``i``]``, replace ``=`` ``TRUE``)``,`\
+`            age ``=`` `[`sample`](https://rdrr.io/r/base/sample.html)`(``40``:``70``,      ``sample_size``[``i``]``, replace ``=`` ``TRUE``)``,`\
+`            bm  ``=`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``sample_size``[``i``]``)``,`\
+`            stringsAsFactors ``=`` ``FALSE``)`\
+`    ``}``)`\
+`}``)`
 
 The query we will run is `age < 50 & sex == "F" & bm < 0.2`.
 
@@ -22,7 +38,12 @@ If the data could be pooled in one place, the query is a single line of
 R. We compute it here only to have a reference to check the distributed
 protocol against.
 
-`query`` ``<-`` `[`quote`](https://rdrr.io/r/base/substitute.html)`(``age`` ``<`` ``50`` ``&`` ``sex`` ``==`` ``"F"`` ``&`` ``bm`` ``<`` ``0.2``)`` `` ``pooled`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``query_data``)`` ``cleartext_count`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`eval`](https://rdrr.io/r/base/eval.html)`(``query``, ``pooled``)``)`` ``cleartext_count`
+\
+`query`` ``<-`` `[`quote`](https://rdrr.io/r/base/substitute.html)`(``age`` ``<`` ``50`` ``&`` ``sex`` ``==`` ``"F"`` ``&`` ``bm`` ``<`` ``0.2``)`\
+\
+`pooled`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, ``query_data``)`\
+`cleartext_count`` ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`eval`](https://rdrr.io/r/base/eval.html)`(``query``, ``pooled``)``)`\
+`cleartext_count`
 
     ## [1] 11
 
@@ -105,35 +126,60 @@ works with integers modulo a fixed bound, and that bound only has to
 exceed the largest total the query could return, so the default is
 comfortable for counts.
 
-[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`` `` ``cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"BFV"``,`` `` plaintext_modulus ``=`` ``65537L``,`` `` multiplicative_depth ``=`` ``1L``,`` `` features ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
-
-[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
-runs the chained key generation across the three sites and returns a
-master holding the joint public key and the per-site secret shares. The
-same master class drives CKKS or BFV — it reads the scheme back from the
-context — so the only thing that changed from the real-valued vignettes
-is the context above.
-
-`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`` `` crypto_context ``=`` ``cc``,`` `` n_sites ``=`` ``3``)`
+\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`homomorpheR`](https://bnaras.github.io/homomorpheR/)`)`\
+\
+`cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"BFV"``,`\
+`                             plaintext_modulus    ``=`` ``65537L``,`\
+`                             multiplicative_depth ``=`` ``1L``,`\
+`                             features             ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``openfhe.R``::`[`Feature`](https://openfheorg.github.io/openfhe.R/reference/Feature.html)`$``MULTIPARTY``)``)`
 
 Each site is a worker whose local function evaluates the query against
 its own private data and returns a count. The master broadcasts the
 query; no site sees another site’s data, and the counts it returns are
 encrypted before they leave.
 
-`local_count`` ``<-`` ``function``(``data``, ``query``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`eval`](https://rdrr.io/r/base/eval.html)`(``query``, ``data``)``)`` `` ``workers`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(`` `` ``function``(``nm``, ``d``)`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``nm``, data ``=`` ``d``, local_fn ``=`` ``local_count``)``,`` `` `[`c`](https://rdrr.io/r/base/c.html)`(``"Site 1"``, ``"Site 2"``, ``"Site 3"``)``,`` `` ``query_data``)`` `` `[`set_workers`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)`(``master``, ``workers``)`
+\
+`local_count`` ``<-`` ``function``(``data``, ``query``)`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`eval`](https://rdrr.io/r/base/eval.html)`(``query``, ``data``)``)`\
+\
+`workers`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(`\
+`    ``function``(``nm``, ``d``)`` `[`make_worker`](https://bnaras.github.io/homomorpheR/reference/make_worker.md)`(``nm``, data ``=`` ``d``, contribution_fn ``=`` ``local_count``)``,`\
+`    `[`c`](https://rdrr.io/r/base/c.html)`(``"Site 1"``, ``"Site 2"``, ``"Site 3"``)``,`\
+`    ``query_data``)`
+
+The sites have to exist before the aggregator does, because the joint
+public key is built *from* them:
+[`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
+walks the chain, each site generating and keeping its own share and
+passing on only a public key. What comes back is an aggregator holding
+the joint public key and nothing secret, already wired to the sites. The
+same master class drives CKKS or BFV — it reads the scheme back from the
+context — so the only thing that changed from the real-valued vignettes
+is the context above.
+
+\
+`master`` ``<-`` `[`make_threshold_master`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)`(``"Aggregator"``,`\
+`                                crypto_context ``=`` ``cc``,`\
+`                                sites          ``=`` ``workers``)`
 
 One call runs the protocol: each worker’s encrypted count is summed
 homomorphically, and the total is jointly decrypted by the three
 secret-share holders.
 
-`encrypted_count`` ``<-`` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, theta ``=`` ``query``)`` ``encrypted_count`
+\
+`encrypted_count`` ``<-`` `[`master_aggregate`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)`(``master``, theta ``=`` ``query``)`\
+`encrypted_count`
 
     ## [1] 11
 
 ## The encrypted answer is exact
 
-`comparison`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`` `` method ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"pooled cleartext"``, ``"threshold-BFV distributed"``)``,`` `` count ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``cleartext_count``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``)``)`` ``knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``comparison``,`` `` caption ``=`` ``"Distributed encrypted query count vs. the pooled answer"``)`
+\
+`comparison`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
+`    method ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"pooled cleartext"``, ``"threshold-BFV distributed"``)``,`\
+`    count  ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``cleartext_count``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``)``)`\
+`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``comparison``,`\
+`             caption ``=`` ``"Distributed encrypted query count vs. the pooled answer"``)`
 
 | method                    | count |
 |:--------------------------|------:|
@@ -146,7 +192,8 @@ The threshold-BFV protocol returns 11, identical to the pooled answer of
 11. Because BFV is exact integer arithmetic, the two agree with no
 tolerance to argue about — the equality is bit-for-bit, not approximate.
 
-[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`identical`](https://rdrr.io/r/base/identical.html)`(`[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``cleartext_count``)``)``)`
+\
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`identical`](https://rdrr.io/r/base/identical.html)`(`[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``cleartext_count``)``)``)`
 
 ## Discussion
 

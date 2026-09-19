@@ -1,14 +1,15 @@
-# Construct a worker (alias for [`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md))
+# Construct a worker
 
-Provided for naming clarity in master/worker protocols. Returns a
-[Site](https://bnaras.github.io/homomorpheR/reference/Site.md) with
-identical semantics to
-[`make_site()`](https://bnaras.github.io/homomorpheR/reference/make_site.md).
+Builds the
+[Site](https://bnaras.github.io/homomorpheR/reference/Site.md) one party
+contributes to a multi-party protocol. A `Site` becomes a *worker* once
+it has been wired and given its public parameters; from that point it is
+autonomous, computing and encrypting on its own.
 
 ## Usage
 
 ``` r
-make_worker(name, data, local_fn)
+make_worker(name, data, contribution_fn)
 ```
 
 ## Arguments
@@ -19,16 +20,24 @@ make_worker(name, data, local_fn)
 
 - data:
 
-  local dataset.
+  whatever `contribution_fn` needs in order to answer — a dataset, a
+  database connection, a cohort identifier.
 
-- local_fn:
+- contribution_fn:
 
-  a function with signature `function(data, theta)` returning the
-  site-level summary at `theta`. May return `NA` to signal a
-  non-evaluable parameter (an extreme `theta` that breaks the local
-  solver, for example); the master will propagate `NA` back to the
-  optimizer.
+  a function with signature `function(data, theta)` returning this
+  site's contribution at `theta` as a plain numeric value. It does
+  **not** encrypt;
+  [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
+  does that. May return `NA` to signal that `theta` is non-evaluable
+  here.
 
 ## Value
 
-a [Site](https://bnaras.github.io/homomorpheR/reference/Site.md).
+a
+[LocalSite](https://bnaras.github.io/homomorpheR/reference/LocalSite.md).
+
+## See also
+
+[RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
+for a site whose contribution is produced outside this R session.
