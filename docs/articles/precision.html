@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/precision.Rmd" class="external-link"><code>vignettes/precision.Rmd</code></a></small>
       <div class="d-none name"><code>precision.Rmd</code></div>
@@ -200,8 +200,8 @@ computation and shrinks as the scaling factor widens.</p>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">50</td>
-<td align="left">1.75e-13</td>
-<td align="left">5.37e-14</td>
+<td align="left">1.47e-13</td>
+<td align="left">4.51e-14</td>
 </tr>
 <tr class="even">
 <td align="left">sum, wider scale</td>
@@ -216,8 +216,8 @@ computation and shrinks as the scaling factor widens.</p>
 <td align="right">1</td>
 <td align="right">2</td>
 <td align="right">50</td>
-<td align="left">8.73e-14</td>
-<td align="left">1.20e-13</td>
+<td align="left">1.72e-13</td>
+<td align="left">2.36e-13</td>
 </tr>
 <tr class="even">
 <td align="left">sum</td>
@@ -240,8 +240,8 @@ computation and shrinks as the scaling factor widens.</p>
 <td align="right">100</td>
 <td align="right">2</td>
 <td align="right">50</td>
-<td align="left">3.27e-13</td>
-<td align="left">4.62e-15</td>
+<td align="left">2.70e-13</td>
+<td align="left">3.82e-15</td>
 </tr>
 <tr class="odd">
 <td align="left">sum</td>
@@ -256,26 +256,26 @@ computation and shrinks as the scaling factor widens.</p>
 <td align="right">10000</td>
 <td align="right">1</td>
 <td align="right">59</td>
-<td align="left">7.28e-12</td>
-<td align="left">2.21e-16</td>
+<td align="left">3.64e-12</td>
+<td align="left">1.11e-16</td>
 </tr>
 <tr class="odd">
 <td align="left">weighted sum (one multiply)</td>
 <td align="right">10000</td>
 <td align="right">2</td>
 <td align="right">50</td>
-<td align="left">1.46e-11</td>
-<td align="left">2.02e-15</td>
+<td align="left">1.55e-11</td>
+<td align="left">2.15e-15</td>
 </tr>
 </tbody>
 </table>
 <p>Three things to read off that table.</p>
 <p><strong>State tolerances relatively, not absolutely.</strong> For the
-plain sum the absolute error rises from 1.7e-13 at magnitude 1 to
+plain sum the absolute error rises from 1.5e-13 at magnitude 1 to
 7.3e-12 at magnitude
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mn>4</mn></msup><annotation encoding="application/x-tex">10^4</annotation></semantics></math>,
-a factor of about 42, while the relative error <em>falls</em> — from
-5.4e-14 to 2.2e-16. At magnitude 1 a fixed noise floor is large compared
+a factor of about 49, while the relative error <em>falls</em> — from
+4.5e-14 to 2.2e-16. At magnitude 1 a fixed noise floor is large compared
 to the answer; by magnitude
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mn>4</mn></msup><annotation encoding="application/x-tex">10^4</annotation></semantics></math>
 it is negligible against it. A tolerance calibrated on standardized
@@ -285,16 +285,16 @@ hundreds, which is why the Cox vignettes raise
 comparison.</p>
 <p><strong>Widening the scaling factor helps only where that floor
 binds.</strong> At magnitude 1 it improves the absolute error by a
-factor of 200. At magnitude
+factor of 170. At magnitude
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mn>4</mn></msup><annotation encoding="application/x-tex">10^4</annotation></semantics></math>
-the same change gives a factor of 1 — that is, nothing, and the two
+the same change gives a factor of 2 — that is, nothing, and the two
 settings land within a small multiple of each other in either direction.
 Once the floor is no longer what limits the answer, a wider scale stops
 buying accuracy while still consuming modulus budget. It is a targeted
 fix for small-magnitude work, not a general accuracy dial.</p>
 <p><strong>Each multiplication costs precision as well as
 budget.</strong> The depth-2 row is worse than the depth-1 sum at every
-magnitude: by a factor of 0.5 in absolute terms at magnitude 1, and 9.1
+magnitude: by a factor of 1.2 in absolute terms at magnitude 1, and 9.7
 in relative terms at magnitude
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mn>4</mn></msup><annotation encoding="application/x-tex">10^4</annotation></semantics></math>.
 The budget is consumed whether or not the extra precision is missed.</p>

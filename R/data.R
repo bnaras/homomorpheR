@@ -63,7 +63,7 @@
 #'     Cox-lasso coefficients (the ground truth), on the standardized
 #'     scale.}
 #'   \item{z_ref}{numeric vector of length `K`; consensus-ADMM
-#'     coefficients computed in the clear (plaintext reference).}
+#'     coefficients computed in the clear (cleartext reference).}
 #'   \item{z_enc}{numeric vector of length `K`; consensus-ADMM
 #'     coefficients under threshold FHE.}
 #'   \item{trajectory}{list of numeric vectors of length `K`; the

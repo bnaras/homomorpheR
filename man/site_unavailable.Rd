@@ -16,7 +16,7 @@ added to the message by \code{\link[=master_aggregate]{master_aggregate()}}.}
 say) to chain for debugging.}
 }
 \value{
-nothing — called for its side effect of signalling a
+nothing — called for its side effect of signaling a
 condition of class \code{homomorpheR_site_unavailable}.
 }
 \description{

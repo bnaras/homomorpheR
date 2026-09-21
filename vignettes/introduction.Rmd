@@ -173,7 +173,7 @@ HttpSite <- S7::new_class("HttpSite", parent = RemoteSite,
 
 S7::method(contribute, HttpSite) <- function(site, theta) {
     ## The far side holds the public key and encrypts before replying,
-    ## so the wire carries ciphertext -- never a bare number.
+    ## so the wire carries encrypted values -- never a bare number.
     fetch_encrypted_contribution(site@url, theta)
 }
 ```

@@ -367,7 +367,7 @@ constructed first.
 `pub`
 
     ## <OpenFHEParams> CKKS
-    ##   public key  5b46c0c68f998bb3cc6855989e592c99
+    ##   public key  286531b1b0b48b6a9630f8311b206f10
     ##   secret material: none
 
 Site $`k`$’s share lives in `sites[[k]]@state$sk` and nowhere else.
@@ -462,7 +462,7 @@ $`x_{(i+3) \bmod p}`$:
 [`cat`](https://rdrr.io/r/base/cat.html)`(``"rotation round-trip max error:"``,`\
 `    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.2e\n"``, `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)``)``)`
 
-    ## rotation round-trip max error: 9.03e-12
+    ## rotation round-trip max error: 8.46e-12
 
 ## Per-site adapter fit and database setup
 
@@ -585,7 +585,7 @@ recovers $`A_1 \cdot q`$ to floating-point precision:
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"matvec max error (site 1): %.2e\n"``,`\
 `            `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Aq_recovered`` ``-`` ``Aq_expected``)``)``)``)`
 
-    ## matvec max error (site 1): 2.24e-11
+    ## matvec max error (site 1): 2.90e-11
 
 ## Inner product against the local database
 
@@ -636,7 +636,7 @@ matches the unencrypted computation at slot 0:
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"inner-product error (site 1, patient 1): %.2e\n"``,`\
 `            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``score_recovered`` ``-`` ``score_expected``)``)``)`
 
-    ## inner-product error (site 1, patient 1): 1.36e-11
+    ## inner-product error (site 1, patient 1): 1.94e-11
 
 The same `encrypted_inner_product` serves the **Design 1** deployment
 without any matvec: the encrypted *public-model* query is scored
@@ -651,15 +651,15 @@ non-isometric adapter it is the route that stays a valid cosine.
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Design-1 inner-product error (site 1, patient 1): %.2e\n"``,`\
 `            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fold_recovered`` ``-`` ``fold_expected``)``)``)`
 
-    ## Design-1 inner-product error (site 1, patient 1): 1.22e-11
+    ## Design-1 inner-product error (site 1, patient 1): 3.51e-12
 
 ### What is in the slots we do not read
 
-Reading `len = 1L` sets the *reported* length of a decrypted plaintext.
-It is an API convenience, not a cryptographic erasure: the party that
-decrypts can ask for every slot. OpenFHE’s security notes warn about
-exactly this for slot-summation primitives, so the honest thing is to
-look rather than to assume.
+Reading `len = 1L` sets the *reported* length of a decrypted
+`Plaintext`. It is an API convenience, not a cryptographic erasure: the
+party that decrypts can ask for every slot. OpenFHE’s security notes
+warn about exactly this for slot-summation primitives, so the honest
+thing is to look rather than to assume.
 
 Here the reduction is cyclic over a batch that is exactly $`p`$ slots
 wide, so it does not leave partial sums behind — it broadcasts the total
@@ -672,7 +672,7 @@ anyway.
 `            `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``all_slots`` ``-`` ``score_recovered``)`` ``<`` ``1e-6``)``, ``p``,`\
 `            `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``all_slots`` ``-`` ``score_recovered``)``)``)``)`
 
-    ## slots holding the released score: 32 of 32 (max deviation 1.18e-11)
+    ## slots holding the released score: 32 of 32 (max deviation 1.46e-11)
 
 That is a property of this reduction width, not of CKKS. A layout that
 summed over fewer slots than the batch holds — packing several patients
@@ -732,13 +732,13 @@ so it can sort them once they are in the clear and return the top-`k`.
 The decryption pattern is per-patient: each encrypted score goes through
 one threshold-decrypt round.
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-sends the ciphertext to each site in turn — `multiparty_decrypt_lead` at
-site 1, `multiparty_decrypt_main` at each of the rest, every site
-applying its own share — and fuses the returned partials with
-`multiparty_decrypt_fusion`, which needs only the public context. For
-our 240 total patients this runs in a few seconds; production
-deployments would pack many patients into the slots of a single
-encrypted value and amortize the ceremony.
+sends the encrypted score to each site in turn —
+`multiparty_decrypt_lead` at site 1, `multiparty_decrypt_main` at each
+of the rest, every site applying its own share — and fuses the returned
+partials with `multiparty_decrypt_fusion`, which needs only the public
+context. For our 240 total patients this runs in a few seconds;
+production deployments would pack many patients into the slots of a
+single encrypted value and amortize the ceremony.
 
 \
 `run_similarity_query`` ``<-`` ``function``(``ct_q``, ``site_fns``, ``master``, ``top_k``)`` ``{`\
@@ -749,10 +749,10 @@ encrypted value and amortize the ceremony.
 `    ``out`\
 `  ``}``)`\
 \
-`  ``## Threshold-decrypt each per-patient inner-product`\
-`  ``## ciphertext. v1 runs one ceremony per patient; a packed`\
-`  ``## variant that fuses multiple inner products into a single`\
-`  ``## ciphertext (via slot tiling) is a natural extension.`\
+`  ``## Threshold-decrypt each per-patient inner product. v1 runs`\
+`  ``## one ceremony per patient; a packed variant that fuses`\
+`  ``## multiple inner products into a single encrypted value`\
+`  ``## (via slot tiling) is a natural extension.`\
 `  ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
 `  ``for`` ``(``s`` ``in`` ``site_results``)`` ``{`\
 `    ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``s``$``scores``)``)`` ``{`\
@@ -775,7 +775,7 @@ encrypted value and amortize the ceremony.
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d retrieval over %d sites and %d patients in %.1f s\n"``,`\
 `            ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`
 
-    ## Top-5 retrieval over 3 sites and 240 patients in 6.0 s
+    ## Top-5 retrieval over 3 sites and 240 patients in 5.7 s
 
 \
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`
@@ -822,20 +822,20 @@ unencrypted on each site’s database:
 \
 `plain_top`` ``<-`` ``plaintext_top_k``(``q_demo``, ``db``, ``A_hat``, ``top_k``)`\
 \
-`## Compare encrypted-domain top-k against the plaintext reference`\
+`## Compare encrypted-domain top-k against the cleartext reference`\
 `## by joining on (site_id, local_index).`\
 `compare`` ``<-`` `[`merge`](https://rdrr.io/r/base/merge.html)`(``top_result``, ``plain_top``,`\
 `                 by ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"site_id"``, ``"local_index"``)``,`\
 `                 suffixes ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"_enc"``, ``"_plain"``)``)`\
 `score_err`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``compare``$``score_enc`` ``-`` ``compare``$``score_plain``)``)`\
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs plaintext score max error: %.2e\n"``,`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs cleartext score max error: %.2e\n"``,`\
 `            ``top_k``, ``score_err``)``)`
 
-    ## Top-5 encrypted vs plaintext score max error: 2.11e-11
+    ## Top-5 encrypted vs cleartext score max error: 1.82e-11
 
 \
 `## Whether the encrypted-domain top-k contains the same`\
-`## (site_id, local_index) pairs as the plaintext reference.`\
+`## (site_id, local_index) pairs as the cleartext reference.`\
 `enc_set``   ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``top_result``$``site_id``, ``top_result``$``local_index``, sep ``=`` ``":"``)`\
 `plain_set`` ``<-`` `[`paste`](https://rdrr.io/r/base/paste.html)`(``plain_top``$``site_id``,  ``plain_top``$``local_index``,  sep ``=`` ``":"``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d set match: %d of %d\n"``,`\

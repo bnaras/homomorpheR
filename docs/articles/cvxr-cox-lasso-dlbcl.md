@@ -361,9 +361,9 @@ object to hold its share in.
 `pub`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``key_sites``, ``site_params``)`
 
 That wiring is the one and only exchange between the aggregator and the
-sites, apart from the ciphertexts each round carries. From here on each
-site is autonomous: everything below encrypts with `pub`, which the site
-already holds, and nothing reaches back for the aggregator.
+sites, apart from the encrypted values each round carries. From here on
+each site is autonomous: everything below encrypts with `pub`, which the
+site already holds, and nothing reaches back for the aggregator.
 
 Printing the bundle shows why handing it out is safe — it is a scheme, a
 public-key fingerprint, and nothing else. There is no property in an
@@ -380,14 +380,14 @@ per-site head-counts is one more sum of the same kind.)
 
 \
 `## Site side. Each site forms its own moments and encrypts them under`\
-`## the joint key; what leaves is ciphertext. Encrypting at the`\
+`## the joint key; what leaves is encrypted. Encrypting at the`\
 `## aggregator instead would mean handing it the per-site column sums in`\
 `## the clear first, which is the disclosure this round exists to avoid.`\
 `site_moments`` ``<-`` ``function``(``s``, ``params``)`\
 `    `[`list`](https://rdrr.io/r/base/list.html)`(``sum   ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``,`\
 `         sumsq ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`\
 \
-`## Aggregator side. It reduces ciphertexts and decrypts only the total.`\
+`## Aggregator side. It reduces encrypted values and decrypts only the total.`\
 `encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`\
 `    ``## Each site encrypts with the parameters it kept from wiring.`\
 `    ``parts`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_moments``, ``sites``, ``pub``)`\
@@ -427,15 +427,15 @@ it selects the same probes.
 `    `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`\
 `}`\
 `fhe_top`` ``<-`` ``encrypt_screen``(``master``, ``sites_std``, ``P_raw``, ``K``)`\
-[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`setequal`](https://rdrr.io/r/base/sets.html)`(``fhe_top``, ``top_idx``)``)``   ``# same probes as the plaintext screen`
+[`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`setequal`](https://rdrr.io/r/base/sets.html)`(``fhe_top``, ``top_idx``)``)``   ``# same probes as the cleartext screen`
 
 With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
 `plain_consensus`, with the encryption on the site’s side of the
 boundary: each site encrypts its own $`(x_k+u_k)`$, the aggregator sums
-the ciphertexts, scales by $`1/N`$ under encryption (one multiplication
-by an unencrypted constant, which costs one level of the precision
-budget), and threshold-decrypts the length-$`K`$ average.
+the encrypted values, scales by $`1/N`$ under encryption (one
+multiplication by an unencrypted constant, which costs one level of the
+precision budget), and threshold-decrypts the length-$`K`$ average.
 Soft-thresholding stays in the clear at the aggregator, on the
 aggregate.
 
@@ -445,7 +445,7 @@ aggregate.
 `site_consensus_term`` ``<-`` ``function``(``x_k``, ``u_k``, ``params``)`\
 `    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``x_k`` ``+`` ``u_k``)`\
 \
-`## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the`\
+`## Aggregator side: add the encrypted values, scale by 1/N, decrypt the`\
 `## average. It sees no individual (x_k + u_k).`\
 `encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`\
 `    ``cts``    ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_consensus_term``, ``site_x``, ``site_u``, ``pub``)`\

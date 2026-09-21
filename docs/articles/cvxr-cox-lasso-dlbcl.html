@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-cox-lasso-dlbcl.Rmd" class="external-link"><code>vignettes/cvxr-cox-lasso-dlbcl.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-cox-lasso-dlbcl.Rmd</code></div>
@@ -482,8 +482,8 @@ one an object to hold its share in.</p>
 <span><span class="co">## asks a site what it holds; it involves no aggregator.</span></span>
 <span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">key_sites</span>, <span class="va">site_params</span><span class="op">)</span></span></code></pre></div>
 <p>That wiring is the one and only exchange between the aggregator and
-the sites, apart from the ciphertexts each round carries. From here on
-each site is autonomous: everything below encrypts with
+the sites, apart from the encrypted values each round carries. From here
+on each site is autonomous: everything below encrypts with
 <code>pub</code>, which the site already holds, and nothing reaches back
 for the aggregator.</p>
 <p>Printing the bundle shows why handing it out is safe — it is a
@@ -504,14 +504,14 @@ as known to the aggregator; hiding the per-site head-counts is one more
 sum of the same kind.)</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Site side. Each site forms its own moments and encrypts them under</span></span>
-<span><span class="co">## the joint key; what leaves is ciphertext. Encrypting at the</span></span>
+<span><span class="co">## the joint key; what leaves is encrypted. Encrypting at the</span></span>
 <span><span class="co">## aggregator instead would mean handing it the per-site column sums in</span></span>
 <span><span class="co">## the clear first, which is the disclosure this round exists to avoid.</span></span>
 <span><span class="va">site_moments</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">params</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>sum   <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>         sumsq <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Aggregator side. It reduces ciphertexts and decrypts only the total.</span></span>
+<span><span class="co">## Aggregator side. It reduces encrypted values and decrypts only the total.</span></span>
 <span><span class="va">encrypt_pool</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span>, <span class="va">n_total</span>, <span class="va">p_raw</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co">## Each site encrypts with the parameters it kept from wiring.</span></span>
 <span>    <span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_moments</span>, <span class="va">sites</span>, <span class="va">pub</span><span class="op">)</span></span>
@@ -551,13 +551,13 @@ it selects the same probes.</p>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">Z</span><span class="op">)</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">K</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">fhe_top</span> <span class="op">&lt;-</span> <span class="fu">encrypt_screen</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites_std</span>, <span class="va">P_raw</span>, <span class="va">K</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="va">fhe_top</span>, <span class="va">top_idx</span><span class="op">)</span><span class="op">)</span>   <span class="co"># same probes as the plaintext screen</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="va">fhe_top</span>, <span class="va">top_idx</span><span class="op">)</span><span class="op">)</span>   <span class="co"># same probes as the cleartext screen</span></span></code></pre></div>
 <p>With standardization and screening recovering the same design, the
 consensus round is the only piece left to encrypt. It mirrors
 <code>plain_consensus</code>, with the encryption on the site’s side of
 the boundary: each site encrypts its own
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k+u_k)</annotation></semantics></math>,
-the aggregator sums the ciphertexts, scales by
+the aggregator sums the encrypted values, scales by
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">1/N</annotation></semantics></math>
 under encryption (one multiplication by an unencrypted constant, which
 costs one level of the precision budget), and threshold-decrypts the
@@ -570,7 +570,7 @@ aggregate.</p>
 <span><span class="va">site_consensus_term</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x_k</span>, <span class="va">u_k</span>, <span class="va">params</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">x_k</span> <span class="op">+</span> <span class="va">u_k</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the</span></span>
+<span><span class="co">## Aggregator side: add the encrypted values, scale by 1/N, decrypt the</span></span>
 <span><span class="co">## average. It sees no individual (x_k + u_k).</span></span>
 <span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site_x</span>, <span class="va">site_u</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">cts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_consensus_term</span>, <span class="va">site_x</span>, <span class="va">site_u</span>, <span class="va">pub</span><span class="op">)</span></span>

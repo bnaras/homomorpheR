@@ -20,15 +20,17 @@ public parameters imply, or \code{NA} if \code{theta} is non-evaluable here.
 \description{
 The single call the protocol runner makes on a site. Implementations
 return the site's contribution \strong{already encrypted}, using the
-public parameters the site was given when it was wired, so an
+public parameters the site was given when it was configured, so an
 individual site's cleartext contribution never reaches the
-aggregator — that is the property the whole protocol rests on.
+aggregator — that is the property the whole protocol rests on, and
+\code{\link[=master_aggregate]{master_aggregate()}} refuses a reply that is neither an encrypted
+value under this protocol's key nor \code{NA}.
 }
 \details{
 The computation is entirely local. A site needs nothing at call time
 beyond \code{theta}, its own data, and what it already holds.
 
-The only permitted plaintext reply is \code{NA}, signalling that \code{theta}
+The only permitted plaintext reply is \code{NA}, signaling that \code{theta}
 is non-evaluable at this site; CKKS has no representation for it, so
 it cannot be encrypted. A site that cannot be \emph{reached} must signal
 \code{\link[=site_unavailable]{site_unavailable()}} instead of returning \code{NA}.

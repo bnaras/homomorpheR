@@ -254,7 +254,7 @@ the underlying master class changed.
 
 | coefficient | threshold_distributed | aggregated_cleartext |  abs_diff |
 |:------------|----------------------:|---------------------:|----------:|
-| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.822e-06 |
+| GCB_sig     |            -0.2638698 |           -0.2638716 | 1.823e-06 |
 | LN_sig      |            -0.2543587 |           -0.2543592 | 5.340e-07 |
 | Prolif_sig  |             0.3031250 |            0.3031258 | 7.480e-07 |
 | BMP6        |             0.3036367 |            0.3036375 | 7.940e-07 |

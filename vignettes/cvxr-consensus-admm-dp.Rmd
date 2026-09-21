@@ -80,7 +80,7 @@ at the aggregator) means:
 
 Both are properties of the code below rather than of this
 paragraph: `site_contribution_dp()` draws the noise *and* encrypts
-inside the site, so `encrypted_consensus_dp()` receives ciphertexts
+inside the site, so `encrypted_consensus_dp()` receives encrypted values
 and nothing else. Had the aggregator done the noising — reading
 each site's $x_i + u_i$ and adding a draw itself — every sentence
 above would be false while the numbers came out identical.
@@ -315,7 +315,7 @@ site_contribution_dp <- function(site, sigma, Nv) {
     encrypt_under(site_params(site), noised)
 }
 
-## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The
+## Aggregator-side: sum the encrypted values, scale, threshold-decrypt. The
 ## 1/N scaling contracts the summed noise variance back to sigma^2.
 encrypted_consensus_dp <- function(threshold_master, sites, sigma) {
     Nv  <- length(sites)

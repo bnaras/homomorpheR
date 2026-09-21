@@ -49,8 +49,8 @@ coefficients.
 `keys`` ``<-`` `[`key_gen`](https://openfheorg.github.io/openfhe.R/reference/key_gen.html)`(``cc``, eval_mult ``=`` ``TRUE``)`\
 \
 `## 8 patients, each with 4 biomarker values. We pack each biomarker`\
-`## across patients (SIMD layout): one ciphertext per biomarker, with`\
-`## patient values in the slots.`\
+`## across patients: one encrypted value per biomarker, with the patient`\
+`## values in its slots, so one operation acts on every patient at once.`\
 `biomarker1`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``1.2``, ``0.8``, ``1.5``, ``0.3``, ``2.1``, ``0.9``, ``1.1``, ``1.8``)`\
 `biomarker2`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.5``, ``1.1``, ``0.3``, ``0.8``, ``0.2``, ``1.4``, ``0.7``, ``0.6``)`\
 `biomarker3`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``2.0``, ``1.5``, ``2.3``, ``1.0``, ``1.8``, ``2.1``, ``1.6``, ``2.5``)`\
@@ -105,7 +105,7 @@ model — without ever seeing patient values.
 `max_error`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``scores`` ``-`` ``cleartext_scores``)``)`\
 [`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Maximum error vs cleartext: %.2e"``, ``max_error``)`
 
-    ## [1] "Maximum error vs cleartext: 9.02e-14"
+    ## [1] "Maximum error vs cleartext: 9.37e-14"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.
@@ -249,7 +249,7 @@ serialize for network transport:
 `cc_lab`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``, ``"CryptoContext"``)`\
 `ct_lab`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"patient_bm1.bin"``)``, ``"Ciphertext"``)`\
 \
-`## Lab applies its weights to the deserialized ciphertext`\
+`## Lab applies its weights to the deserialized encrypted value`\
 `ct_weighted`` ``<-`` ``ct_lab`` ``*`` ``0.35`\
 \
 `## Lab returns the result`\

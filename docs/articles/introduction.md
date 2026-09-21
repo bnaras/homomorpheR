@@ -144,7 +144,7 @@ HTTP client. The extension is small:
 \
 `S7``::`[`method`](https://rconsortium.github.io/S7/reference/method.html)`(``contribute``, ``HttpSite``)`` ``<-`` ``function``(``site``, ``theta``)`` ``{`\
 `    ``## The far side holds the public key and encrypts before replying,`\
-`    ``## so the wire carries ciphertext -- never a bare number.`\
+`    ``## so the wire carries encrypted values -- never a bare number.`\
 `    ``fetch_encrypted_contribution``(``site``@``url``, ``theta``)`\
 `}`
 

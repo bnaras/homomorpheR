@@ -193,9 +193,9 @@ full BFGS run over the threshold-DP encrypted nLL.
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
 | sigma_0.0001 | 1e-04 | 31 | -0.263711 | -0.254310 | 0.301416 | 0.304232 | -0.320419 | 0.001710 |
 | sigma_0.001 | 1e-03 | 95 | -0.255596 | -0.257797 | 0.284336 | 0.305723 | -0.320768 | 0.018790 |
-| sigma_0.01 | 1e-02 | 195 | -0.208114 | -0.227125 | 0.345950 | 0.328699 | -0.350792 | 0.055757 |
+| sigma_0.01 | 1e-02 | 333 | -0.261541 | -0.246078 | 0.296769 | 0.311191 | -0.310249 | 0.008897 |
 | sigma_0.1 | 1e-01 | 147 | -0.475716 | -0.276219 | 0.506100 | 0.381061 | -0.188904 | 0.211845 |
-| sigma_1 | 1e+00 | 92 | -0.133843 | -0.389685 | 0.034282 | -0.045055 | -0.336133 | 0.348692 |
+| sigma_1 | 1e+00 | 91 | -0.133843 | -0.389685 | 0.034282 | -0.045055 | -0.336133 | 0.348692 |
 
 BFGS over the threshold-DP nLL at five noise scales {.table}
 
@@ -250,7 +250,7 @@ divisor. Noise still hurts it, but more gently than BFGS.
 | BMP6        |  0.303638 |   -0.045055 |  0.472601 |
 | MHC2_sig    | -0.319147 |   -0.336133 | -0.343019 |
 
-BFGS vs Nelder-Mead at sigma = 1 (BFGS 92 evals, NM 503 evals) {.table}
+BFGS vs Nelder-Mead at sigma = 1 (BFGS 91 evals, NM 503 evals) {.table}
 
 At $`\sigma = 1`$ BFGS is unusable: at least one signature lands at the
 wrong sign relative to the aggregated cleartext fit. Nelder–Mead at the
@@ -286,9 +286,9 @@ $`\delta = 10^{-5}`$, zCDP composition gives:
 |:---|:---|---:|---:|---:|---:|---:|
 | sigma_0.0001 | BFGS | 1e-04 | 31 | 5e+07 | 1.550e+09 | 1.550267e+09 |
 | sigma_0.001 | BFGS | 1e-03 | 95 | 5e+05 | 4.750e+07 | 4.754677e+07 |
-| sigma_0.01 | BFGS | 1e-02 | 195 | 5e+03 | 9.750e+05 | 9.817008e+05 |
+| sigma_0.01 | BFGS | 1e-02 | 333 | 5e+03 | 1.665e+06 | 1.673756e+06 |
 | sigma_0.1 | BFGS | 1e-01 | 147 | 5e+01 | 7.350e+03 | 7.931790e+03 |
-| sigma_1 | BFGS | 1e+00 | 92 | 5e-01 | 4.600e+01 | 9.202580e+01 |
+| sigma_1 | BFGS | 1e+00 | 91 | 5e-01 | 4.550e+01 | 9.127500e+01 |
 | 1 | Nelder-Mead | 1e+00 | 503 | 5e-01 | 2.515e+02 | 3.591197e+02 |
 
 zCDP composition; sensitivity Delta = 1, target delta = 1e-5 {.table}

@@ -46,7 +46,7 @@ A named list with components
 - z_ref:
 
   numeric vector of length `K`; consensus-ADMM coefficients computed in
-  the clear (plaintext reference).
+  the clear (cleartext reference).
 
 - z_enc:
 

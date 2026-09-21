@@ -694,7 +694,7 @@ cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
 ### What is in the slots we do not read
 
 Reading `len = 1L` sets the *reported* length of a decrypted
-plaintext. It is an API convenience, not a cryptographic erasure: the
+`Plaintext`. It is an API convenience, not a cryptographic erasure: the
 party that decrypts can ask for every slot. OpenFHE's security notes
 warn about exactly this for slot-summation primitives, so the honest
 thing is to look rather than to assume.
@@ -769,7 +769,7 @@ they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score
 goes through one threshold-decrypt round. `master_decrypt()` sends
-the ciphertext to each site in turn — `multiparty_decrypt_lead` at
+the encrypted score to each site in turn — `multiparty_decrypt_lead` at
 site 1, `multiparty_decrypt_main` at each of the rest, every site
 applying its own share — and fuses the returned partials with
 `multiparty_decrypt_fusion`, which needs only the public context. For our `r sum(cohort_sizes)`
@@ -786,10 +786,10 @@ run_similarity_query <- function(ct_q, site_fns, master, top_k) {
     out
   })
 
-  ## Threshold-decrypt each per-patient inner-product
-  ## ciphertext. v1 runs one ceremony per patient; a packed
-  ## variant that fuses multiple inner products into a single
-  ## ciphertext (via slot tiling) is a natural extension.
+  ## Threshold-decrypt each per-patient inner product. v1 runs
+  ## one ceremony per patient; a packed variant that fuses
+  ## multiple inner products into a single encrypted value
+  ## (via slot tiling) is a natural extension.
   rows <- list()
   for (s in site_results) {
     for (i in seq_along(s$scores)) {
@@ -845,17 +845,17 @@ plaintext_top_k <- function(q, site_data, A_list, top_k) {
 
 plain_top <- plaintext_top_k(q_demo, db, A_hat, top_k)
 
-## Compare encrypted-domain top-k against the plaintext reference
+## Compare encrypted-domain top-k against the cleartext reference
 ## by joining on (site_id, local_index).
 compare <- merge(top_result, plain_top,
                  by = c("site_id", "local_index"),
                  suffixes = c("_enc", "_plain"))
 score_err <- max(abs(compare$score_enc - compare$score_plain))
-cat(sprintf("Top-%d encrypted vs plaintext score max error: %.2e\n",
+cat(sprintf("Top-%d encrypted vs cleartext score max error: %.2e\n",
             top_k, score_err))
 
 ## Whether the encrypted-domain top-k contains the same
-## (site_id, local_index) pairs as the plaintext reference.
+## (site_id, local_index) pairs as the cleartext reference.
 enc_set   <- paste(top_result$site_id, top_result$local_index, sep = ":")
 plain_set <- paste(plain_top$site_id,  plain_top$local_index,  sep = ":")
 cat(sprintf("Top-%d set match: %d of %d\n",

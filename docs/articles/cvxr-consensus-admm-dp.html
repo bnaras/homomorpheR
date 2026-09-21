@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm-dp.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm-dp.Rmd</code></div>
@@ -173,7 +173,7 @@ its own randomness boundary.</li>
 <p>Both are properties of the code below rather than of this paragraph:
 <code>site_contribution_dp()</code> draws the noise <em>and</em>
 encrypts inside the site, so <code>encrypted_consensus_dp()</code>
-receives ciphertexts and nothing else. Had the aggregator done the
+receives encrypted values and nothing else. Had the aggregator done the
 noising — reading each site’s
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">x_i + u_i</annotation></semantics></math>
 and adding a draw itself — every sentence above would be false while the
@@ -465,7 +465,7 @@ per-site loop:</p>
 <span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="fu"><a href="../reference/site_params.html">site_params</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span>, <span class="va">noised</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co">## Aggregator-side: sum the ciphertexts, scale, threshold-decrypt. The</span></span>
+<span><span class="co">## Aggregator-side: sum the encrypted values, scale, threshold-decrypt. The</span></span>
 <span><span class="co">## 1/N scaling contracts the summed noise variance back to sigma^2.</span></span>
 <span><span class="va">encrypted_consensus_dp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span>, <span class="va">sigma</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">Nv</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sites</span><span class="op">)</span></span>
@@ -563,7 +563,7 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"DP-ADMM at sigma = 0 disagrees with the centralized fit."</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"</span>,</span>
 <span>            <span class="va">clean_dev</span>, <span class="va">agree_tol</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 3.00e-05 (tol 1e-02)</span></span></code></pre>
+<pre><code><span><span class="co">## Sigma = 0 max coefficient deviation: 2.96e-05 (tol 1e-02)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="summary-table">Summary table<a class="anchor" aria-label="anchor" href="#summary-table"></a>
@@ -609,9 +609,9 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <tr class="odd">
 <td align="left">sigma=0</td>
 <td align="right">0e+00</td>
-<td align="right">-0.591080</td>
+<td align="right">-0.591081</td>
 <td align="right">0.402672</td>
-<td align="right">-0.325982</td>
+<td align="right">-0.325981</td>
 <td align="right">0.641534</td>
 <td align="right">0.000030</td>
 </tr>
@@ -648,7 +648,7 @@ sanity check<a class="anchor" aria-label="anchor" href="#sigma-0-sanity-check"><
 <td align="right">-0.617981</td>
 <td align="right">0.428505</td>
 <td align="right">-0.372438</td>
-<td align="right">0.754537</td>
+<td align="right">0.754536</td>
 <td align="right">0.112973</td>
 </tr>
 <tr class="even">

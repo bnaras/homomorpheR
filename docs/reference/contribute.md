@@ -2,9 +2,12 @@
 
 The single call the protocol runner makes on a site. Implementations
 return the site's contribution **already encrypted**, using the public
-parameters the site was given when it was wired, so an individual site's
-cleartext contribution never reaches the aggregator — that is the
-property the whole protocol rests on.
+parameters the site was given when it was configured, so an individual
+site's cleartext contribution never reaches the aggregator — that is the
+property the whole protocol rests on, and
+[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
+refuses a reply that is neither an encrypted value under this protocol's
+key nor `NA`.
 
 ## Usage
 
@@ -36,7 +39,7 @@ parameters imply, or `NA` if `theta` is non-evaluable here.
 The computation is entirely local. A site needs nothing at call time
 beyond `theta`, its own data, and what it already holds.
 
-The only permitted plaintext reply is `NA`, signalling that `theta` is
+The only permitted plaintext reply is `NA`, signaling that `theta` is
 non-evaluable at this site; CKKS has no representation for it, so it
 cannot be encrypted. A site that cannot be *reached* must signal
 [`site_unavailable()`](https://bnaras.github.io/homomorpheR/reference/site_unavailable.md)

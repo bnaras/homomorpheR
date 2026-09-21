@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold-dp.Rmd" class="external-link"><code>vignettes/cox-threshold-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold-dp.Rmd</code></div>
@@ -392,13 +392,13 @@ threshold-DP encrypted nLL.</p>
 <tr class="odd">
 <td align="left">sigma_0.01</td>
 <td align="right">1e-02</td>
-<td align="right">195</td>
-<td align="right">-0.208114</td>
-<td align="right">-0.227125</td>
-<td align="right">0.345950</td>
-<td align="right">0.328699</td>
-<td align="right">-0.350792</td>
-<td align="right">0.055757</td>
+<td align="right">333</td>
+<td align="right">-0.261541</td>
+<td align="right">-0.246078</td>
+<td align="right">0.296769</td>
+<td align="right">0.311191</td>
+<td align="right">-0.310249</td>
+<td align="right">0.008897</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -414,7 +414,7 @@ threshold-DP encrypted nLL.</p>
 <tr class="odd">
 <td align="left">sigma_1</td>
 <td align="right">1e+00</td>
-<td align="right">92</td>
+<td align="right">91</td>
 <td align="right">-0.133843</td>
 <td align="right">-0.389685</td>
 <td align="right">0.034282</td>
@@ -481,7 +481,7 @@ divisor. Noise still hurts it, but more gently than BFGS.</p>
 <span>                 <span class="va">fits_bfgs</span><span class="op">[[</span><span class="st">"sigma_1"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                 <span class="va">fit_nm_1</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 92 evals, NM 503
+<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 91 evals, NM 503
 evals)</caption>
 <thead><tr class="header">
 <th align="left">coefficient</th>
@@ -601,10 +601,10 @@ zCDP composition gives:</p>
 <td align="left">sigma_0.01</td>
 <td align="left">BFGS</td>
 <td align="right">1e-02</td>
-<td align="right">195</td>
+<td align="right">333</td>
 <td align="right">5e+03</td>
-<td align="right">9.750e+05</td>
-<td align="right">9.817008e+05</td>
+<td align="right">1.665e+06</td>
+<td align="right">1.673756e+06</td>
 </tr>
 <tr class="even">
 <td align="left">sigma_0.1</td>
@@ -619,10 +619,10 @@ zCDP composition gives:</p>
 <td align="left">sigma_1</td>
 <td align="left">BFGS</td>
 <td align="right">1e+00</td>
-<td align="right">92</td>
+<td align="right">91</td>
 <td align="right">5e-01</td>
-<td align="right">4.600e+01</td>
-<td align="right">9.202580e+01</td>
+<td align="right">4.550e+01</td>
+<td align="right">9.127500e+01</td>
 </tr>
 <tr class="even">
 <td align="left">1</td>

@@ -190,16 +190,16 @@ context with `Feature$MULTIPARTY` enabled and
 which walks the chained `multiparty_key_gen()` setup across the sites.
 
 Note where the encryption happens. Each site encrypts its own
-$`(x_i + u_i)`$ under the joint public key and hands back a
-*ciphertext*; the aggregator adds those ciphertexts, scales, and calls
+$`(x_i + u_i)`$ under the joint public key and hands back an *encrypted
+value*; the aggregator adds them, scales, and calls
 [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
 to threshold-decrypt the total. Hoisting the encryption up to the
 aggregator — letting it read each site’s cleartext vector and encrypt on
 arrival — would be pointless: it would already have seen the per-site
 values the protocol exists to hide. The partial-decrypt fan-in runs the
-other way for the same reason: the aggregator sends the ciphertext out
-and each site applies its own share, because a share that traveled to
-the aggregator would make the whole construction pointless.
+other way for the same reason: the aggregator sends the encrypted value
+out and each site applies its own share, because a share that traveled
+to the aggregator would make the whole construction pointless.
 
 \
 `cc`` ``<-`` ``openfhe.R``::`[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
@@ -228,7 +228,7 @@ $`\rho`$ changes.
 `    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(`[`site_params`](https://bnaras.github.io/homomorpheR/reference/site_params.md)`(``site``)``, ``st``$``x_curr`` ``+`` ``st``$``u_curr``)`\
 `}`\
 \
-`## Aggregator-side. It receives ciphertexts, adds them, scales by 1/N,`\
+`## Aggregator-side. It receives encrypted values, adds them, scales by 1/N,`\
 `## and threshold-decrypts. At no point does it hold an individual`\
 `## (x_i + u_i).`\
 `encrypted_consensus`` ``<-`` ``function``(``threshold_master``, ``sites``)`` ``{`\
@@ -321,21 +321,21 @@ Tuning needs no cryptographic machinery beyond what a single ADMM run
 already needs. The $`x`$-update is a site-local CVXR solve on site-local
 data, cleartext in both cases; the $`u`$-update is site-local
 arithmetic; only the consensus average crosses the channel, and it is
-the same one addition and one plaintext-scalar multiplication per
+the same one addition and one cleartext-scalar multiplication per
 iteration, so the sweep runs inside the same `multiplicative_depth = 1L`
-budget. Each iteration re-encrypts from fresh plaintext rather than
-building on the previous ciphertext, so neither depth nor noise
+budget. Each iteration re-encrypts from fresh cleartext rather than
+building on the previous encrypted value, so neither depth nor noise
 accumulates across iterations, and nothing accumulates across candidates
 either. The stopping test and the `which.min` over the grid are
-comparisons, which CKKS cannot do natively — but they never touch a
-ciphertext. They are computed from $`z`$, which this protocol decrypts
-every iteration by design, and from each site’s own $`x_i`$ and $`u_i`$.
-$`\rho`$ itself is a public protocol constant that every site must agree
-on, so there is nothing there to hide.
+comparisons, which CKKS cannot do natively — but they never touch an
+encrypted value. They are computed from $`z`$, which this protocol
+decrypts every iteration by design, and from each site’s own $`x_i`$ and
+$`u_i`$. $`\rho`$ itself is a public protocol constant that every site
+must agree on, so there is nothing there to hide.
 
 The cleartext sweep, by contrast, is not a deployable step. To average
 $`(x_i + u_i)`$ in the clear, each site has to hand the aggregator that
-vector in plaintext — once per iteration, once per candidate. That is
+vector in the clear — once per iteration, once per candidate. That is
 precisely the quantity the paragraph above says never appears in the
 clear, and $`x_i^{k+1}`$ is the minimizer of site $`i`$’s local loss,
 hence a direct function of its $`(X_i, y_i)`$. Tuning in cleartext would
@@ -461,7 +461,7 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Max absolute coefficient difference vs. centralized fit: %.2e\n"``,`\
 `            ``max_diff``)``)`
 
-    ## Max absolute coefficient difference vs. centralized fit: 5.39e-06
+    ## Max absolute coefficient difference vs. centralized fit: 5.43e-06
 
 \
 `if`` ``(``max_diff`` ``>`` ``10`` ``*`` ``reltol``)`\
@@ -500,7 +500,7 @@ Threshold-FHE consensus ADMM vs. centralized CVXR {.table}
   this trajectory — one per candidate $`\rho`$, since the sweep runs the
   same protocol. Hiding the trajectory as well would mean keeping the
   residuals encrypted, which turns the stopping test and the `which.min`
-  into comparisons on ciphertexts: a fixed iteration budget with a
+  into comparisons on encrypted values: a fixed iteration budget with a
   masked freeze in place of
   [`break`](https://rdrr.io/r/base/Control.html), and a polynomial or
   scheme-switched comparison in place of `<`. Nothing rules that out in

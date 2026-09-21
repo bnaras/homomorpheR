@@ -1016,7 +1016,7 @@ make_worker <- function(name, data, contribution_fn) {
 #'   added to the message by [master_aggregate()].
 #' @param parent optionally, the underlying condition (an `httr2` error,
 #'   say) to chain for debugging.
-#' @return nothing — called for its side effect of signalling a
+#' @return nothing — called for its side effect of signaling a
 #'   condition of class `homomorpheR_site_unavailable`.
 #'
 #' @section What the re-raised condition carries:
@@ -1045,7 +1045,7 @@ site_unavailable <- function(message, site = NULL, parent = NULL) {
 #' The computation is entirely local. A site needs nothing at call time
 #' beyond `theta`, its own data, and what it already holds.
 #'
-#' The only permitted plaintext reply is `NA`, signalling that `theta`
+#' The only permitted plaintext reply is `NA`, signaling that `theta`
 #' is non-evaluable at this site; CKKS has no representation for it, so
 #' it cannot be encrypted. A site that cannot be *reached* must signal
 #' [site_unavailable()] instead of returning `NA`.

@@ -27,3 +27,7 @@
 #    rather than through R CMD build. Same NOTE, same cause: a local
 #    verification step leaving an artifact where the tarball can see it.
 ^figure$
+#    tools/ holds maintainer scripts (favicon regeneration) that are run
+#    by hand from the package root. Nothing in the build or check path
+#    reads them, so they have no business in the tarball.
+^tools$

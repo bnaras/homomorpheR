@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/secure-inference.Rmd" class="external-link"><code>vignettes/secure-inference.Rmd</code></a></small>
       <div class="d-none name"><code>secure-inference.Rmd</code></div>
@@ -143,8 +143,8 @@ are proprietary coefficients.</p>
 <span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/key_gen.html" class="external-link">key_gen</a></span><span class="op">(</span><span class="va">cc</span>, eval_mult <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## 8 patients, each with 4 biomarker values. We pack each biomarker</span></span>
-<span><span class="co">## across patients (SIMD layout): one ciphertext per biomarker, with</span></span>
-<span><span class="co">## patient values in the slots.</span></span>
+<span><span class="co">## across patients: one encrypted value per biomarker, with the patient</span></span>
+<span><span class="co">## values in its slots, so one operation acts on every patient at once.</span></span>
 <span><span class="va">biomarker1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.2</span>, <span class="fl">0.8</span>, <span class="fl">1.5</span>, <span class="fl">0.3</span>, <span class="fl">2.1</span>, <span class="fl">0.9</span>, <span class="fl">1.1</span>, <span class="fl">1.8</span><span class="op">)</span></span>
 <span><span class="va">biomarker2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.1</span>, <span class="fl">0.3</span>, <span class="fl">0.8</span>, <span class="fl">0.2</span>, <span class="fl">1.4</span>, <span class="fl">0.7</span>, <span class="fl">0.6</span><span class="op">)</span></span>
 <span><span class="va">biomarker3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.0</span>, <span class="fl">1.5</span>, <span class="fl">2.3</span>, <span class="fl">1.0</span>, <span class="fl">1.8</span>, <span class="fl">2.1</span>, <span class="fl">1.6</span>, <span class="fl">2.5</span><span class="op">)</span></span>
@@ -199,7 +199,7 @@ model — without ever seeing patient values.</p>
 <span>                    <span class="va">w</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker3</span> <span class="op">+</span> <span class="va">w</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker4</span> <span class="op">+</span> <span class="va">b</span></span>
 <span><span class="va">max_error</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">scores</span> <span class="op">-</span> <span class="va">cleartext_scores</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Maximum error vs cleartext: %.2e"</span>, <span class="va">max_error</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 9.02e-14"</span></span></code></pre>
+<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 9.37e-14"</span></span></code></pre>
 <p>CKKS gives essentially the same answer as cleartext, within
 floating-point precision.</p>
 </div>
@@ -372,7 +372,7 @@ objects serialize for network transport:</p>
 <span><span class="va">cc_lab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"context.bin"</span><span class="op">)</span>, <span class="st">"CryptoContext"</span><span class="op">)</span></span>
 <span><span class="va">ct_lab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"patient_bm1.bin"</span><span class="op">)</span>, <span class="st">"Ciphertext"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Lab applies its weights to the deserialized ciphertext</span></span>
+<span><span class="co">## Lab applies its weights to the deserialized encrypted value</span></span>
 <span><span class="va">ct_weighted</span> <span class="op">&lt;-</span> <span class="va">ct_lab</span> <span class="op">*</span> <span class="fl">0.35</span></span>
 <span></span>
 <span><span class="co">## Lab returns the result</span></span>

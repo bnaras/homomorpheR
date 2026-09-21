@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/similarity.Rmd" class="external-link"><code>vignettes/similarity.Rmd</code></a></small>
       <div class="d-none name"><code>similarity.Rmd</code></div>
@@ -540,7 +540,7 @@ constructed first.</p>
 <span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/site_params.html">site_params</a></span><span class="op">(</span><span class="va">sites</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">pub</span></span></code></pre></div>
 <pre><code><span><span class="co">## &lt;OpenFHEParams&gt; CKKS</span></span>
-<span><span class="co">##   public key  5b46c0c68f998bb3cc6855989e592c99</span></span>
+<span><span class="co">##   public key  286531b1b0b48b6a9630f8311b206f10</span></span>
 <span><span class="co">##   secret material: none</span></span></code></pre>
 <p>Site
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>’s
@@ -656,7 +656,7 @@ now holds
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">recovered</span> <span class="op">-</span> <span class="va">expected</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-6</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"rotation round-trip max error:"</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.2e\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">recovered</span> <span class="op">-</span> <span class="va">expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## rotation round-trip max error: 9.03e-12</span></span></code></pre>
+<pre><code><span><span class="co">## rotation round-trip max error: 8.46e-12</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="per-site-adapter-fit-and-database-setup">Per-site adapter fit and database setup<a class="anchor" aria-label="anchor" href="#per-site-adapter-fit-and-database-setup"></a>
@@ -792,7 +792,7 @@ to floating-point precision:</p>
 <span><span class="va">Aq_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">A_hat</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">q_demo</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"matvec max error (site 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">Aq_recovered</span> <span class="op">-</span> <span class="va">Aq_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## matvec max error (site 1): 2.24e-11</span></span></code></pre>
+<pre><code><span><span class="co">## matvec max error (site 1): 2.90e-11</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="inner-product-against-the-local-database">Inner product against the local database<a class="anchor" aria-label="anchor" href="#inner-product-against-the-local-database"></a>
@@ -844,7 +844,7 @@ product matches the unencrypted computation at slot 0:</p>
 <span><span class="va">score_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">Aq_expected</span> <span class="op">*</span> <span class="va">v_test</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"inner-product error (site 1, patient 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">score_recovered</span> <span class="op">-</span> <span class="va">score_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## inner-product error (site 1, patient 1): 1.36e-11</span></span></code></pre>
+<pre><code><span><span class="co">## inner-product error (site 1, patient 1): 1.94e-11</span></span></code></pre>
 <p>The same <code>encrypted_inner_product</code> serves the
 <strong>Design 1</strong> deployment without any matvec: the encrypted
 <em>public-model</em> query is scored directly against the folded,
@@ -857,15 +857,15 @@ route that stays a valid cosine.</p>
 <span><span class="va">fold_expected</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">q_demo</span> <span class="op">*</span> <span class="va">db_fold</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">z</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Design-1 inner-product error (site 1, patient 1): %.2e\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fold_recovered</span> <span class="op">-</span> <span class="va">fold_expected</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Design-1 inner-product error (site 1, patient 1): 1.22e-11</span></span></code></pre>
+<pre><code><span><span class="co">## Design-1 inner-product error (site 1, patient 1): 3.51e-12</span></span></code></pre>
 <div class="section level3">
 <h3 id="what-is-in-the-slots-we-do-not-read">What is in the slots we do not read<a class="anchor" aria-label="anchor" href="#what-is-in-the-slots-we-do-not-read"></a>
 </h3>
 <p>Reading <code>len = 1L</code> sets the <em>reported</em> length of a
-decrypted plaintext. It is an API convenience, not a cryptographic
-erasure: the party that decrypts can ask for every slot. OpenFHE’s
-security notes warn about exactly this for slot-summation primitives, so
-the honest thing is to look rather than to assume.</p>
+decrypted <code>Plaintext</code>. It is an API convenience, not a
+cryptographic erasure: the party that decrypts can ask for every slot.
+OpenFHE’s security notes warn about exactly this for slot-summation
+primitives, so the honest thing is to look rather than to assume.</p>
 <p>Here the reduction is cyclic over a batch that is exactly
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>p</mi><annotation encoding="application/x-tex">p</annotation></semantics></math>
 slots wide, so it does not leave partial sums behind — it broadcasts the
@@ -876,7 +876,7 @@ released anyway.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"slots holding the released score: %d of %d (max deviation %.2e)\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">all_slots</span> <span class="op">-</span> <span class="va">score_recovered</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-6</span><span class="op">)</span>, <span class="va">p</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">all_slots</span> <span class="op">-</span> <span class="va">score_recovered</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## slots holding the released score: 32 of 32 (max deviation 1.18e-11)</span></span></code></pre>
+<pre><code><span><span class="co">## slots holding the released score: 32 of 32 (max deviation 1.46e-11)</span></span></code></pre>
 <p>That is a property of this reduction width, not of CKKS. A layout
 that summed over fewer slots than the batch holds — packing several
 patients into one encrypted value, say — would leave genuine partial
@@ -937,7 +937,7 @@ threshold decryption ceremony for each score so it can sort them once
 they are in the clear and return the top-<code>k</code>.</p>
 <p>The decryption pattern is per-patient: each encrypted score goes
 through one threshold-decrypt round. <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> sends
-the ciphertext to each site in turn —
+the encrypted score to each site in turn —
 <code>multiparty_decrypt_lead</code> at site 1,
 <code>multiparty_decrypt_main</code> at each of the rest, every site
 applying its own share — and fuses the returned partials with
@@ -954,10 +954,10 @@ single encrypted value and amortize the ceremony.</p>
 <span>    <span class="va">out</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="co">## Threshold-decrypt each per-patient inner-product</span></span>
-<span>  <span class="co">## ciphertext. v1 runs one ceremony per patient; a packed</span></span>
-<span>  <span class="co">## variant that fuses multiple inner products into a single</span></span>
-<span>  <span class="co">## ciphertext (via slot tiling) is a natural extension.</span></span>
+<span>  <span class="co">## Threshold-decrypt each per-patient inner product. v1 runs</span></span>
+<span>  <span class="co">## one ceremony per patient; a packed variant that fuses</span></span>
+<span>  <span class="co">## multiple inner products into a single encrypted value</span></span>
+<span>  <span class="co">## (via slot tiling) is a natural extension.</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">site_results</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">scores</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -979,7 +979,7 @@ single encrypted value and amortize the ceremony.</p>
 <span><span class="va">elapsed</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/proc.time.html" class="external-link">proc.time</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="va">t0</span><span class="op">)</span><span class="op">[[</span><span class="st">"elapsed"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d retrieval over %d sites and %d patients in %.1f s\n"</span>,</span>
 <span>            <span class="va">top_k</span>, <span class="va">n_sites</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">cohort_sizes</span><span class="op">)</span>, <span class="va">elapsed</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Top-5 retrieval over 3 sites and 240 patients in 6.0 s</span></span></code></pre>
+<pre><code><span><span class="co">## Top-5 retrieval over 3 sites and 240 patients in 5.7 s</span></span></code></pre>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Query phenotype label: %d\n"</span>, <span class="va">public_query</span><span class="op">$</span><span class="va">label</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Query phenotype label: 4</span></span></code></pre>
@@ -1024,18 +1024,18 @@ site’s database:</p>
 <span></span>
 <span><span class="va">plain_top</span> <span class="op">&lt;-</span> <span class="fu">plaintext_top_k</span><span class="op">(</span><span class="va">q_demo</span>, <span class="va">db</span>, <span class="va">A_hat</span>, <span class="va">top_k</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Compare encrypted-domain top-k against the plaintext reference</span></span>
+<span><span class="co">## Compare encrypted-domain top-k against the cleartext reference</span></span>
 <span><span class="co">## by joining on (site_id, local_index).</span></span>
 <span><span class="va">compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">top_result</span>, <span class="va">plain_top</span>,</span>
 <span>                 by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"site_id"</span>, <span class="st">"local_index"</span><span class="op">)</span>,</span>
 <span>                 suffixes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_enc"</span>, <span class="st">"_plain"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">score_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">compare</span><span class="op">$</span><span class="va">score_enc</span> <span class="op">-</span> <span class="va">compare</span><span class="op">$</span><span class="va">score_plain</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d encrypted vs plaintext score max error: %.2e\n"</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d encrypted vs cleartext score max error: %.2e\n"</span>,</span>
 <span>            <span class="va">top_k</span>, <span class="va">score_err</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Top-5 encrypted vs plaintext score max error: 2.11e-11</span></span></code></pre>
+<pre><code><span><span class="co">## Top-5 encrypted vs cleartext score max error: 1.82e-11</span></span></code></pre>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Whether the encrypted-domain top-k contains the same</span></span>
-<span><span class="co">## (site_id, local_index) pairs as the plaintext reference.</span></span>
+<span><span class="co">## (site_id, local_index) pairs as the cleartext reference.</span></span>
 <span><span class="va">enc_set</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">top_result</span><span class="op">$</span><span class="va">site_id</span>, <span class="va">top_result</span><span class="op">$</span><span class="va">local_index</span>, sep <span class="op">=</span> <span class="st">":"</span><span class="op">)</span></span>
 <span><span class="va">plain_set</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">plain_top</span><span class="op">$</span><span class="va">site_id</span>,  <span class="va">plain_top</span><span class="op">$</span><span class="va">local_index</span>,  sep <span class="op">=</span> <span class="st">":"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Top-%d set match: %d of %d\n"</span>,</span>

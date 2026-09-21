@@ -86,7 +86,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-19</h4>
+            <h4 data-toc-skip class="date">2026-09-21</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-consensus-admm.Rmd" class="external-link"><code>vignettes/cvxr-consensus-admm.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-consensus-admm.Rmd</code></div>
@@ -337,16 +337,16 @@ precision budget), and threshold-decrypt the result.</p>
 <code>multiparty_key_gen()</code> setup across the sites.</p>
 <p>Note where the encryption happens. Each site encrypts its own
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_i + u_i)</annotation></semantics></math>
-under the joint public key and hands back a <em>ciphertext</em>; the
-aggregator adds those ciphertexts, scales, and calls
+under the joint public key and hands back an <em>encrypted value</em>;
+the aggregator adds them, scales, and calls
 <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> to threshold-decrypt the total. Hoisting
 the encryption up to the aggregator — letting it read each site’s
 cleartext vector and encrypt on arrival — would be pointless: it would
 already have seen the per-site values the protocol exists to hide. The
 partial-decrypt fan-in runs the other way for the same reason: the
-aggregator sends the ciphertext out and each site applies its own share,
-because a share that traveled to the aggregator would make the whole
-construction pointless.</p>
+aggregator sends the encrypted value out and each site applies its own
+share, because a share that traveled to the aggregator would make the
+whole construction pointless.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
@@ -375,7 +375,7 @@ changes.</p>
 <span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="fu"><a href="../reference/site_params.html">site_params</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span>, <span class="va">st</span><span class="op">$</span><span class="va">x_curr</span> <span class="op">+</span> <span class="va">st</span><span class="op">$</span><span class="va">u_curr</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co">## Aggregator-side. It receives ciphertexts, adds them, scales by 1/N,</span></span>
+<span><span class="co">## Aggregator-side. It receives encrypted values, adds them, scales by 1/N,</span></span>
 <span><span class="co">## and threshold-decrypts. At no point does it hold an individual</span></span>
 <span><span class="co">## (x_i + u_i).</span></span>
 <span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threshold_master</span>, <span class="va">sites</span><span class="op">)</span> <span class="op">{</span></span>
@@ -477,15 +477,15 @@ is a site-local CVXR solve on site-local data, cleartext in both cases;
 the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>u</mi><annotation encoding="application/x-tex">u</annotation></semantics></math>-update
 is site-local arithmetic; only the consensus average crosses the
-channel, and it is the same one addition and one plaintext-scalar
+channel, and it is the same one addition and one cleartext-scalar
 multiplication per iteration, so the sweep runs inside the same
 <code>multiplicative_depth = 1L</code> budget. Each iteration
-re-encrypts from fresh plaintext rather than building on the previous
-ciphertext, so neither depth nor noise accumulates across iterations,
-and nothing accumulates across candidates either. The stopping test and
-the <code>which.min</code> over the grid are comparisons, which CKKS
-cannot do natively — but they never touch a ciphertext. They are
-computed from
+re-encrypts from fresh cleartext rather than building on the previous
+encrypted value, so neither depth nor noise accumulates across
+iterations, and nothing accumulates across candidates either. The
+stopping test and the <code>which.min</code> over the grid are
+comparisons, which CKKS cannot do natively — but they never touch an
+encrypted value. They are computed from
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>,
 which this protocol decrypts every iteration by design, and from each
 site’s own
@@ -498,9 +498,9 @@ there is nothing there to hide.</p>
 <p>The cleartext sweep, by contrast, is not a deployable step. To
 average
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>+</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_i + u_i)</annotation></semantics></math>
-in the clear, each site has to hand the aggregator that vector in
-plaintext — once per iteration, once per candidate. That is precisely
-the quantity the paragraph above says never appears in the clear, and
+in the clear, each site has to hand the aggregator that vector in the
+clear — once per iteration, once per candidate. That is precisely the
+quantity the paragraph above says never appears in the clear, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>x</mi><mi>i</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msubsup><annotation encoding="application/x-tex">x_i^{k+1}</annotation></semantics></math>
 is the minimizer of site
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>’s
@@ -667,7 +667,7 @@ that it records the trajectory:</p>
 <code class="sourceCode R"><span><span class="va">max_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_curr</span> <span class="op">-</span> <span class="va">beta_central</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Max absolute coefficient difference vs. centralized fit: %.2e\n"</span>,</span>
 <span>            <span class="va">max_diff</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.39e-06</span></span></code></pre>
+<pre><code><span><span class="co">## Max absolute coefficient difference vs. centralized fit: 5.43e-06</span></span></code></pre>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">max_diff</span> <span class="op">&gt;</span> <span class="fl">10</span> <span class="op">*</span> <span class="va">reltol</span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Encrypted ADMM agreement with the aggregated cleartext fit is too loose; "</span>,</span>
@@ -718,8 +718,8 @@ yields this trajectory — one per candidate
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>,
 since the sweep runs the same protocol. Hiding the trajectory as well
 would mean keeping the residuals encrypted, which turns the stopping
-test and the <code>which.min</code> into comparisons on ciphertexts: a
-fixed iteration budget with a masked freeze in place of
+test and the <code>which.min</code> into comparisons on encrypted
+values: a fixed iteration budget with a masked freeze in place of
 <code><a href="https://rdrr.io/r/base/Control.html" class="external-link">break</a></code>, and a polynomial or scheme-switched comparison in
 place of <code>&lt;</code>. Nothing rules that out in principle, but it
 is a different and far more expensive protocol than this one.</li>

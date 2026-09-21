@@ -176,14 +176,14 @@ pub <- lapply(key_sites, site_params)
 
 ## ----cvxr-pool-encrypt, eval=RECOMPUTE----------------------------------------
 ## Site side. Each site forms its own moments and encrypts them under
-## the joint key; what leaves is ciphertext. Encrypting at the
+## the joint key; what leaves is encrypted. Encrypting at the
 ## aggregator instead would mean handing it the per-site column sums in
 ## the clear first, which is the disclosure this round exists to avoid.
 site_moments <- function(s, params)
     list(sum   = encrypt_under(params, colSums(s$X)),
          sumsq = encrypt_under(params, colSums(s$X^2)))
 
-## Aggregator side. It reduces ciphertexts and decrypts only the total.
+## Aggregator side. It reduces encrypted values and decrypts only the total.
 encrypt_pool <- function(master, sites, n_total, p_raw) {
     ## Each site encrypts with the parameters it kept from wiring.
     parts <- Map(site_moments, sites, pub)
@@ -217,7 +217,7 @@ encrypt_screen <- function(master, sites, p_raw, K) {
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
 fhe_top <- encrypt_screen(master, sites_std, P_raw, K)
-stopifnot(setequal(fhe_top, top_idx))   # same probes as the plaintext screen
+stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
 
 
 ## ----cvxr-consensus, eval=RECOMPUTE-------------------------------------------
@@ -226,7 +226,7 @@ stopifnot(setequal(fhe_top, top_idx))   # same probes as the plaintext screen
 site_consensus_term <- function(x_k, u_k, params)
     encrypt_under(params, x_k + u_k)
 
-## Aggregator side: add the ciphertexts, scale by 1/N, decrypt the
+## Aggregator side: add the encrypted values, scale by 1/N, decrypt the
 ## average. It sees no individual (x_k + u_k).
 encrypted_consensus <- function(site_x, site_u) {
     cts    <- Map(site_consensus_term, site_x, site_u, pub)

@@ -36,7 +36,7 @@ site_unavailable(message, site = NULL, parent = NULL)
 
 ## Value
 
-nothing — called for its side effect of signalling a condition of class
+nothing — called for its side effect of signaling a condition of class
 `homomorpheR_site_unavailable`.
 
 ## What the re-raised condition carries
