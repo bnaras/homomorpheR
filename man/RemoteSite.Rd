@@ -67,8 +67,9 @@ What the package does enforce: a site cannot be configured except
 through \code{\link[=set_public_params]{set_public_params()}}, which the base \code{RemoteSite} method
 refuses, so an endpoint that was never provisioned fails closed
 rather than looking wired; the base class likewise refuses
-\code{\link[=keygen_round]{keygen_round()}} and \code{\link[=partial_decrypt]{partial_decrypt()}} rather than performing a
-remote party's secret-key operation in this process; and
+\code{\link[=contribute]{contribute()}}, \code{\link[=keygen_round]{keygen_round()}} and \code{\link[=partial_decrypt]{partial_decrypt()}} rather than
+evaluating a remote party's data or performing its secret-key
+operation in this process; and
 \code{\link[=master_aggregate]{master_aggregate()}} checks that a reply is an encrypted value
 under this protocol's key before adding it to a total.
 }

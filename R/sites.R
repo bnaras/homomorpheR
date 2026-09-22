@@ -160,8 +160,9 @@ LocalSite <- new_class(
 #' through [set_public_params()], which the base `RemoteSite` method
 #' refuses, so an endpoint that was never provisioned fails closed
 #' rather than looking wired; the base class likewise refuses
-#' [keygen_round()] and [partial_decrypt()] rather than performing a
-#' remote party's secret-key operation in this process; and
+#' [contribute()], [keygen_round()] and [partial_decrypt()] rather than
+#' evaluating a remote party's data or performing its secret-key
+#' operation in this process; and
 #' [master_aggregate()] checks that a reply is an encrypted value
 #' under this protocol's key before adding it to a total.
 #'
@@ -1066,6 +1067,26 @@ method(contribute, LocalSite) <- function(site, theta) {
     if (length(value) == 1 && is.na(value)) return(NA)
     encrypt_under(site_params(site), value)
 }
+
+## Unlike keygen_round, the built-in method above is on LocalSite rather
+## than Site, so a RemoteSite subclass has nothing to fall through to and
+## would fail on its own. It would fail with a bare S7 dispatch error,
+## though, which says a method is missing without saying what the method
+## owes anyone -- and contribute is the first one a subclass author
+## reaches. The refusal below says it, matching set_public_params,
+## keygen_round and partial_decrypt.
+method(contribute, RemoteSite) <- function(site, theta)
+    cli_abort(c("{.cls RemoteSite} {.val {site@name}} has no {.fun contribute} method.",
+                i = "Evaluating the contribution here would need this site's data
+                     in this process, and encrypting it here would mean the
+                     cleartext value existed locally first -- which is the
+                     disclosure the protocol exists to prevent.",
+                i = "Implement {.fun contribute} for your subclass: send
+                     {.arg theta} to the far end, have it evaluate and encrypt
+                     with the parameters it retained, and return the encrypted
+                     value. Reply {.code NA} only when {.arg theta} is
+                     non-evaluable there, and signal {.fun site_unavailable} if
+                     the endpoint cannot be reached."))
 
 #' One site's step in the threshold key-generation chain
 #'
