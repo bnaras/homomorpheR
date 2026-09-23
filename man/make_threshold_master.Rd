@@ -43,7 +43,7 @@ returned to this function, so the master cannot hold one even by
 accident. Only public keys travel between parties, which is exactly
 what can be sent over a wire to an untrusted peer.
 
-Decryption is n-of-n: \code{\link[=master_decrypt]{master_decrypt()}} asks each site for a
+Decryption is n-of-n: \code{\link[=decrypt]{decrypt()}} asks each site for a
 partial decryption via \code{\link[=partial_decrypt]{partial_decrypt()}} and fuses the results
 with \code{multiparty_decrypt_fusion}. There is no path by which the
 master decrypts alone.
@@ -79,5 +79,5 @@ neither of which this package provides.
 }
 
 \seealso{
-\code{\link[=keygen_round]{keygen_round()}}, \code{\link[=partial_decrypt]{partial_decrypt()}}, \code{\link[=master_decrypt]{master_decrypt()}}.
+\code{\link[=keygen_round]{keygen_round()}}, \code{\link[=partial_decrypt]{partial_decrypt()}}, \link{actor-encryption}.
 }

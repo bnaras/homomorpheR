@@ -71,8 +71,7 @@ expect_error(set_workers(master, list(w1, w2, w3)),
 ## A site that never took part in key generation cannot fake a partial
 ## decryption.
 stranger <- make_worker("Outsider", c(1, 2), local_nll)
-expect_error(partial_decrypt(stranger,
-                             encrypt_under(site_params(w1), 1), lead = FALSE),
+expect_error(partial_decrypt(stranger, encrypt(w1, 1), lead = FALSE),
              pattern = "no secret share")
 
 ## keygen_round returns a public key, never a secret one: a share that

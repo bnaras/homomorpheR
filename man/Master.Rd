@@ -13,7 +13,7 @@ Master(name = character(0), state = new.env(parent = emptyenv()))
 }
 \value{
 nothing — this class is abstract, so calling it raises an error
-instead of returning an object. It exists so that \code{\link[=master_decrypt]{master_decrypt()}}
+instead of returning an object. It exists so that \code{\link[=decrypt]{decrypt()}}
 and \code{\link[=master_aggregate]{master_aggregate()}} dispatch on a common parent. Construct a
 concrete master with \code{\link[=make_ckks_master]{make_ckks_master()}} or
 \code{\link[=make_threshold_master]{make_threshold_master()}}.
@@ -23,14 +23,15 @@ Common base for \link{CKKSMaster} and \link{ThresholdMaster} (and the frozen
 legacy \link{PaillierMaster}). Concrete masters carry whatever context
 and public keys their cryptographic backend needs; the protocol body
 in \code{\link[=master_aggregate]{master_aggregate()}} reaches sites through \code{\link[=contribute]{contribute()}} and
-recovers the total through the \code{\link[=master_decrypt]{master_decrypt()}} generic, which
+recovers the total through the \code{\link[=decrypt]{decrypt()}} generic, which
 dispatches on the concrete master class, so the same protocol runs
 over any backend.
 }
 \details{
 A master never encrypts site data, and has no encryption entry point
-at all. Each party encrypts its own values with \code{\link[=encrypt_under]{encrypt_under()}},
-using the public parameters it was handed when it was wired. The
+at all. Each party encrypts its own values with \code{\link[=encrypt]{encrypt()}}, which
+for a \link{Site} takes nothing but the site itself: it encrypts with
+the public parameters it was handed when it was wired. The
 asymmetry is deliberate and worth reading off the API: decryption is
 privileged — it needs secret material, or the standing to convene
 every site — while encryption needs only public material and is

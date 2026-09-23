@@ -453,16 +453,16 @@ head-counts is one more sum of the same kind.)
 ## aggregator instead would mean handing it the per-site column sums in
 ## the clear first, which is the disclosure this round exists to avoid.
 site_moments <- function(s, params)
-    list(sum   = encrypt_under(params, colSums(s$X)),
-         sumsq = encrypt_under(params, colSums(s$X^2)))
+    list(sum   = encrypt(params, colSums(s$X)),
+         sumsq = encrypt(params, colSums(s$X^2)))
 
 ## Aggregator side. It reduces encrypted values and decrypts only the total.
 encrypt_pool <- function(master, sites, n_total, p_raw) {
     ## Each site encrypts with the parameters it kept from wiring.
     parts <- Map(site_moments, sites, pub)
-    pooled_sum   <- master_decrypt(
+    pooled_sum   <- decrypt(
         master, Reduce(`+`, lapply(parts, `[[`, "sum")),   len = p_raw)
-    pooled_sumsq <- master_decrypt(
+    pooled_sumsq <- decrypt(
         master, Reduce(`+`, lapply(parts, `[[`, "sumsq")), len = p_raw)
     mu     <- pooled_sum / n_total
     sigma2 <- pmax(pooled_sumsq / n_total - mu^2, .Machine$double.eps)
@@ -484,16 +484,16 @@ compactly and confirm it selects the same probes.
 ## site's own rows, and encrypt both before returning them.
 site_score_info <- function(s, params) {
     z <- score_info_at_zero(s$X, s$time, s$status)
-    list(U = encrypt_under(params, z$U), I = encrypt_under(params, z$I))
+    list(U = encrypt(params, z$U), I = encrypt(params, z$I))
 }
 
 ## Aggregator side: sum the encrypted (U, I) and decrypt the totals.
 encrypt_screen <- function(master, sites, p_raw, K) {
     UI  <- Map(site_score_info, sites, pub)
-    U   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
-                          len = p_raw)
-    I   <- master_decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
-                          len = p_raw)
+    U   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
+                   len = p_raw)
+    I   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
+                   len = p_raw)
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
@@ -515,14 +515,14 @@ aggregate.
 ## Site side: form x_k + u_k and encrypt it there. The per-site vector
 ## never exists in the clear outside this function.
 site_consensus_term <- function(x_k, u_k, params)
-    encrypt_under(params, x_k + u_k)
+    encrypt(params, x_k + u_k)
 
 ## Aggregator side: add the encrypted values, scale by 1/N, decrypt the
 ## average. It sees no individual (x_k + u_k).
 encrypted_consensus <- function(site_x, site_u) {
     cts    <- Map(site_consensus_term, site_x, site_u, pub)
     ct_avg <- Reduce(`+`, cts) * (1 / length(site_x))
-    master_decrypt(master, ct_avg, len = K)
+    decrypt(master, ct_avg, len = K)
 }
 fhe        <- run_admm(sites_problem, encrypted_consensus)
 z_curr     <- fhe$z

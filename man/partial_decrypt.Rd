@@ -14,13 +14,13 @@ partial_decrypt(site, ...)
 chain.}
 }
 \value{
-a partial decryption, to be fused by \code{\link[=master_decrypt]{master_decrypt()}}.
+a partial decryption, to be fused by \code{\link[=decrypt]{decrypt()}}.
 }
 \description{
 Under threshold keys no party can decrypt alone. A ciphertext is
 sent to each site; each site applies \strong{its own} secret share and
 returns a partial decryption, and the partials are fused (see
-\code{\link[=master_decrypt]{master_decrypt()}}). The share never leaves the site, so no other
+\code{\link[=decrypt]{decrypt()}}). The share never leaves the site, so no other
 party ends up holding anything that would let it decrypt.
 }
 \details{

@@ -413,7 +413,7 @@ pub
 ```
 
 Site $k$'s share lives in `sites[[k]]@state$sk` and nowhere else.
-`master_decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
+`decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
 runs the $n$-of-$n$ ceremony by asking each site for a partial
 decryption — no party ever holds a usable secret unilaterally, the
 aggregator included.
@@ -497,9 +497,9 @@ $x_{(i+3) \bmod p}$:
 
 ```{r}
 x <- 1:p
-ct_x      <- encrypt_under(pub, x)
+ct_x      <- encrypt(pub, x)
 ct_rot    <- eval_rotate(ct_x, 3L)
-recovered <- master_decrypt(master, ct_rot, len = p)
+recovered <- decrypt(master, ct_rot, len = p)
 
 expected <- x[((seq_len(p) - 1L + 3L) %% p) + 1L]
 stopifnot(max(abs(recovered - expected)) < 1e-6)
@@ -617,9 +617,9 @@ matvec recovers $A_1 \cdot q$ to floating-point precision:
 
 ```{r}
 q_demo <- public_query$z[1, ]
-ct_q  <- encrypt_under(pub, q_demo)
+ct_q  <- encrypt(pub, q_demo)
 ct_Aq <- encrypted_matvec(ct_q, A_hat[[1]], cc, p)
-Aq_recovered <- master_decrypt(master, ct_Aq, len = p)
+Aq_recovered <- decrypt(master, ct_Aq, len = p)
 Aq_expected  <- as.numeric(A_hat[[1]] %*% q_demo)
 cat(sprintf("matvec max error (site 1): %.2e\n",
             max(abs(Aq_recovered - Aq_expected))))
@@ -670,7 +670,7 @@ inner product matches the unencrypted computation at slot 0:
 ```{r}
 v_test <- db[[1]]$z[1, ]
 ct_score <- encrypted_inner_product(ct_Aq, v_test, cc, p)
-score_recovered <- master_decrypt(master, ct_score, len = 1L)
+score_recovered <- decrypt(master, ct_score, len = 1L)
 score_expected  <- sum(Aq_expected * v_test)
 cat(sprintf("inner-product error (site 1, patient 1): %.2e\n",
             abs(score_recovered - score_expected)))
@@ -685,7 +685,7 @@ route that stays a valid cosine.
 
 ```{r}
 ct_score_fold <- encrypted_inner_product(ct_q, db_fold[[1]]$z[1, ], cc, p)
-fold_recovered <- master_decrypt(master, ct_score_fold, len = 1L)
+fold_recovered <- decrypt(master, ct_score_fold, len = 1L)
 fold_expected  <- sum(q_demo * db_fold[[1]]$z[1, ])
 cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
             abs(fold_recovered - fold_expected)))
@@ -705,7 +705,7 @@ total to every slot. The other slots hold the same score that is
 released anyway.
 
 ```{r}
-all_slots <- master_decrypt(master, ct_score, len = p)
+all_slots <- decrypt(master, ct_score, len = p)
 cat(sprintf("slots holding the released score: %d of %d (max deviation %.2e)\n",
             sum(abs(all_slots - score_recovered) < 1e-6), p,
             max(abs(all_slots - score_recovered))))
@@ -768,7 +768,7 @@ decryption ceremony for each score so it can sort them once
 they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score
-goes through one threshold-decrypt round. `master_decrypt()` sends
+goes through one threshold-decrypt round. `decrypt()` sends
 the encrypted score to each site in turn — `multiparty_decrypt_lead` at
 site 1, `multiparty_decrypt_main` at each of the rest, every site
 applying its own share — and fuses the returned partials with
@@ -793,7 +793,7 @@ run_similarity_query <- function(ct_q, site_fns, master, top_k) {
   rows <- list()
   for (s in site_results) {
     for (i in seq_along(s$scores)) {
-      score <- master_decrypt(master, s$scores[[i]], len = 1L)
+      score <- decrypt(master, s$scores[[i]], len = 1L)
       rows[[length(rows) + 1L]] <- data.frame(
         site_id     = s$site_id,
         local_index = s$local_index[i],
@@ -1215,7 +1215,7 @@ summed by the master; the similarity protocol uses a
 broadcast-and-aggregate shape: encrypted query in, per-site
 scoring, master-side threshold decryption of the released
 top-$k$. The actor surface (`make_threshold_master`,
-`make_worker`, `encrypt_under`, `master_decrypt`) carries over
+`make_worker`, `encrypt`, `decrypt`) carries over
 unchanged.
 
 The closest precedents in the literature combine some but

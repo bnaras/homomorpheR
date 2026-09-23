@@ -58,6 +58,6 @@ are cheap.
 }
 
 \seealso{
-\code{\link[=site_params]{site_params()}} to read them back, \code{\link[=encrypt_under]{encrypt_under()}} to
-use them, \link{RemoteSite} for the full remote contract.
+\code{\link[=site_params]{site_params()}} to read them back, \link{actor-encryption} for
+using them, \link{RemoteSite} for the full remote contract.
 }

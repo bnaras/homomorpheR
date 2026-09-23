@@ -24,8 +24,8 @@ concrete kinds are \link{OpenFHEParams} and, on the frozen legacy path,
 \code{PaillierParams}.
 
 Obtain the bundle a site holds with \code{\link[=site_params]{site_params()}}; encrypt with
-\code{\link[=encrypt_under]{encrypt_under()}}.
+\code{\link[=encrypt]{encrypt()}}.
 }
 \seealso{
-\link{OpenFHEParams}, \code{\link[=site_params]{site_params()}}, \code{\link[=encrypt_under]{encrypt_under()}}
+\link{OpenFHEParams}, \code{\link[=site_params]{site_params()}}, \link{actor-encryption}
 }

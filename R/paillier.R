@@ -140,39 +140,9 @@ PaillierCiphertext <- new_class(
 
 # ---- Generics --------------------------------------------------------------
 
-#' Encrypt a value under a Paillier public key
-#'
-#' @param public_key a [PaillierPublicKey].
-#' @param ... method-specific arguments. The Paillier method takes a
-#'   single cleartext value `x` (integer or [gmp::bigz]).
-#' @return a [PaillierCiphertext].
-#' @export
-encrypt <- new_generic("encrypt", "public_key")
-
-#' Decrypt a Paillier ciphertext
-#'
-#' Dispatches on both `private_key` and `ciphertext` so that integer
-#' [PaillierCiphertext]s and [PaillierEncryptedReal]s are handled by
-#' separate methods.
-#'
-#' # Return semantics
-#'
-#' The two cases differ deliberately:
-#'
-#' - [PaillierCiphertext] (integer) -> a [gmp::bigz] in `[0, n)`. This
-#'   preserves raw mod-`n` arithmetic; callers wanting signed
-#'   integers should re-center themselves (`if (m > n/2) m - n`).
-#' - [PaillierEncryptedReal] -> a `numeric` in `(-n/2, n/2)`. The
-#'   method re-centers the raw mod-`n` residues so that negative
-#'   real numbers and running totals that cross zero round-trip
-#'   correctly. See [PaillierEncryptedReal] for the full convention.
-#'
-#' @param private_key a [PaillierPrivateKey].
-#' @param ciphertext a [PaillierCiphertext] or [PaillierEncryptedReal].
-#' @param ... unused.
-#' @return the decrypted value.
-#' @export
-decrypt <- new_generic("decrypt", c("private_key", "ciphertext"))
+## The `encrypt()` and `decrypt()` generics these methods register on
+## are openfhe.R's, imported and re-exported in generics.R. That file
+## explains the local() wrappers and the `key`/`pt`/`ct` formals.
 
 #' Return the private key from a key pair
 #' @param keypair a [PaillierKeyPair].
@@ -190,7 +160,12 @@ get_lambda <- new_generic("get_lambda", "private_key")
 
 # ---- Methods ---------------------------------------------------------------
 
-method(encrypt, PaillierPublicKey) <- function(public_key, x) {
+## openfhe.R's encrypt() dispatches on (key, pt); here `key` is the
+## Paillier public key and `pt` the cleartext integer.
+local({
+method(encrypt, list(PaillierPublicKey, class_any)) <- function(key, pt) {
+    public_key <- key
+    x          <- pt
     m <- as.bigz(x)
     enc <- mod.bigz(
         add.bigz(mul.bigz(public_key@n, m), ONE),
@@ -199,9 +174,16 @@ method(encrypt, PaillierPublicKey) <- function(public_key, x) {
         value  = .paillier_randomize(public_key, enc),
         pubkey = public_key)
 }
+})
 
+## openfhe.R's decrypt() dispatches on (ct, key) and, as the C++ header
+## does, accepts the key first; in that order `ct` holds the private
+## key and `key` the ciphertext.
+local({
 method(decrypt, list(PaillierPrivateKey, PaillierCiphertext)) <-
-    function(private_key, ciphertext) {
+    function(ct, key) {
+        private_key <- ct
+        ciphertext  <- key
         pubkey <- private_key@pubkey
         mod.bigz(
             mul.bigz(
@@ -213,6 +195,7 @@ method(decrypt, list(PaillierPrivateKey, PaillierCiphertext)) <-
                 private_key@x),
             pubkey@n)
     }
+})
 
 method(get_private_key, PaillierKeyPair) <- function(keypair) keypair@privkey
 

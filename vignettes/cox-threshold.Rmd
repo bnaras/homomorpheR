@@ -118,7 +118,7 @@ share it generated; the master holds no secret material at all, and
 decrypts by asking every site for a partial and fusing the results.
 The `master_aggregate()` runner used by the single-decrypter `cox.Rmd`
 works unchanged here — the threshold-specific partial-decrypt and fuse
-logic lives inside the `master_decrypt()` method on `ThresholdMaster`,
+logic lives inside the `decrypt()` method on `ThresholdMaster`,
 so the per-iteration code looks the same as the single-decrypter case.
 
 ## Implementation
@@ -154,7 +154,7 @@ The sites come first, because the joint public key is built from them.
 `make_threshold_master(name, cc, sites)` walks the chain — each site
 generating and retaining its own share, passing on only a public key —
 and returns a master that holds the joint public key, holds nothing
-secret, and is already wired to the sites. Its `master_decrypt` method
+secret, and is already wired to the sites. Its `decrypt` method
 drives the partial-decrypt fan-in by asking each site in turn.
 
 ```{r}

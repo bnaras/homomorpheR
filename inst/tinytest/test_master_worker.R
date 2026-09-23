@@ -93,9 +93,9 @@ S7::method(set_public_params, FakeRemote) <- function(site, params) {
 }
 S7::method(contribute, FakeRemote) <- function(site, theta) {
     value <- -sum(stats::dpois(site@rows, theta, log = TRUE))
-    ## Encrypts with the published public bundle, before the value
-    ## would cross a wire.
-    encrypt_under(site_params(site), value)
+    ## Encrypts with the bundle it was given, before the value would
+    ## cross a wire. The site is the only argument it needs.
+    encrypt(site, value)
 }
 
 master6 <- make_master("M6", keys)

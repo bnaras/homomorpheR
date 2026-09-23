@@ -104,8 +104,15 @@ method(check_encrypted, PaillierParams) <- function(params, x, what, who = NULL)
     invisible(x)
 }
 
-method(encrypt_under, PaillierParams) <- function(params, value)
+## On openfhe.R's encrypt(), dispatching on (key, pt): `key` is the
+## Paillier parameter bundle, `pt` the numeric value. See generics.R.
+local({
+method(encrypt, list(PaillierParams, class_any)) <- function(key, pt) {
+    params <- key
+    value  <- pt
     encrypt_real(params@pk, value, params@den)
+}
+})
 
 method(print, PaillierParams) <- function(x, ...) {
     cat("<PaillierParams> ", x@pk@bits, "-bit modulus\n",
@@ -113,16 +120,27 @@ method(print, PaillierParams) <- function(x, ...) {
     invisible(x)
 }
 
-## There is deliberately no `master_encrypt()` generic anywhere in the
-## package. Encryption needs only public material, so naming an
-## encryption entry point after one party would advertise a privilege
-## that does not exist -- and, worse, invite site-side code to reach
-## for a master it has no business holding. The frozen chain below
-## really does encrypt at the master, but it does so through the same
-## internal path everyone else uses.
-method(master_decrypt, PaillierMaster) <- function(master, ciphertext) {
+## There is deliberately no encryption entry point taking a master
+## anywhere in the package: no `master_encrypt()` generic, and no
+## `encrypt()` method on Master. Encryption needs only public
+## material, so naming an encryption entry point after one party would
+## advertise a privilege that does not exist -- and, worse, invite
+## site-side code to reach for a master it has no business holding. The
+## frozen chain below really does encrypt at the master, but it does so
+## through the same internal path everyone else uses.
+##
+## `class_any` on the second argument for the same reason as the
+## openfhe masters in sites.R: check_encrypted() gives a better account
+## of a wrong kind of value than S7's "no method" would. The generic is
+## openfhe.R's decrypt(), key holder first, so `ct` is the master and
+## `key` the encrypted value; see generics.R.
+local({
+method(decrypt, list(PaillierMaster, class_any)) <- function(ct, key) {
+    master     <- ct
+    ciphertext <- key
     decrypt(get_private_key(master@keypair), ciphertext)
 }
+})
 
 method(print, PaillierMaster) <- function(x, ...) {
     cat("<PaillierMaster> ", x@name, " (", x@keypair@pubkey@bits,
@@ -270,7 +288,7 @@ method(add_local_and_forward, LocalSite) <- function(obj, theta, running, master
     ## The Paillier-era anti-pattern, preserved: the site hands its
     ## cleartext along and it is encrypted here, not at the site. The
     ## supported topology inverts this -- see contribute().
-    enc_local <- encrypt_under(public_params(master), local_value)
+    enc_local <- encrypt(public_params(master), local_value)
     add_local_and_forward(obj@state$next_site, theta, running + enc_local, master)
 }
 
@@ -309,7 +327,7 @@ round_robin_chain <- function(master, sites) {
 
 #' Run one round of the round-robin protocol
 #'
-#' Backend-agnostic via the [master_decrypt()] generic, but part of the
+#' Backend-agnostic via the [decrypt()] generic, but part of the
 #' frozen Paillier-era legacy surface: the random-offset chain idiom
 #' compensated for Paillier-era trust assumptions, and it encrypts each
 #' site's value *at the master*, which the supported topology
@@ -332,8 +350,8 @@ round_robin_chain <- function(master, sites) {
 run_round_robin <- function(master, theta) {
     master@state$failed <- FALSE
     offset     <- runif(1, -1e6, 1e6)
-    enc_offset <- encrypt_under(public_params(master), offset)
+    enc_offset <- encrypt(public_params(master), offset)
     add_local_and_forward(master@state$next_site, theta, enc_offset, master)
     if (isTRUE(master@state$failed)) return(NA_real_)
-    master_decrypt(master, master@state$result) - offset
+    decrypt(master, master@state$result) - offset
 }

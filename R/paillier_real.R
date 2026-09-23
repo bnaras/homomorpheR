@@ -95,8 +95,14 @@ encrypt_real <- function(public_key, x, den) {
 # decrypt method for the real-valued ciphertext: recover int + frac/den.
 # Plaintext space is [0, n); we re-center into [-n/2, n/2) so negative
 # real numbers round-trip correctly.
+## Registered on openfhe.R's decrypt(), which dispatches on (ct, key)
+## and takes the key first as the C++ header does; so `ct` is the
+## private key and `key` the encrypted real. See generics.R.
+local({
 method(decrypt, list(PaillierPrivateKey, PaillierEncryptedReal)) <-
-    function(private_key, ciphertext) {
+    function(ct, key) {
+        private_key <- ct
+        ciphertext  <- key
         n <- private_key@pubkey@n
         half_n <- div.bigz(n, gmp::as.bigz(2L))
         int_raw  <- decrypt(private_key, ciphertext@int)
@@ -106,6 +112,7 @@ method(decrypt, list(PaillierPrivateKey, PaillierEncryptedReal)) <-
         as.double(int_val) +
             as.double(gmp::as.bigq(frac_val) / ciphertext@den)
     }
+})
 
 # ---- Operator dispatch ----------------------------------------------------
 

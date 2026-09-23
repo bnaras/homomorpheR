@@ -22,7 +22,6 @@ export(contribute)
 export(decrypt)
 export(encrypt)
 export(encrypt_real)
-export(encrypt_under)
 export(get_lambda)
 export(get_private_key)
 export(keygen_round)
@@ -32,7 +31,6 @@ export(make_ncparty)
 export(make_threshold_master)
 export(make_worker)
 export(master_aggregate)
-export(master_decrypt)
 export(paillier_keypair)
 export(partial_decrypt)
 export(random.bigz)
@@ -77,6 +75,10 @@ importFrom(gmp,
   powm,
   sizeinbase,
   sub.bigz
+)
+importFrom(openfhe.R,
+  decrypt,
+  encrypt
 )
 importFrom(sodium,random)
 importFrom(stats,runif)

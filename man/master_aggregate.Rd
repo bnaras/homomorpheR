@@ -20,7 +20,7 @@ the aggregated value, or \code{NA_real_} if some site found
 }
 \description{
 Backend-agnostic: sites are reached through \code{\link[=contribute]{contribute()}} and the
-total is recovered through the \code{\link[=master_decrypt]{master_decrypt()}} generic, so the
+total is recovered through the \code{\link[=decrypt]{decrypt()}} generic, so the
 same body works over \link{CKKSMaster} and \link{ThresholdMaster}.
 }
 \details{

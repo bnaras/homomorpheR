@@ -41,7 +41,7 @@
   and the joint public key, and no secret material at all.
 - Sites must therefore be constructed before the master, since the joint
   public key is a function of all of them.
-- `master_decrypt()` recovers a value by asking every site for a partial
+- `decrypt()` recovers a value by asking every site for a partial
   decryption and fusing the results. No party, the master included, can
   decrypt alone.
 - New generics `keygen_round()` and `partial_decrypt()`, dispatching on
@@ -74,7 +74,7 @@
   other key, is refused. Previously a cleartext reply was folded in by
   ordinary scalar addition and the round returned the right answer,
   having been handed the one quantity the protocol exists to hide.
-- `master_decrypt()` and site-side `partial_decrypt()` likewise verify
+- `decrypt()` and site-side `partial_decrypt()` likewise verify
   that a value belongs to this protocol's key, using OpenFHE's key tag.
   A site therefore refuses to apply its own share to a ciphertext from
   a protocol it did not join.
@@ -91,24 +91,34 @@
 
 ### Encryption surface
 
-- `encrypt_under(params, value)` is the one encryption entry point. It
-  takes public parameters and no party at all, because encryption needs
-  only public material and belongs to no one in particular. A site
-  passes the parameters it holds, from `site_params(site)`.
+- `encrypt()` and `decrypt()` are `openfhe.R`'s generics, imported,
+  extended, and re-exported. homomorpheR no longer defines generics of
+  its own under these names; its protocol-actor methods and the frozen
+  Paillier methods register on the upstream generics, so there is one
+  method table per verb and the class of the first argument selects
+  the layer. Argument names follow `openfhe.R`, which follows the
+  OpenFHE C++ signatures; every call in this package is positional.
+  See `?actor-encryption`.
+- `encrypt(site, value)` is the one encryption entry point a party
+  needs. A site holds its public parameters, so it does not fetch them
+  and hand them back: the site is the whole of the argument.
+  `encrypt(params, value)` serves anyone holding a bundle without
+  being a site — a querier, say — and `site_params(site)` still hands
+  one out.
 - **A site is autonomous once configured.** It is given its public
   parameters once, and from then on computes and encrypts without
   consulting anyone. There is deliberately no exported function that
   reaches from a site back to a master; the master-side
   `public_params()` is not exported either, since fetching it at
   encryption time would mean asking for something already held.
-- Consequently there is **no `master_encrypt()`**. Naming an encryption
-  entry point after one party would advertise a privilege that does not
-  exist, and would invite site-side code to hold a master it has no use
-  for.
-- `master_decrypt()` does take a master, and that asymmetry is the point:
-  decryption is privileged, requiring secret material or the standing to
-  convene every site, while encryption is not. It is vector-aware via
-  `len`.
+- Consequently there is **no encryption entry point taking a master**:
+  no `master_encrypt()`, and no `encrypt()` method on `Master`. Naming
+  or taking one party would advertise a privilege that does not exist,
+  and would invite site-side code to hold a master it has no use for.
+- `decrypt(master, ciphertext, len)` does take a master, and that
+  asymmetry is the point: decryption is privileged, requiring secret
+  material or the standing to convene every site, while encryption is
+  not. It is vector-aware via `len`.
 - Under BFV and BGV a value the scheme cannot carry is now refused
   rather than coerced: a non-integer, a non-finite value, one outside
   R's integer range, or one at or beyond half the plaintext modulus.

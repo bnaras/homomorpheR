@@ -219,7 +219,7 @@ a CKKS context with `Feature$MULTIPARTY` enabled and
 Note where the encryption happens. Each site encrypts its own
 $(x_i + u_i)$ under the joint public key and hands back an
 *encrypted value*; the aggregator adds them, scales, and
-calls `master_decrypt()` to threshold-decrypt the total. Hoisting
+calls `decrypt()` to threshold-decrypt the total. Hoisting
 the encryption up to the aggregator — letting it read each site's
 cleartext vector and encrypt on arrival — would be pointless: it
 would already have seen the per-site values the protocol exists to
@@ -251,9 +251,10 @@ $\rho$ changes.
 ## secrets. The cleartext vector never leaves this function.
 site_contribution <- function(site) {
     st <- site@state
-    ## site_params() returns what this site was handed at setup, and
-    ## errors if it was never configured. Nothing is asked of anyone.
-    encrypt_under(site_params(site), st$x_curr + st$u_curr)
+    ## The site is the whole of it: it encrypts with what it was handed
+    ## at setup, and errors if it was never configured. Nothing is
+    ## asked of anyone.
+    encrypt(site, st$x_curr + st$u_curr)
 }
 
 ## Aggregator-side. It receives encrypted values, adds them, scales by 1/N,
@@ -261,7 +262,7 @@ site_contribution <- function(site) {
 ## (x_i + u_i).
 encrypted_consensus <- function(threshold_master, sites) {
     ct_avg <- Reduce(`+`, lapply(sites, site_contribution)) * (1 / length(sites))
-    master_decrypt(threshold_master, ct_avg, len = p)
+    decrypt(threshold_master, ct_avg, len = p)
 }
 ```
 

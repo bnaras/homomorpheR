@@ -239,13 +239,14 @@ RemoteSite <- new_class(
 #' legacy [PaillierMaster]). Concrete masters carry whatever context
 #' and public keys their cryptographic backend needs; the protocol body
 #' in [master_aggregate()] reaches sites through [contribute()] and
-#' recovers the total through the [master_decrypt()] generic, which
+#' recovers the total through the [decrypt()] generic, which
 #' dispatches on the concrete master class, so the same protocol runs
 #' over any backend.
 #'
 #' A master never encrypts site data, and has no encryption entry point
-#' at all. Each party encrypts its own values with [encrypt_under()],
-#' using the public parameters it was handed when it was wired. The
+#' at all. Each party encrypts its own values with [encrypt()], which
+#' for a [Site] takes nothing but the site itself: it encrypts with
+#' the public parameters it was handed when it was wired. The
 #' asymmetry is deliberate and worth reading off the API: decryption is
 #' privileged — it needs secret material, or the standing to convene
 #' every site — while encryption needs only public material and is
@@ -254,7 +255,7 @@ RemoteSite <- new_class(
 #' @param name short identifier shown in printed output.
 #' @param state an environment for mutable bookkeeping.
 #' @return nothing — this class is abstract, so calling it raises an error
-#'   instead of returning an object. It exists so that [master_decrypt()]
+#'   instead of returning an object. It exists so that [decrypt()]
 #'   and [master_aggregate()] dispatch on a common parent. Construct a
 #'   concrete master with [make_ckks_master()] or
 #'   [make_threshold_master()].
@@ -376,11 +377,11 @@ ThresholdMaster <- new_class(
 #' `PaillierParams`.
 #'
 #' Obtain the bundle a site holds with [site_params()]; encrypt with
-#' [encrypt_under()].
+#' [encrypt()].
 #'
 #' @return nothing — this class is abstract. Its concrete subclasses
 #'   are constructed for you when a party is configured.
-#' @seealso [OpenFHEParams], [site_params()], [encrypt_under()]
+#' @seealso [OpenFHEParams], [site_params()], [actor-encryption]
 #' @export
 PublicParams <- new_class(
     "PublicParams",
@@ -399,7 +400,7 @@ PublicParams <- new_class(
 #' @param pk an `openfhe.R` `PublicKey`.
 #' @return an S7 object of class `OpenFHEParams`, inheriting from
 #'   [PublicParams], with properties `cc` and `pk`.
-#' @seealso [encrypt_under()], [site_params()]
+#' @seealso [actor-encryption], [site_params()]
 #' @export
 OpenFHEParams <- new_class(
     "OpenFHEParams",
@@ -470,7 +471,7 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #' accident. Only public keys travel between parties, which is exactly
 #' what can be sent over a wire to an untrusted peer.
 #'
-#' Decryption is n-of-n: [master_decrypt()] asks each site for a
+#' Decryption is n-of-n: [decrypt()] asks each site for a
 #' partial decryption via [partial_decrypt()] and fuses the results
 #' with `multiparty_decrypt_fusion`. There is no path by which the
 #' master decrypts alone.
@@ -518,7 +519,7 @@ make_ckks_master <- function(name, crypto_context, keypair) {
 #'   discard what the first round left behind, and under BFV or BGV
 #'   nothing afterwards detects the loss.
 #' @return a [ThresholdMaster], wired to `sites`.
-#' @seealso [keygen_round()], [partial_decrypt()], [master_decrypt()].
+#' @seealso [keygen_round()], [partial_decrypt()], [actor-encryption].
 #' @export
 make_threshold_master <- function(name, crypto_context, sites) {
     if (!is.list(sites))
@@ -639,8 +640,8 @@ make_threshold_master <- function(name, crypto_context, sites) {
 #' @param ... method-specific arguments; the built-in method takes
 #'   `params`, a [PublicParams] object.
 #' @return the site, invisibly. Called for its side effect.
-#' @seealso [site_params()] to read them back, [encrypt_under()] to
-#'   use them, [RemoteSite] for the full remote contract.
+#' @seealso [site_params()] to read them back, [actor-encryption] for
+#'   using them, [RemoteSite] for the full remote contract.
 #' @export
 set_public_params <- new_generic("set_public_params", "site")
 
@@ -658,7 +659,7 @@ set_public_params <- new_generic("set_public_params", "site")
 #' @param ... method-specific arguments; the built-in method takes
 #'   none.
 #' @return a [PublicParams] object.
-#' @seealso [set_public_params()], [encrypt_under()]
+#' @seealso [set_public_params()], [actor-encryption]
 #' @export
 site_params <- new_generic("site_params", "site")
 
@@ -678,17 +679,6 @@ site_params <- new_generic("site_params", "site")
 #'   [Site] that party manages, so each site can encrypt under it.
 #' @export
 set_public_key <- new_generic("set_public_key", "obj")
-
-#' Decrypt the master's protocol result back to a scalar real
-#'
-#' Dispatches on the master's class.
-#'
-#' @param master a [Master].
-#' @param ... method-specific arguments. Both backends take a single
-#'   `ciphertext` of the appropriate type.
-#' @return a single numeric value.
-#' @export
-master_decrypt <- new_generic("master_decrypt", "master")
 
 # ---- Methods --------------------------------------------------------------
 
@@ -761,41 +751,55 @@ method(site_params, Site) <- function(site) {
 #' @noRd
 public_params <- new_generic("public_params", "master")
 
-#' Encrypt a value under the public parameters a party holds
-#'
-#' The one encryption entry point. It takes only public material, so a
-#' party handed that material at setup encrypts entirely on its own,
-#' with nothing to consult and no one to ask — which is what makes
-#' [contribute()] a purely local computation. It names no party,
-#' because encryption privileges none.
-#'
-#' For the `openfhe` backends the encoding follows whatever the
-#' context was built for, read back from the context itself: packed
-#' reals under CKKS, packed integers under BFV and BGV. The exact
-#' schemes reject a value they cannot represent rather than round it;
-#' see [OpenFHEParams].
-#'
-#' @param params the [PublicParams] this party holds — for a [Site],
-#'   `site_params(site)`.
-#' @param value a numeric vector.
-#' @return an encrypted value of the backend's type.
-#' @seealso [site_params()], and [contribute()], which is how a [Site]
-#'   uses this on its own data.
-#' @export
-encrypt_under <- new_generic("encrypt_under", "params",
-                             function(params, value) S7_dispatch())
+## Encryption under a bundle of public parameters. The generic is
+## openfhe.R's, dispatching on (key, pt); here `key` is the bundle,
+## which is what site_params() hands back, and `pt` the numeric value.
+## The local() wrapper and the formal names are explained in generics.R.
+local({
+method(encrypt, list(OpenFHEParams, class_any)) <- function(key, pt) {
+    params <- key
+    value  <- pt
+    encrypt(params@pk,
+            .packed_codec(params@cc)$encode(value),
+            cc = params@cc)
+}
+})
 
-method(encrypt_under, OpenFHEParams) <- function(params, value)
-    openfhe.R::encrypt(params@pk,
-                       .packed_codec(params@cc)$encode(value),
-                       cc = params@cc)
+## A site encrypts with what it was given when it was wired, so it
+## needs nothing but itself. Registered on Site rather than LocalSite:
+## a RemoteSite subclass that accepted the parameters and computes in
+## the current session -- which set_public_params() leaves open, and
+## which it must, since some proxies do hold their own state -- reaches
+## this the same way. One that never accepted them fails in
+## site_params(), which says so in the terms of how a site is wired.
+local({
+method(encrypt, list(Site, class_any)) <- function(key, pt) {
+    site  <- key
+    value <- pt
+    encrypt(site_params(site), value)
+}
+})
 
-# ---- Backend-specific public_params / master_decrypt ---------------------
+# ---- Backend-specific public_params / decrypt ----------------------------
 
 method(public_params, CKKSMaster) <- function(master)
     OpenFHEParams(cc = master@crypto_context, pk = master@keypair@public)
 
-method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
+## Dispatch on the master and `class_any`, not on the master and
+## openfhe.R::Ciphertext. Narrowing the second argument to the class
+## that works would turn a wrong kind of value into S7's "no method"
+## message, when check_encrypted() below already explains what went
+## wrong and why it matters -- a party that answers in cleartext hands
+## over exactly the quantity the protocol hides.
+##
+## The generic is openfhe.R's decrypt(), dispatching on (ct, key) and
+## accepting the key holder first as the C++ header does; in that
+## order `ct` is the master and `key` the encrypted value. See
+## generics.R for the formals and the local() wrapper.
+local({
+method(decrypt, list(CKKSMaster, class_any)) <- function(ct, key, len = 1L) {
+    master     <- ct
+    ciphertext <- key
     cc <- master@crypto_context
     check_encrypted(public_params(master), ciphertext, "decrypt")
     pt <- openfhe.R::decrypt(ciphertext, master@keypair@secret, cc = cc)
@@ -803,11 +807,15 @@ method(master_decrypt, CKKSMaster) <- function(master, ciphertext, len = 1L) {
     vals <- .packed_codec(cc)$decode(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
+})
 
 method(public_params, ThresholdMaster) <- function(master)
     OpenFHEParams(cc = master@crypto_context, pk = master@joint_pubkey)
 
-method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L) {
+local({
+method(decrypt, list(ThresholdMaster, class_any)) <- function(ct, key, len = 1L) {
+    master     <- ct
+    ciphertext <- key
     cc    <- master@crypto_context
     sites <- master@state$workers
     n     <- length(sites)
@@ -851,6 +859,7 @@ method(master_decrypt, ThresholdMaster) <- function(master, ciphertext, len = 1L
     vals <- .packed_codec(cc)$decode(pt)
     if (len == 1L) vals[1] else vals[seq_len(len)]
 }
+})
 
 # ---- Helpers --------------------------------------------------------------
 
@@ -1022,7 +1031,7 @@ make_worker <- function(name, data, contribution_fn) {
 #'
 #' @section What the re-raised condition carries:
 #'
-#' When [master_aggregate()] or [master_decrypt()] re-raise this, the
+#' When [master_aggregate()] or [decrypt()] re-raise this, the
 #' condition they signal carries a `site_name` field and **not** the
 #' site object. A [LocalSite] would drag its data, and under threshold
 #' keys its key share, into anything that logs or serializes the
@@ -1065,7 +1074,7 @@ contribute <- new_generic("contribute", "site")
 method(contribute, LocalSite) <- function(site, theta) {
     value <- site@contribution_fn(site@data, theta)
     if (length(value) == 1 && is.na(value)) return(NA)
-    encrypt_under(site_params(site), value)
+    encrypt(site, value)
 }
 
 ## Unlike keygen_round, the built-in method above is on LocalSite rather
@@ -1142,7 +1151,7 @@ method(keygen_round, RemoteSite) <- function(site, cc, prev_pk = NULL)
 #' Under threshold keys no party can decrypt alone. A ciphertext is
 #' sent to each site; each site applies **its own** secret share and
 #' returns a partial decryption, and the partials are fused (see
-#' [master_decrypt()]). The share never leaves the site, so no other
+#' [decrypt()]). The share never leaves the site, so no other
 #' party ends up holding anything that would let it decrypt.
 #'
 #' Whether a site plays the `lead` role is fixed by its position in the
@@ -1157,7 +1166,7 @@ method(keygen_round, RemoteSite) <- function(site, cc, prev_pk = NULL)
 #' @param ... method-specific arguments; the built-in method takes
 #'   `ciphertext` and `lead`, a flag marking the first site in the
 #'   chain.
-#' @return a partial decryption, to be fused by [master_decrypt()].
+#' @return a partial decryption, to be fused by [decrypt()].
 #' @seealso [make_threshold_master()], [keygen_round()].
 #' @export
 partial_decrypt <- new_generic("partial_decrypt", "site")
@@ -1236,7 +1245,7 @@ set_workers <- function(master, workers) {
 #' Run one round of the master/worker protocol
 #'
 #' Backend-agnostic: sites are reached through [contribute()] and the
-#' total is recovered through the [master_decrypt()] generic, so the
+#' total is recovered through the [decrypt()] generic, so the
 #' same body works over [CKKSMaster] and [ThresholdMaster].
 #'
 #' The master broadcasts `theta` to each worker — and only `theta`;
@@ -1308,7 +1317,7 @@ master_aggregate <- function(master, theta) {
         check_encrypted(params, ci, "aggregate", who = w@name)
         contributions[[i]] <- ci
     }
-    master_decrypt(master, Reduce(`+`, contributions))
+    decrypt(master, Reduce(`+`, contributions))
 }
 
 # ---- Print methods --------------------------------------------------------

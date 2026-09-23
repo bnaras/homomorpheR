@@ -22,5 +22,5 @@ The scheme is read back from the context, so one class serves CKKS,
 BFV, and BGV.
 }
 \seealso{
-\code{\link[=encrypt_under]{encrypt_under()}}, \code{\link[=site_params]{site_params()}}
+\link{actor-encryption}, \code{\link[=site_params]{site_params()}}
 }

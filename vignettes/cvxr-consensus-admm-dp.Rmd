@@ -312,7 +312,7 @@ loop:
 site_contribution_dp <- function(site, sigma, Nv) {
     st <- site@state
     noised <- st$x_curr + st$u_curr + rnorm(p, mean = 0, sd = sigma * sqrt(Nv))
-    encrypt_under(site_params(site), noised)
+    encrypt(site, noised)
 }
 
 ## Aggregator-side: sum the encrypted values, scale, threshold-decrypt. The
@@ -321,7 +321,7 @@ encrypted_consensus_dp <- function(threshold_master, sites, sigma) {
     Nv  <- length(sites)
     cts <- lapply(sites, site_contribution_dp, sigma = sigma, Nv = Nv)
     ct_avg <- Reduce(`+`, cts) * (1 / Nv)
-    master_decrypt(threshold_master, ct_avg, len = p)
+    decrypt(threshold_master, ct_avg, len = p)
 }
 ```
 

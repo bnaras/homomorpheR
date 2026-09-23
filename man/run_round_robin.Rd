@@ -16,7 +16,7 @@ worker's \code{contribution_fn}).}
 the aggregated value, or \code{NA_real_} on failure.
 }
 \description{
-Backend-agnostic via the \code{\link[=master_decrypt]{master_decrypt()}} generic, but part of the
+Backend-agnostic via the \code{\link[=decrypt]{decrypt()}} generic, but part of the
 frozen Paillier-era legacy surface: the random-offset chain idiom
 compensated for Paillier-era trust assumptions, and it encrypts each
 site's value \emph{at the master}, which the supported topology

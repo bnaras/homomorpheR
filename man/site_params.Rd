@@ -26,5 +26,5 @@ Aborts if the site was never configured, rather than returning
 \code{NULL} for a caller to encrypt with.
 }
 \seealso{
-\code{\link[=set_public_params]{set_public_params()}}, \code{\link[=encrypt_under]{encrypt_under()}}
+\code{\link[=set_public_params]{set_public_params()}}, \link{actor-encryption}
 }

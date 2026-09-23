@@ -71,7 +71,7 @@ far <- Far(name = "Far", state = new.env(parent = emptyenv()))
 
 expect_error(set_public_params(far, p),  pattern = "set_public_params")
 expect_error(keygen_round(far, ccm),     pattern = "keygen_round")
-expect_error(partial_decrypt(far, encrypt_under(p, 1)), pattern = "partial_decrypt")
+expect_error(partial_decrypt(far, encrypt(p, 1)), pattern = "partial_decrypt")
 
 m_f <- make_ckks_master(name = "F", crypto_context = cc, keypair = keys)
 expect_error(set_workers(master = m_f, workers = list(far)),
@@ -86,7 +86,7 @@ S7::method(set_public_params, Near) <- function(site, params) {
     site@state$params <- params; invisible(site)
 }
 S7::method(contribute, Near) <- function(site, theta)
-    encrypt_under(site_params(site), nll(site@rows, theta))
+    encrypt(site, nll(site@rows, theta))
 
 m_n <- make_ckks_master(name = "N", crypto_context = cc, keypair = keys)
 set_workers(master  = m_n,
@@ -120,9 +120,9 @@ expect_error(master_aggregate(master = m_l, theta = 3.5), pattern = "Leak")
 ## Under CKKS this used to surface as a C++ decode error; under BFV and
 ## BGV as a plausible wrong integer with nothing raised.
 p_b <- OpenFHEParams(cc = cc, pk = keys_b@public)
-expect_error(master_decrypt(m, encrypt_under(p_b, 1)),
+expect_error(decrypt(m, encrypt(p_b, 1)),
              class = "homomorpheR_key_mismatch")
-expect_silent(master_decrypt(m, encrypt_under(p, 1)))
+expect_silent(decrypt(m, encrypt(p, 1)))
 
 ## ---- make_ckks_master is CKKS ------------------------------------------
 cc_bfv_single <- openfhe.R::fhe_context(scheme               = "BFV",
@@ -189,9 +189,9 @@ o1 <- make_worker("O1", 1, nll)
 o2 <- make_worker("O2", 2, nll)
 om <- make_threshold_master(name = "OM", crypto_context = ccm,
                             sites = list(o1, o2))
-expect_error(partial_decrypt(o1, encrypt_under(site_params(t1), 1), lead = TRUE),
+expect_error(partial_decrypt(o1, encrypt(t1, 1), lead = TRUE),
              class = "homomorpheR_key_mismatch")
-expect_silent(partial_decrypt(o1, encrypt_under(site_params(o1), 1), lead = TRUE))
+expect_silent(partial_decrypt(o1, encrypt(o1, 1), lead = TRUE))
 
 ## ---- Exact-integer schemes refuse what they cannot carry ----------------
 ## BFV/BGV previously coerced with as.integer(): 0.9 became 0, and a
