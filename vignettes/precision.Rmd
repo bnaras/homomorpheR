@@ -30,7 +30,6 @@ difference between a meaningful check and a misleading one.
 
 ```{r}
 library(openfhe.R)
-set_num_threads(2L)
 ```
 
 ## Exact, for integer schemes
