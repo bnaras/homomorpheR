@@ -80,5 +80,6 @@ importFrom(openfhe.R,
   decrypt,
   encrypt
 )
+importFrom(rlang,abort)
 importFrom(sodium,random)
 importFrom(stats,runif)

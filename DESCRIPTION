@@ -20,6 +20,7 @@ Imports:
     cli,
     gmp,
     openfhe.R,
+    rlang,
     sodium
 Description: Homomorphic computations in R for privacy-preserving applications.
              Provides the Paillier additive scheme natively; companion

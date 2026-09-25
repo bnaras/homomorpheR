@@ -45,6 +45,15 @@
 #' @importFrom openfhe.R encrypt decrypt
 NULL
 
+## cli_abort() and its siblings delegate to rlang at run time, and cli
+## lists rlang only in Suggests, so a package that uses them must declare
+## rlang itself or every error path fails with "there is no package
+## called 'rlang'" on a machine without it. The import below is what
+## makes the Imports entry real to R CMD check; nothing calls abort()
+## directly. Same fix as openfhe.R (notes/discoveries/D033).
+#' @importFrom rlang abort
+NULL
+
 #' @export
 openfhe.R::encrypt
 
