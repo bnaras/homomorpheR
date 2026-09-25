@@ -169,7 +169,8 @@ $\beta$ — `homomorpheR`'s `master_aggregate()` propagates that
 The summed stratified Cox nLL on this cohort has magnitude
 $\approx 5 \times 10^2$ — comfortably within CKKS precision at
 the default scaling parameters. We lift `scaling_mod_size` from
-50 to 59 and set `first_mod_size = 60` for a safety margin.
+50 to 59 for a safety margin and state `first_mod_size = 60`
+explicitly, which is the library default.
 
 ```{r}
 cc <- openfhe.R::fhe_context("CKKS",
@@ -227,18 +228,65 @@ The estimates and standard errors agree to high precision: the
 encrypted distributed fit reproduces the aggregated cleartext fit
 without any site revealing its raw patient data.
 
+Comparing the encrypted fit directly against `coxph()` would,
+however, confound two differences at once: the optimizer is not
+the same (BFGS through `mle()` rather than `coxph()`'s
+Newton-Raphson), and the objective is evaluated through CKKS
+rather than in the clear. To separate them we run the identical
+`mle()` objective a second time with the encrypted aggregation
+replaced by an ordinary sum of the three sites' cleartext values.
+This is the cleartext baseline: same likelihood, same optimizer,
+same starting values and tolerance, no encryption.
+
+```{r}
+plain_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
+    beta <- c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
+    sum(vapply(cox_data, local_cox_nll, numeric(1), beta = beta))
+}
+
+fit_plain <- mle(plain_nLL,
+                 start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
+                                BMP6    = 0, MHC2_sig = 0),
+                 method  = "BFGS",
+                 control = list(reltol = 1e-7))
+```
+
+The table below reports both differences. The **optimizer** column
+is the cleartext `mle()` fit against `coxph()`, and is what changing
+the optimization routine costs. The **encryption** column is the
+encrypted `mle()` fit against the cleartext one at the same
+objective, and is what CKKS costs.
+
 ```{r echo = FALSE}
 mle_coefs   <- coef(fit)
-coxph_coefs <- coef(agg_model)
+plain_coefs <- coef(fit_plain)[names(mle_coefs)]
+coxph_coefs <- coef(agg_model)[names(mle_coefs)]
+opt_err     <- abs(plain_coefs - coxph_coefs)
+enc_err     <- abs(mle_coefs - plain_coefs)
 comparison <- data.frame(
-    coefficient           = names(mle_coefs),
-    encrypted_distributed = unname(mle_coefs),
-    aggregated_cleartext  = unname(coxph_coefs[names(mle_coefs)]),
-    abs_diff              = unname(abs(mle_coefs - coxph_coefs[names(mle_coefs)]))
+    check.names        = FALSE,
+    coefficient        = names(mle_coefs),
+    `coxph()`          = unname(coxph_coefs),
+    `mle(), cleartext` = unname(plain_coefs),
+    `mle(), encrypted` = unname(mle_coefs),
+    optimizer          = formatC(unname(opt_err), format = "e", digits = 2),
+    encryption         = formatC(unname(enc_err), format = "e", digits = 2)
 )
-knitr::kable(comparison, digits = 9,
-             caption = "Encrypted-distributed BFGS vs. aggregated-cleartext coxph()")
+knitr::kable(comparison, digits = 7,
+             caption = "Distributed DLBCL Cox: the two sources of discrepancy separated. `optimizer` is the absolute difference between cleartext mle() and coxph(); `encryption` is the absolute difference between encrypted mle() and cleartext mle().")
 ```
+
+The largest optimizer discrepancy is
+`r formatC(max(opt_err), format = "e", digits = 1)`, set by BFGS's
+convergence tolerance against `coxph()`'s Newton-Raphson. The
+largest discrepancy attributable to CKKS is about
+`r formatC(max(enc_err), format = "e", digits = 0)`, roughly
+`r format(signif(max(opt_err) / max(max(enc_err), .Machine$double.eps), 1), big.mark = ",", scientific = FALSE)`
+times smaller. (The encryption figure is CKKS noise and changes
+from one build to the next; the optimizer figure does not.) What
+limits agreement with `coxph()` is the change of optimizer, not the
+encrypted channel, and the cleartext baseline is what lets that be
+measured rather than asserted.
 
 ## What just happened
 
@@ -261,8 +309,11 @@ precision the optimizer cares about.
 Hessian** of the Cox partial log-likelihood — a scheme-specific
 advantage. We use BFGS with **numerical finite-difference
 gradients**, which is the fair comparison given that we're driving
-a generic optimizer through an encrypted channel. CKKS itself
-introduces no measurable error at the parameter sizes we use.
+a generic optimizer through an encrypted channel. The cleartext
+baseline above puts a number on each effect: the optimizer accounts
+for a discrepancy of `r formatC(max(opt_err), format = "e", digits = 1)`
+in the coefficients, CKKS for about
+`r formatC(max(enc_err), format = "e", digits = 0)`.
 
 ## What this demonstrates
 
