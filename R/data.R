@@ -133,18 +133,6 @@
 #' @keywords datasets
 "cox_threshold_dp_results"
 
-#' Precomputed results for the `cvxr-consensus-admm` vignette
-#'
-#' @format A list with `share_check` (key-share location check),
-#'   `sweep_table` (iterations to convergence for each candidate rho),
-#'   `rho_chosen`, `trajectory` (the consensus iterates of the final
-#'   run), `z_final` (the converged consensus), and `reltol` (the
-#'   stopping tolerance).
-#' @source `data-raw/cvxr_admm_results.R`, from
-#'   `vignettes/cvxr-consensus-admm.Rmd`.
-#' @keywords datasets
-"cvxr_admm_results"
-
 #' Precomputed results for the `cvxr-consensus-admm-dp` vignette
 #'
 #' @format A list with `tol`, `rho_sweep` (convergence on the surrogate

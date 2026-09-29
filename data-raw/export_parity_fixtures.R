@@ -279,7 +279,9 @@ record("secure_inference.json", "json", generator = "none")
 ## ---- 7a. consensus-ADMM simulated cohort ---------------------------------
 
 cat("[7a/9] consensus ADMM: simulated logistic cohort\n")
-## cvxr-consensus-admm.Rmd's cohort. rbinom (BTPE) has no numpy
+## The cohort of the former cvxr-consensus-admm vignette (removed in
+## homomorpheR 1.0), kept so the exported fixtures do not change.
+## rbinom (BTPE) has no numpy
 ## equivalent, so like every other simulated example this is exported
 ## rather than regenerated.
 set.seed(98765)

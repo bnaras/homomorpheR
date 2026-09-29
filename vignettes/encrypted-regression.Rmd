@@ -129,38 +129,17 @@ max_err <- max(abs(encrypted_probs - cleartext_probs))
 cat(sprintf("Max absolute error vs cleartext sigmoid: %.2e\n", max_err))
 ```
 
-## What this demonstrates
+## Summary
 
-1. **Model coefficients applied to encrypted data.** The
+1. Model coefficients are applied to encrypted data. The
    researcher never sees the patient data. The hospital decrypts
    the predictions but is not sent the coefficients, as in
    `secure-inference`; see the threat-model caveat below.
-2. **The sigmoid is evaluated on encrypted values.** There is no
+2. The sigmoid is evaluated on encrypted values. There is no
    intermediate decryption and no exchange between the parties
    during the computation.
-3. **The CKKS error is small.** The maximum absolute error
-   against the cleartext sigmoid is `r sci(max_err)`.
-
-## Connection to homomorpheR's Paillier vignettes
-
-The earlier Paillier vignettes (`homomorphing`, `DHCox`,
-`DHCoxNCP`), kept in the `paillier-archive/` directory of the
-package source repository, demonstrate distributed Cox regression
-and MLE under additive Paillier encryption. That approach
-requires:
-
-- sending encrypted *sufficient statistics* (sums) between sites
-  rather than evaluating the full likelihood under encryption,
-- iterative protocols where the master site decrypts intermediate
-  aggregates,
-- careful real-number encoding via integer / fractional split.
-
-With CKKS via `openfhe.R`:
-
-- real numbers are encrypted directly, with no integer encoding,
-- encrypted values can be multiplied, so polynomials, and hence
-  the approximate sigmoid, can be evaluated on them,
-- the full computation can be done on encrypted values.
+3. The CKKS error is small. The maximum absolute error against the
+   cleartext sigmoid is `r sci(max_err)`.
 
 ## Limitations
 
@@ -168,7 +147,7 @@ With CKKS via `openfhe.R`:
   the depth set in the context. Deeper computations need larger
   parameters and more memory.
 - **Approximation error**: CKKS is approximate. For deployment,
-  validate that the precision is sufficient for your use case.
+  precision would need to be validate for the use case.
 - **Performance**: encrypted computation is orders of magnitude
   slower than cleartext.
 - **Threat model**: the model-extraction caveat of
@@ -178,9 +157,3 @@ With CKKS via `openfhe.R`:
   in the linear case but does not prevent it. A deployment would
   need further protection, such as output differential privacy,
   query limits, or threshold FHE.
-
-```{r echo=FALSE}
-## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
-## into other vignettes built later in the same R session.
-detach("package:openfhe.R", unload = FALSE, force = TRUE)
-```

@@ -91,8 +91,9 @@ $E(c_i)$. So if the aggregator holds the key, it can read each site's
 count individually, defeating the purpose.
 
 The workaround was two **non-cooperating parties**, NCP1 and NCP2, who
-do not collude. The full details are in the package's archived
-`QueryNCP` vignette.
+do not collude. The full details are in the `QueryNCP` vignette,
+archived in the `paillier-archive/` directory of the source
+repository.
 
 ## Threshold encryption removes the need for masking
 

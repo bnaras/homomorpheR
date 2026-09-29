@@ -291,10 +291,9 @@ be platforms for such model fitting.
   across sites, using `survival` unchanged.
 - *Distributed Cox Regression with Threshold Key Generation* — the
   same fit with no single party able to decrypt.
-- *Federated Consensus ADMM with CVXR* — convex optimization
-  across sites, using `CVXR` unchanged.
-- *Federated Cox-Lasso via Consensus ADMM on DLBCL* — the above at
-  realistic scale on gene expression data.
+- *Federated Cox-Lasso via Consensus ADMM on DLBCL* — convex
+  optimization across sites, using `CVXR` unchanged, on DLBCL gene
+  expression data.
 
 **Prediction and retrieval.** Two parties, one holding a model and
 one holding data, neither willing to reveal theirs.
@@ -320,7 +319,7 @@ Earlier versions of this package implemented the Paillier
 cryptosystem natively in R. That code is frozen: it remains
 exported for the packages that depend on it, but it is not extended,
 and the protocols documented here use the schemes provided through
-`openfhe.R` instead. The Paillier vignettes are retained separately
-for reference.
+`openfhe.R` instead. The Paillier vignettes are archived in the
+`paillier-archive/` directory of the source repository.
 
 ## References

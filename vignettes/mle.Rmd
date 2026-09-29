@@ -168,12 +168,13 @@ to any other party.
 
 ## Beyond MLE
 
-For Poisson MLE the protocol uses only additions, so even the purely
-additive Paillier scheme suffices (see `vignette("homomorphing")`).
-CKKS is a clean improvement but not strictly necessary here. The
-story changes for likelihoods that need products or higher-order
-statistics — distributed Cox regression, for example — where CKKS's
-multiplicative homomorphism becomes a prerequisite.
+For Poisson MLE the protocol uses only additions, so the additive
+Paillier scheme would also suffice. CKKS saves the integer encoding
+of real numbers that Paillier needs. The same holds for stratified
+Cox regression (`vignette("cox")`), where the sites' partial
+log-likelihoods are summed. Multiplying encrypted values is needed
+only when the computation itself runs on encrypted data, as in the
+sigmoid of `vignette("encrypted-regression")`.
 
 ## CAVEAT
 

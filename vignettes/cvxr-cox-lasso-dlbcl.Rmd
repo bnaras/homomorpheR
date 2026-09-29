@@ -78,11 +78,8 @@ n_iter_enc <- cvxr_consensus$n_iter_enc
 
 ## Introduction
 
-The companion vignette
-[Federated Consensus ADMM](cvxr-consensus-admm.html) develops the
-threshold-FHE consensus-ADMM protocol on a small simulated
-L2-regularized logistic problem ($p = 4$, three sites). This vignette
-takes the same protocol to a real, high-dimensional survival problem:
+This vignette runs the threshold-FHE consensus-ADMM protocol on a
+real, high-dimensional survival problem:
 a stratified **Cox lasso** on the diffuse large-B-cell lymphoma (DLBCL)
 gene-expression cohort of @Rosenwald2002, the dataset @BayleFanLou2025
 use to motivate distributed Cox estimation.
@@ -626,9 +623,9 @@ three sites' data in one R session. The choice
 $\rho = `r RHO`$ depends on them too: it was kept because it agreed
 best with the centralized solve, which a deployment cannot compute.
 
-A deployment can instead tune $\rho$ over the encrypted channel, as
-`vignette("cvxr-consensus-admm")` does. The encrypted part of each
-iteration is small next to the per-site [CVXR][] solves. When the
+A deployment can instead choose $\rho$ on a surrogate cohort built
+from public design facts, as `vignette("cvxr-consensus-admm-dp")`
+does. When the
 protocol also spends a privacy budget, as in
 `vignette("cvxr-consensus-admm-dp")`, encrypting the sweep is not
 enough, and the constants have to be chosen from data that does not

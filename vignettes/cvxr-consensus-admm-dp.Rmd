@@ -34,11 +34,50 @@ data(cvxr_admm_dp_results, package = "homomorpheR")
 ```
 
 ## Introduction
-This vignette is a demonstration.
-`vignette("cvxr-consensus-admm")` runs consensus ADMM under
-threshold FHE: the fit matches the centralized CVXR fit, no single
-party can decrypt, and the residuals decide when to stop. The
-aggregator sees each consensus iterate $z^k$ after decryption.
+This vignette is a demonstration. It fits an L2-regularized
+logistic regression across $N$ sites by consensus ADMM under
+threshold FHE, the protocol `vignette("cvxr-cox-lasso-dlbcl")` uses
+for the Cox lasso. Each site solves its local problem with CVXR,
+and the aggregator decrypts only the average of the sites'
+encrypted vectors.
+
+## The problem and its consensus split
+
+With $N$ sites, local data $(X_i, y_i)$ at site $i$, and a shared
+coefficient $x \in \mathbb{R}^p$, the global problem is
+
+$$
+\min_{x \in \mathbb{R}^p}
+\sum_{i=1}^{N} \ell_i(x; X_i, y_i)
++ \frac{\lambda}{2}\, \lVert x \rVert_2^2
+$$
+
+where $\ell_i$ is the logistic loss on site $i$. The standard
+consensus split (Boyd, Parikh, Chu, Peleato, Eckstein, 2011)
+introduces local copies $x_i \in \mathbb{R}^p$ and a single global
+consensus $z \in \mathbb{R}^p$:
+
+$$
+\min_{\{x_i\}, z}
+\sum_i \ell_i(x_i; X_i, y_i) + \frac{\lambda}{2}\, \lVert z \rVert_2^2
+\quad \text{s.t.}\quad x_i = z, \ \forall i.
+$$
+
+The augmented-Lagrangian iteration is:
+
+$$
+\begin{aligned}
+x_i^{k+1} &= \arg\min_{x_i}\, \ell_i(x_i) + \frac{\lambda}{2N}\lVert x_i\rVert_2^2 + \frac{\rho}{2}\lVert x_i - z^k + u_i^k\rVert_2^2, \\
+z^{k+1} &= \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k), \\
+u_i^{k+1} &= u_i^k + (x_i^{k+1} - z^{k+1}).
+\end{aligned}
+$$
+
+The $x$-update is local at each site; the $z$-update is the
+consensus average that has to traverse the encrypted channel; the
+$u$-update is local again. Only the $z$-update needs cryptography.
+
+## Adding noise
 
 Here we ask what happens if each site also adds noise, so that the
 released iterates satisfy **output differential privacy**. Adding
@@ -62,8 +101,9 @@ $(\varepsilon, \delta)$ via $\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}$.
 
 ## The protocol modification
 
-The setup is identical to `vignette("cvxr-consensus-admm")`. The
-only change is **noise injection at each site**: at every ADMM
+Without noise, site $i$ encrypts $x_i + u_i$ and the aggregator
+decrypts only their average $z$. The change here is **noise
+injection at each site**: at every ADMM
 iteration site $i$ adds an independent draw
 $\eta_i \sim \mathcal{N}(0, \sigma^2 N \cdot I)$ to $x_i + u_i$
 *before* encrypting. The encrypted noise terms sum under the joint
@@ -180,8 +220,8 @@ site_data <- lapply(n_per_site, make_site_data)
 
 ## Choosing $\rho$ and $T$ without touching the cohort
 
-The ADMM vignette without noise tunes $\rho$ by running candidate
-values through the encrypted channel on the real data. Under output
+Without noise, one could tune $\rho$ by running candidate values
+through the encrypted channel on the real data. Under output
 DP that sweep is itself a release. It solves at every site, for
 every candidate, at every iteration, and its outputs (the chosen
 $\rho$ and especially $T$) depend on the records. The budget below
@@ -202,9 +242,7 @@ nominal values fixed in the analysis plan. No record from any site
 enters it.
 
 This has two consequences. First, the sweep needs no encryption,
-because it uses no private data. In `vignette("cvxr-consensus-admm")`
-the sweep goes through the threshold channel because it uses the
-real data. Second, the cost is in accuracy rather than privacy. A
+because it uses no private data. Second, the cost is in accuracy rather than privacy. A
 surrogate that misjudges the curvature gives a $\rho$ the cohort
 would not have picked, and possibly a $T$ that is too short. We
 cannot check this against the cohort without spending budget. Since
@@ -524,7 +562,7 @@ that is acceptable depends on the application.
 - **Malicious-site protection.** A hostile site can corrupt either
   its $(x_i + u_i)$ or its noise draw; out of scope.
 
-For the fit without noise, use `vignette("cvxr-consensus-admm")`;
-the aggregator then sees the exact consensus iterates $z^k$.
+For consensus ADMM without noise, on real data, see
+`vignette("cvxr-cox-lasso-dlbcl")`.
 
 ## References

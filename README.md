@@ -55,10 +55,9 @@ distributed protocols:
 - `cox` — stratified Cox regression distributed across sites under CKKS.
 - `cox-threshold` — the same fit under *n*-of-*n* threshold key
   generation, so no single party can decrypt.
-- `cvxr-consensus-admm` — consensus ADMM for a `CVXR` convex program
-  under threshold FHE.
-- `cvxr-cox-lasso-dlbcl` — a Cox-lasso fit by consensus ADMM on the
-  DLBCL gene-expression data.
+- `cvxr-cox-lasso-dlbcl` — a Cox-lasso fit by consensus ADMM, with
+  `CVXR` at each site, under threshold FHE on the DLBCL
+  gene-expression data.
 - `secure-inference` — two-party encrypted prediction.
 - `encrypted-regression` — logistic regression on encrypted data via a
   Chebyshev sigmoid approximation.

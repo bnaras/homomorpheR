@@ -1244,7 +1244,7 @@ par(op)
 ## Where this fits
 
 This vignette extends the threshold-FHE family in
-`homomorpheR` — `cox-threshold` and `cvxr-consensus-admm` —
+`homomorpheR` — `cox-threshold` and `cvxr-cox-lasso-dlbcl` —
 with a third protocol shape. Cox-threshold and ADMM use a
 master/worker fan-in — each worker's encrypted contribution is
 summed by the master; the similarity protocol uses a

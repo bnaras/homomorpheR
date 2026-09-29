@@ -274,8 +274,3 @@ coefficient.
   and motivate the differential-privacy demonstrations elsewhere
   in the package.
 
-## Where this fits
-
-Read `vignette("cox")` first. It sets up the master/worker
-protocol and the optimizer code that this vignette reuses. Only
-the master differs: threshold instead of single-decrypter.

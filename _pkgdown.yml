@@ -33,7 +33,6 @@ articles:
   - mle
   - cox
   - cox-threshold
-  - cvxr-consensus-admm
   - cvxr-cox-lasso-dlbcl
 
 - title: Prediction and retrieval
@@ -71,8 +70,6 @@ navbar:
       href: articles/cox.html
     - text: Distributed Cox Regression with Threshold Key Generation
       href: articles/cox-threshold.html
-    - text: Federated Consensus ADMM with CVXR
-      href: articles/cvxr-consensus-admm.html
     - text: Federated Cox-Lasso via Consensus ADMM on DLBCL
       href: articles/cvxr-cox-lasso-dlbcl.html
     - text: ---------
