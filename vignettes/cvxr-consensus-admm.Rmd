@@ -33,29 +33,26 @@ data(cvxr_admm_results, package = "homomorpheR")
 ```
 
 ## Introduction
-The `cox` and `cox-threshold` vignettes show that *function-call*
-optimizers — `mle()`, `optim()`, `coxph`'s Newton-Raphson via
-callback — compose with FHE: hand them a callback that performs an
-encrypted master/worker round, and the optimizer cannot tell.
+The `cox` and `cox-threshold` vignettes use optimizers such as
+`mle()` and `optim()` that take an objective function. We give them
+a function that runs one encrypted round across the sites, and the
+optimizer uses it like any other objective.
 
-That pattern fits any objective with a sum-decomposable
-log-likelihood, but it does not generalize to arbitrary convex
-programs. The richer R toolkit for convex optimization —
-[CVXR]{} — operates on a *symbolic* problem, not a callback. We
-cannot hand CVXR a function that secretly does FHE on every call,
-because CVXR does not call our function: it canonicalizes the
-problem once and ships the canonical form to a numerical solver.
+That works for any objective whose log-likelihood is a sum over
+sites. It does not work for general convex programs written in
+[CVXR]{}. CVXR does not call a function we supply. It takes a
+symbolic problem, converts it once to a standard form, and passes
+that to a numerical solver.
 
-The replacement is **federated consensus ADMM**. We split the
-global problem into per-site local subproblems each handled by
-CVXR in cleartext, and use the threshold-FHE channel only to
-compute the cross-site **consensus update**. The local CVXR solves
-exploit DPP (disciplined parametric programming) and stay fast
-because their Parameter values change but the problem structure
-does not. The encrypted channel earns its keep on the consensus
-aggregation, where the per-site $(x_i + u_i)$ vectors are summed
-and averaged under encryption and the result is recovered via
-threshold decryption.
+For CVXR we use **federated consensus ADMM**. The global problem
+is split into one local subproblem per site, each solved by CVXR in
+the clear at that site. Only the cross-site **consensus update**
+goes through the threshold-FHE channel: the per-site
+$(x_i + u_i)$ vectors are summed and averaged encrypted, and the
+result is recovered by threshold decryption. The local CVXR solves
+stay fast because they use DPP (disciplined parametrized
+programming): between iterations only the parameter values change,
+not the problem structure.
 
 This is the architectural complement to `cox-threshold.Rmd`:
 
@@ -215,25 +212,22 @@ $z^{k+1} = \frac{1}{N}\sum_i (x_i^{k+1} + u_i^k)$. This is a
 length-$p$ vector average: pack each site's $x_i + u_i$ into the
 slots of one value, encrypt under the joint public key, sum the
 encrypted vectors, multiply by the unencrypted constant $1/N$
-(one multiplication by a cleartext value, costing a single level
-of the precision budget), and threshold-decrypt the result.
+(one multiplication, which uses one level of multiplicative
+depth), and threshold-decrypt the result.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`:
 a CKKS context with `Feature$MULTIPARTY` enabled and
 `make_threshold_master()`, which walks the chained
 `multiparty_key_gen()` setup across the sites.
 
-Note where the encryption happens. Each site encrypts its own
-$(x_i + u_i)$ under the joint public key and hands back an
-*encrypted value*; the aggregator adds them, scales, and
-calls `decrypt()` to threshold-decrypt the total. Hoisting
-the encryption up to the aggregator — letting it read each site's
-cleartext vector and encrypt on arrival — would be pointless: it
-would already have seen the per-site values the protocol exists to
-hide. The partial-decrypt fan-in runs the other way for the same
-reason: the aggregator sends the encrypted value out and each site applies
-its own share, because a share that traveled to the aggregator would
-make the whole construction pointless.
+Each site encrypts its own $(x_i + u_i)$ under the joint public
+key and hands back an encrypted value. The aggregator adds them,
+scales, and calls `decrypt()` to threshold-decrypt the total. If
+the aggregator did the encrypting instead, it would see each site's
+vector in the clear, which is what the protocol is meant to
+prevent. Decryption works the same way: the aggregator sends the
+encrypted total to each site, and each site applies its own share.
+The shares never leave the sites.
 
 ```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
@@ -258,9 +252,8 @@ $\rho$ changes.
 ## secrets. The cleartext vector never leaves this function.
 site_contribution <- function(site) {
     st <- site@state
-    ## The site is the whole of it: it encrypts with what it was handed
-    ## at setup, and errors if it was never configured. Nothing is
-    ## asked of anyone.
+    ## Encrypts with the setup bundle; errors if the site was never
+    ## configured.
     encrypt(site, st$x_curr + st$u_curr)
 }
 
@@ -273,15 +266,14 @@ encrypted_consensus <- function(threshold_master, sites) {
 }
 ```
 
-What this protocol hides and reveals: every ADMM iteration the
-aggregator recovers the *new consensus* $z^k$ exactly. The
-per-site $(x_i + u_i)$ vectors never appear in the clear anywhere
-— additions and the scalar multiply happen under encryption, and
-the decryption is n-of-n. A subpoena to the aggregator yields the
-trajectory $\{z^k\}$ but no individual site's contribution. A
-subpoena to any one site yields that site's local $X_i, y_i$ and
-its own secret share, but no other site's contribution and no
-decryption power.
+What the protocol reveals: at every ADMM iteration the aggregator
+learns the new consensus $z^k$. The per-site $(x_i + u_i)$ vectors
+are never in the clear outside their sites. The additions and the
+scalar multiply are done encrypted, and decryption needs all $N$
+shares. So the aggregator's records contain the sequence
+$\{z^k\}$ but no site's contribution. One site's records contain
+its own $X_i, y_i$ and its own share, but no other site's
+contribution, and one share alone cannot decrypt anything.
 
 ## Simulated cohort
 
@@ -351,40 +343,30 @@ ADMM convergence depends on $\rho$. We sweep three candidate
 values and keep the one that converges fastest, fixing it for the
 run that follows.
 
-The sweep goes through **the same encrypted channel the main loop
-uses**. It is worth being explicit about why it can, because the
-tempting shortcut — sweep in cleartext, then switch on the
-cryptography once $\rho$ is settled — is not a shortcut at all.
+The sweep uses the same encrypted channel as the main loop.
 
-Tuning needs no cryptographic machinery beyond what a single ADMM
-run already needs. The $x$-update is a site-local CVXR solve on
-site-local data, cleartext in both cases; the $u$-update is
-site-local arithmetic; only the consensus average crosses the
-channel, and it is the same one addition and one cleartext-scalar
-multiplication per iteration, so the sweep runs inside the same
-`multiplicative_depth = 1L` budget. Each iteration re-encrypts
-from fresh cleartext rather than building on the previous
-encrypted value, so neither depth nor noise accumulates across
-iterations, and nothing accumulates across candidates either. The
-stopping test and the `which.min` over the grid are comparisons,
-which CKKS cannot do natively — but they never touch an
-encrypted value. They are computed from $z$, which this protocol
-decrypts every iteration by design, and from each site's own
-$x_i$ and $u_i$. $\rho$ itself is a public protocol constant that
-every site must agree on, so there is nothing there to hide.
+Sweeping in the clear first would not be safe. To average
+$(x_i + u_i)$ in the clear, each site would have to send that
+vector to the aggregator, once per iteration and once per
+candidate. $x_i^{k+1}$ minimizes site $i$'s local loss, so it is a
+direct function of that site's $(X_i, y_i)$.
 
-The cleartext sweep, by contrast, is not a deployable step. To
-average $(x_i + u_i)$ in the clear, each site has to hand the
-aggregator that vector in the clear — once per iteration, once
-per candidate. That is precisely the quantity the paragraph above
-says never appears in the clear, and $x_i^{k+1}$ is the minimizer
-of site $i$'s local loss, hence a direct function of its
-$(X_i, y_i)$. Tuning in cleartext would leak several times over
-what the run it precedes is built to protect.
+Running the sweep encrypted needs nothing beyond what one ADMM run
+needs. The $x$-update is a CVXR solve on the site's own data, and
+the $u$-update is arithmetic at the site. Only the consensus
+average is encrypted, with one addition and one multiplication by
+a constant per iteration, so the sweep fits in
+`multiplicative_depth = 1L`. Each iteration encrypts fresh values,
+so neither depth nor noise builds up across iterations or across
+candidates. The stopping test and the `which.min` over the grid are
+comparisons, which CKKS does not support, but they use only $z$,
+which the protocol decrypts every iteration anyway, and each
+site's own $x_i$ and $u_i$. $\rho$ is a public constant that all
+sites must agree on.
 
-The cost of not taking the shortcut is small: the encrypted
-channel moves a length-$p$ vector, while each iteration pays for
-$N$ interior-point solves.
+The extra cost is small: the encrypted channel carries a
+length-$p$ vector, while each iteration also runs $N$
+interior-point solves.
 
 ```{r eval=RECOMPUTE}
 rho_grid    <- c(10, 50, 200)
@@ -511,41 +493,35 @@ if (max_diff > 10 * reltol)
 ```
 
 ## Discussion
-1. **CVXR symbolic problems compose with threshold FHE.** The
-   local CVXR solve runs cleartext at each site; only the
-   cross-site consensus update goes through the encrypted
-   channel. The reader does not have to rewrite their CVXR model
-   for an encrypted setting — the same `Problem(Minimize(...))`
-   they would write for cleartext data is used here verbatim.
-2. **No single party holds the secret key.** Each site generated its
-   own share during the key-generation chain and kept it; the
-   aggregator holds only the joint public key, and has no property a
-   share could sit in. Encrypted intermediates are undecryptable by
-   any single party, and the consensus result appears only after the
-   n-of-n partial-decryption fusion — which the aggregator can reach
-   only by asking every site.
+1. **CVXR problems work unchanged.** Each site solves its local
+   CVXR problem in the clear. Only the consensus update is
+   encrypted. The `Problem(Minimize(...))` is the same one you
+   would write for pooled cleartext data.
+2. **No single party holds the secret key.** Each site generated
+   its own share during key generation and kept it. The aggregator
+   holds only the joint public key. No single party can decrypt an
+   intermediate value, and the consensus is decrypted only when
+   every site contributes a partial decryption.
 3. **DPP keeps the inner loop fast.** Each site's CVXR problem is
-   built once at setup; ADMM iterations only update the
-   parameter values. Without DPP, the canonicalization would
-   re-run every iteration and the vignette would be infeasible.
+   built once at setup, and ADMM iterations only update the
+   parameter values. Without DPP, CVXR would convert the problem
+   to standard form again at every iteration.
 
 ## Limitations
 - **Honest-but-curious trust.** A site that misreports its local
   $x_i + u_i$ can corrupt the consensus. Detecting this requires
   commitments / zero-knowledge proofs that this vignette does
   not implement.
-- **The aggregator sees the trajectory $\{z^k\}$.** Per-iteration
-  consensus values are revealed in the clear (after fusion) so
-  the optimizer can decide convergence. A subpoena to the
-  aggregator yields this trajectory — one per candidate $\rho$,
-  since the sweep runs the same protocol. Hiding the trajectory
-  as well would mean keeping the residuals encrypted, which turns
-  the stopping test and the `which.min` into comparisons on
-  encrypted values: a fixed iteration budget with a masked freeze in
-  place of `break`, and a polynomial or scheme-switched
-  comparison in place of `<`. Nothing rules that out in
-  principle, but it is a different and far more expensive
-  protocol than this one.
+- **The aggregator sees the trajectory $\{z^k\}$.** The consensus
+  is decrypted at every iteration so the loop can test for
+  convergence. The aggregator therefore learns one trajectory per
+  candidate $\rho$, since the sweep runs the same protocol. Hiding
+  the trajectory would mean keeping the residuals encrypted. The
+  stopping test and the `which.min` would then be comparisons on
+  encrypted values: a fixed number of iterations in place of
+  `break`, and an approximate encrypted comparison in place of `<`.
+  That is possible, but it is a different and much more expensive
+  protocol.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the
   same coefficient vector as the centralized fit. Output-level
   attacks are out of scope here; the companion

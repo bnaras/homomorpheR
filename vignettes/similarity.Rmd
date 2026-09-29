@@ -34,47 +34,40 @@ data(similarity_results, package = "homomorpheR")
 ```
 
 ## Introduction
-A recurring problem in federated medical analytics is similarity
-search across silos. A clinician at one hospital sees an unusual
-case and wants to ask "do other hospitals in our network have
-similar patients?" — without sending the patient out, without
-the other hospitals revealing which of their patients were
-checked, and without any single party (including a coordinating
-master) seeing similarity scores in the clear.
+Similarity search across silos is another common problem.  A clinician
+at one hospital sees an unusual case and wants to ask "do other
+hospitals in our network have similar patients?" — without sending the
+patient out, without the other hospitals revealing which of their
+patients were checked, and without any single party (including a
+coordinating master) seeing similarity scores in the clear.
 
-The natural primitive is cosine similarity between embeddings.
-Modern foundation models map patient data (radiology reports,
-chest X-rays, pathology slides) into a fixed-dimensional vector
-space where geometric proximity tracks clinical similarity.
-Cosine similarity reduces to an inner product on unit-norm
-vectors, which is exactly what threshold CKKS computes
-efficiently.
+Modern foundation models map patient data (radiology reports, chest
+X-rays, pathology slides) into a fixed-dimensional vector space where
+geometric proximity tracks clinical similarity. The natural primitive
+is cosine similarity between such embeddings, which reduces to an
+inner product on unit-norm vectors, which is exactly what threshold
+CKKS computes efficiently.
 
-The wrinkle is that hospitals do not all use the *same* model.
-Each hospital starts from a public foundation model and
+The wrinkle is that hospitals do not all use the *same* model.  We
+assume each hospital starts from a public foundation model and
 fine-tunes it on its own data for its own purposes — it does not
 constrain the result to be an isometry of the public model. The
-fine-tuned embeddings therefore differ from the public baseline
-by a generically *non-isometric* transformation of the geometry,
-and a query in the public-model space is no longer directly
-comparable to a database vector in a hospital's private space.
+fine-tuned embeddings therefore differ from the public baseline by a
+generically *non-isometric* transformation of the geometry, and a
+query in the public-model space is no longer directly comparable to a
+database vector in a hospital's private space.
 
-This vignette closes the gap with a per-site *compatibility
-adapter* $A_k$, fit post hoc on a public anchor cohort. The
-adapter lives on a one-parameter family indexed by a
-near-isometry penalty $\mu$: orthogonal Procrustes at one end
-($\mu\to\infty$), unconstrained least squares at the other
-($\mu = 0$), near-orthogonal maps in between. It is deployed in
-either of two ways — applied to the encrypted query (the
-homomorphic matrix–vector multiply, valid as a cosine near the
-orthogonal end), or folded into the database offline so the
-encrypted query reduces to a plain inner product. Threshold
-decryption returns the top-`k` matches, with no party able to
-decrypt any intermediate value unilaterally.
-
-The accompanying `similarity-sideexp.md` document describes a
-deferred experiment on a real fine-tuned model. The vignette
-uses synthetic data so it renders quickly during package build.
+One way to close the gap is with a per-site *compatibility adapter*
+$A_k$, fit post hoc on a public anchor cohort. The adapter lives on a
+one-parameter family indexed by a near-isometry penalty $\mu$:
+orthogonal Procrustes at one end ($\mu\to\infty$), unconstrained least
+squares at the other ($\mu = 0$), near-orthogonal maps in between. It
+is deployed in either of two ways — applied to the encrypted query
+(the homomorphic matrix–vector multiply, valid as a cosine near the
+orthogonal end), or folded into the database offline so the encrypted
+query reduces to a plain inner product. Threshold decryption returns
+the top-`k` matches, with no party able to decrypt any intermediate
+value unilaterally.
 
 ## The setup
 
@@ -96,14 +89,13 @@ whose private-model embeddings are most cosine-similar to the
 query, returned as a list of $(\text{site\_id},
 \text{local\_patient\_id}, \text{score})$ tuples.
 
-The friction is that $q$ lives in the public-model geometry
-while each site's database lives in the site's private-model
-geometry. We close the gap with a per-site *compatibility
-adapter* $A_k$ fit on a public anchor cohort. $A_k$ is held
-privately by site $k$ and never leaves; it is applied to
-encrypted queries to bring them into agreement with site $k$'s
-geometry before the inner-product step (or, equivalently, folded
-into the site's database offline).
+The difficulty is that $q$ lives in the public-model geometry while
+each site's database lives in the site's private-model geometry. We
+close the gap with a per-site *compatibility adapter* $A_k$ fit on a
+public anchor cohort. $A_k$ is held privately by site $k$ and never
+leaves; it is applied to encrypted queries to bring them into
+agreement with site $k$'s geometry before the inner-product step (or,
+equivalently, folded into the site's database offline).
 
 ## Threat model
 
@@ -121,8 +113,7 @@ Three sites and one untrusted aggregator (the master):
   collects their encrypted scores, orchestrates the n-of-n
   partial-decryption ceremony, sorts the results, and returns the
   top-$k$ to the querier. A curious or compromised master cannot
-  decrypt anything by itself — but see below for what it does hold
-  once the sites have cooperated, which is more than the top-$k$.
+  decrypt anything by itself.
 - **Querier** sees only the top-$k$ result tuples. Repeated
   adaptive queries leak structural information about the
   database in the same Hyrum-style sense as any retrieval
@@ -138,21 +129,13 @@ What the master sees, by stage:
 4. After fusion, **every** candidate score in the clear. It sorts
    these and returns the top-$k$ to the querier.
 
-Be precise about step 4, because it is easy to state too
-favorably. The master decrypts the whole score vector, not just
+The master decrypts the whole score vector, not just
 the $k$ it releases, and it does so because this implementation
 ranks in the clear. Nothing can do better without encrypted
 comparison: the global top-$k$ is not knowable until enough scores
 are known to rank them. So the master's view is one row per candidate
 patient in the whole federation — site, local index, label, and
 score — and the querier's view is the top-$k$ of it.
-
-What the $n$-of-$n$ ceremony *does* buy, and it is not nothing: no
-single party, master included, can open any of this alone. Every
-release requires all $n$ sites to take part, which is a governance
-control on when scores are revealed rather than a bound on what a
-completed release contains. The Limitations section below says
-what encrypted top-$k$ would change.
 
 The site-private compatibility adapters $\{A_k\}$ never leave
 their sites. Each is applied to an encrypted vector while it
@@ -338,14 +321,12 @@ fit_adapter <- function(Z_priv, Z_pub, mu) {
 }
 ```
 
-A convex alternative one might reach for is *Gram / metric
-learning* (§10.4 of the companion exploration): fit a
+A convex alternative is Gram (metric) learning: fit a
 positive-semidefinite $M$ matching the public Gram matrix,
 $\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
 Z_{\text{pub}}Z_{\text{pub}}^\top\rVert_F^2$. Its minimizer is
-analytic — $M = A_{\text{LS}}A_{\text{LS}}^\top$ — and we deploy
-its symmetric square root. We include it only to show, below,
-that it is the *wrong* tool here.
+$M = A_{\text{LS}}A_{\text{LS}}^\top$, and we deploy its symmetric
+square root. The sweep below compares it with the $\mu$ family.
 
 ```{r}
 fit_gram <- function(Z_priv, Z_pub) {
@@ -423,6 +404,11 @@ pub
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
 cat(similarity_results$pub_print, sep = "\n")
 ```
+
+A CKKS encrypted value holds a vector of numbers, one per *slot*,
+and arithmetic acts on all slots at once. Setting `batch_size = p`
+gives each encrypted value exactly $p$ = `r p` slots, so one
+embedding fills one encrypted value, a coordinate per slot.
 
 Site $k$'s share lives in `sites[[k]]@state$sk` and nowhere else.
 `decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
@@ -724,16 +710,14 @@ cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
 
 ### What is in the slots we do not read
 
-Reading `len = 1L` sets the *reported* length of a decrypted
-`Plaintext`. It is an API convenience, not a cryptographic erasure: the
-party that decrypts can ask for every slot. OpenFHE's security notes
-warn about exactly this for slot-summation primitives, so the honest
-thing is to look rather than to assume.
+The score is read from slot 0, but the decrypted value has all
+`r p` slots, and `len = 1L` only limits how many are shown.
+Whoever decrypts can read the rest. If those slots held partial
+sums, they would reveal more than the score.
 
-Here the reduction is cyclic over a batch that is exactly $p$ slots
-wide, so it does not leave partial sums behind — it broadcasts the
-total to every slot. The other slots hold the same score that is
-released anyway.
+They do not. The rotations wrap around exactly $p$ slots, so every
+slot ends up holding the full sum. The check below confirms that
+all `r p` slots hold the released score.
 
 ```{r eval=RECOMPUTE}
 all_slots <- decrypt(master, ct_score, len = p)
@@ -747,14 +731,14 @@ cat(sprintf("slots holding the released score: %d of %d (max deviation %.2e)\n",
             similarity_results$slots_same, p, similarity_results$slots_dev))
 ```
 
-That is a property of this reduction width, not of CKKS. A layout
-that summed over fewer slots than the batch holds — packing several
-patients into one encrypted value, say — would leave genuine partial
-sums in the remainder, and those would be released along with the
-score. The fix is a slot mask: one multiplication by an unencrypted
-one-hot vector, which zeroes every other slot and costs one level of
-the precision budget. At `multiplicative_depth = 3` this protocol has
-exactly that level spare after the matvec and the inner product.
+This holds only because the sum covers the whole batch. If several
+patients were packed into one encrypted value, each sum would cover
+only some of the slots, and the other slots would hold partial sums.
+Multiplying by an unencrypted vector that is 1 in slot 0 and 0
+elsewhere clears them. That multiplication uses one level of
+multiplicative depth. With `multiplicative_depth = 3`, the
+matrix–vector multiply and the inner product use two levels, which
+leaves one for it.
 
 ## Site `contribution_fn`: full per-site protocol step
 
@@ -938,11 +922,7 @@ cat(sprintf("Top-%d set match: %d of %d\n",
 
 The encrypted mechanics work to floating-point precision, as the
 smoke tests and reference comparison above confirm (max error
-$\sim 10^{-11}$). The substantive questions are statistical, and
-because the encrypted and unencrypted scores agree to within
-CKKS approximation error we answer them in the clear — fast
-enough to average over many queries and trace stable curves.
-Three questions:
+$\sim 10^{-11}$). So we now investigate three questions:
 
 1. **Fidelity.** When the drift is genuinely non-isometric, does
    a near-orthogonal or least-squares adapter recover retrieval
@@ -1207,23 +1187,12 @@ par(op)
   near-orthogonal) adapter tracks the no-drift ideal. At the
   isometric special case the two coincide — that special case is
   the orthogonal protocol of the earlier design.
-- **Why not metric learning?** The convex Gram / Mahalanobis fit
-  ($\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
-  Z_{\text{pub}}Z_{\text{pub}}^\top\rVert^2$) is tempting, but its
-  minimizer is exactly $A_{\text{LS}}A_{\text{LS}}^\top$ and its
-  symmetric-root deployment carries the adapter's orthogonal
-  polar factor — an unrecoverable rotation against a public-frame
-  query. Its recall collapses to the unaligned floor in the sweep
-  above. Gram matching is the right tool for private↔private
-  retrieval (where the rotation cancels), not for a public query
-  against a private database; pointwise alignment, the $\mu$
-  family, is what pins the frame.
 
 ## Limitations
-- **Encrypted top-$k$ selection, and what its absence releases.**
+- **Encrypted top-$k$ selection.**
   We sort in the clear after threshold-decrypting the per-patient
   scores, so the ceremony runs once per candidate and the aggregator
-  ends up holding, for **every** candidate at every site: the site
+  ends up holding, for *every* candidate at every site: the site
   it came from, the local index, the label, and the score. That is
   more than a top-$k$ release, and it is the honest description of
   what this implementation discloses. Ranking under encryption
@@ -1232,12 +1201,8 @@ par(op)
   first learning enough scores to rank them. Encrypted argmax /
   top-$k$ via polynomial sign approximation is feasible in CKKS but
   adds depth and complexity orthogonal to this vignette's
-  pedagogical aim. Two cheaper partial measures: have each site
-  select a local candidate set before encryption, which trades
-  recall for a smaller release, or return the scores without the
-  labels, which is the field a reader is most likely to assume was
-  protected.
-- **Normalization, and what the $\mu$ knob trades.** The
+  pedagogical aim.
+- **Normalization, and what the $\mu$-knob trades.** The
   near-isometry of the adapter controls the per-vector norms
   $\lVert A_k^\top v\rVert$. At the orthogonal end they are all
   one, which buys two things at once: the homomorphic
@@ -1262,9 +1227,8 @@ par(op)
   a parameterized non-isometric $B_k = Q_k D_k$, a controllable
   stand-in for free fine-tuning. Real fine-tuned foundation
   models (BiomedCLIP fine-tuned per site, PubMedBERT, etc.) drift
-  in ways no parameterized family captures exactly. The deferred
-  side experiment in `similarity-sideexp.md` examines the
-  alignment question empirically on a real fine-tuned model.
+  in ways no parameterized family captures exactly. Validating
+  the alignment on a real fine-tuned model is future work.
 - **Adaptive-query leakage.** Repeated adaptive queries by
   the querier (or a coalition with the querier) leak
   structural information about the cohort — the same
@@ -1308,9 +1272,3 @@ CKKS with $n$-of-$n$ decryption, and (d) two interchangeable
 deployments (encrypted-query matvec or offline fold) with the
 adapter held privately at each site does not appear to have
 been studied as a unified pipeline.
-
-```{r echo = FALSE}
-## Detach openfhe.R so its `encrypt`/`decrypt` generics do not
-## bleed into other vignettes built later in the same R session.
-detach("package:openfhe.R", unload = TRUE, character.only = TRUE)
-```

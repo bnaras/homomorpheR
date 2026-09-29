@@ -33,8 +33,6 @@ the *total count* of patients matching a criterion (say
 revealing the individual per-site counts to anyone, including the
 aggregator running the aggregation.
 
-This is the same pattern the Paillier vignette
-`vignette("QueryNCP")` demonstrates with non-cooperating parties.
 Here we use OpenFHE's **BFV** scheme via the `openfhe.R` package.
 BFV operates on *integer vectors* with both addition and
 multiplication — well-suited to counting and other exact
@@ -125,7 +123,7 @@ BFV is an *exact* scheme over the integers: unlike the real-valued
 arithmetic used elsewhere in this package, it introduces no
 approximation error at all.
 
-## What just happened
+## The details of what happened
 
 1. The aggregator created an encryption context and distributed
    the **public key** to all sites.
@@ -160,30 +158,4 @@ fhe_serialize(ct, file.path(tdir, "site_count.bin"))
 ct_received <- fhe_deserialize(file.path(tdir, "site_count.bin"), "Ciphertext")
 result      <- decrypt(ct_received, sk, cc = cc)
 get_packed_value(result)[1]
-```
-
-## Comparison with the Paillier vignettes
-
-The legacy Paillier vignettes (`vignette("QueryNCP")` in
-particular) achieve the same kind of count aggregation using
-Paillier encryption, which supports only additive homomorphism.
-With `openfhe.R`'s BFV:
-
-- **Multiplication** is available — encrypted products,
-  variances, more complex integer-valued aggregates.
-- **Performance** — OpenFHE's optimized C++ backend is orders of
-  magnitude faster than pure-R Paillier on `gmp::bigz`.
-- **Packing** — BFV encrypts whole integer vectors, and one
-  arithmetic operation acts on every position at once. Several
-  per-site counts can therefore ride in the slots of a single
-  encrypted value and be aggregated together.
-- **Threshold FHE** — `multiparty_key_gen()` lets the secret key
-  be split across parties so no single party can decrypt
-  unilaterally. (See `vignette("cox-threshold")` for the
-  master/worker analogue under CKKS.)
-
-```{r echo=FALSE}
-## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
-## into other vignettes built later in the same R session.
-detach("package:openfhe.R", unload = FALSE, force = TRUE)
 ```

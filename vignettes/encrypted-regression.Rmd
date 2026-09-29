@@ -23,30 +23,36 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## Inline numbers in scientific notation as HTML (knitr's default
+## prints a bare "5.8^{-6}" in HTML output).
+sci <- function(x, digits = 2) {
+  e <- floor(log10(abs(x)))
+  if (x == 0 || e >= -2) return(formatC(x, format = "fg", digits = digits))
+  sprintf("%s&nbsp;&times;&nbsp;10<sup>%d</sup>",
+          formatC(x / 10^e, format = "f", digits = digits - 1), e)
+}
 ```
 
 ## Overview
 
-The `secure-inference` vignette showed a *linear* model evaluated
-on encrypted patient data. This vignette goes one step further:
-the prediction needs the logistic sigmoid
+The `secure-inference` vignette evaluated a linear model on
+encrypted patient data. Here the prediction also needs the
+logistic sigmoid
 
-$$\sigma(\eta) = \frac{1}{1 + e^{-\eta}},$$
+$$\sigma(\eta) = \frac{1}{1 + e^{-\eta}}.$$
 
-a non-polynomial function that on its face cannot be evaluated
-under encryption — both BFV/BGV and CKKS only support polynomial
-arithmetic. Using a Chebyshev polynomial approximation of the
-sigmoid, however, we can evaluate the entire logistic
-prediction (linear predictor *and* sigmoid) under encryption with
-only addition and multiplication.
+The sigmoid is not a polynomial, and BFV/BGV and CKKS support only
+addition and multiplication. We replace it with a Chebyshev
+polynomial approximation, so the whole prediction (linear predictor
+and sigmoid) is computed on encrypted values.
 
 ## The setting
 
 A hospital holds patient data. A researcher holds a trained
 logistic-regression model. The researcher wants to score patients
 without seeing their data; the hospital wants predictions without
-seeing the model coefficients. The same two-party shape as
-`secure-inference`, with a non-linear scorer.
+seeing the model coefficients. This is the two-party setting of
+`secure-inference` with a nonlinear model.
 
 ## Step 1: train in the clear
 
@@ -65,9 +71,9 @@ cat("Coefficients (intercept, age, biomarker):", round(beta, 4), "\n")
 
 ## Step 2: encrypt patient data
 
-CKKS needs enough precision budget for the Chebyshev
-polynomial. We use depth 8 and enable `Feature$ADVANCEDSHE` for
-the polynomial-evaluation primitives.
+The Chebyshev polynomial needs enough multiplicative depth. We use
+depth 8 and enable `Feature$ADVANCEDSHE`, which provides the
+polynomial-evaluation functions.
 
 ```{r}
 library(openfhe.R)
@@ -103,9 +109,9 @@ ct_eta <- ct_eta + beta[1]
 
 `openfhe.R` exposes Chebyshev approximations of common transcendental
 functions, including the logistic sigmoid. The interval $[a, b]$
-must cover the realizable range of $\eta$; degree 16 gives good
-precision with depth modest enough to fit the budget we declared
-above.
+must cover the range of $\eta$ for these patients. A degree-16
+approximation fits within the depth set above; its error is
+measured in Step 5.
 
 ```{r}
 ct_prob <- eval_logistic(ct_eta, a = -4, b = 4, degree = 16)
@@ -126,23 +132,22 @@ cat(sprintf("Max absolute error vs cleartext sigmoid: %.2e\n", max_err))
 ## What this demonstrates
 
 1. **Model coefficients applied to encrypted data.** The
-   hospital never sees the model; the researcher never sees the
-   patient data. Same transport guarantee as `secure-inference`.
-2. **The sigmoid evaluated entirely under encryption.** No
-   intermediate decryption, no protocol back-and-forth — the
-   whole logistic prediction completes while the data stays
-   encrypted.
-3. **CKKS precision is more than enough for medical
-   prediction.** The maximum absolute error against the
-   cleartext sigmoid is `r signif(max_err, 2)`, well below any
-   threshold that would matter for a clinical decision.
+   researcher never sees the patient data. The hospital decrypts
+   the predictions but is not sent the coefficients, as in
+   `secure-inference`; see the threat-model caveat below.
+2. **The sigmoid is evaluated on encrypted values.** There is no
+   intermediate decryption and no exchange between the parties
+   during the computation.
+3. **The CKKS error is small.** The maximum absolute error
+   against the cleartext sigmoid is `r sci(max_err)`.
 
 ## Connection to homomorpheR's Paillier vignettes
 
-The Paillier vignettes (`vignette("homomorphing")`,
-`vignette("DHCox")`, `vignette("DHCoxNCP")`) demonstrate
-distributed Cox regression and MLE under additive Paillier
-encryption. That approach requires:
+The earlier Paillier vignettes (`homomorphing`, `DHCox`,
+`DHCoxNCP`), kept in the `paillier-archive/` directory of the
+package source repository, demonstrate distributed Cox regression
+and MLE under additive Paillier encryption. That approach
+requires:
 
 - sending encrypted *sufficient statistics* (sums) between sites
   rather than evaluating the full likelihood under encryption,
@@ -152,28 +157,27 @@ encryption. That approach requires:
 
 With CKKS via `openfhe.R`:
 
-- real numbers are encrypted directly — no manual scaling,
-- multiplication works — enabling polynomial and sigmoid
-  evaluation directly under encryption,
-- the full computation can happen in the encrypted domain.
+- real numbers are encrypted directly, with no integer encoding,
+- encrypted values can be multiplied, so polynomials, and hence
+  the approximate sigmoid, can be evaluated on them,
+- the full computation can be done on encrypted values.
 
 ## Limitations
 
-- **Precision budget**: each multiplication consumes one level of
-  the encrypted value's budget. Deeper computations require larger
+- **Multiplicative depth**: each multiplication uses one level of
+  the depth set in the context. Deeper computations need larger
   parameters and more memory.
 - **Approximation error**: CKKS is approximate. For deployment,
   validate that the precision is sufficient for your use case.
 - **Performance**: encrypted computation is orders of magnitude
   slower than cleartext.
-- **Threat model**: this transport-layer demonstration shares the
-  model-extraction caveat from `vignette("secure-inference")`.
-  The hospital holding the secret key can in principle recover
-  the coefficients by issuing carefully chosen queries. The
-  Chebyshev sigmoid makes the recovery somewhat less trivial
-  than the linear case, but does not eliminate the issue. Real
-  deployments still need defences (output DP, query budgets,
-  threshold FHE) on top of the FHE transport.
+- **Threat model**: the model-extraction caveat of
+  `vignette("secure-inference")` applies here. The hospital holds
+  the secret key and could recover the coefficients from
+  predictions on chosen inputs. The sigmoid makes this harder than
+  in the linear case but does not prevent it. A deployment would
+  need further protection, such as output differential privacy,
+  query limits, or threshold FHE.
 
 ```{r echo=FALSE}
 ## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed

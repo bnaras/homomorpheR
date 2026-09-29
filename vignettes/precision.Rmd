@@ -23,10 +23,10 @@ knitr::opts_chunk$set(
   cache = FALSE
 )
 ```
+## Introduction
 
-"The encrypted computation gives the right answer" means different
-things in different vignettes, and being clear about which is the
-difference between a meaningful check and a misleading one.
+Some computations on encrypted data are exact while others are
+approximate. We describe the differences below.
 
 ```{r}
 library(openfhe.R)
@@ -164,82 +164,5 @@ row is worse than the depth-1 sum at every magnitude: by a factor of
 The budget is consumed whether or not the extra precision is missed.
 
 These are comparisons of the encrypted result against *the same
-computation performed in the clear on the same data*. That is the
-actual cryptographic claim, and it is the tightest bound any vignette
-here can make.
+computation performed in the clear on the same data*. 
 
-## Statistical, for fitted estimates
-
-When an optimizer runs through the encrypted channel, what comes back
-is compared against a centralized fit. The relevant tolerance is then
-not CKKS precision but a *statistical* one: two optimizers with
-different stopping rules do not halt at the same point even on
-identical data, and a difference between them is meaningless if it is
-small relative to the standard error.
-
-`vignette("cox")` states its agreement in standard-error units for
-exactly that reason. A difference of a thousandth of one standard
-error is invisible in any reported result, and quoting it as a bare
-number would invite the reader to compare it against a CKKS error
-bound — a category mistake.
-
-## What cannot be compared
-
-**Differentially private runs.** `vignette("cox-threshold-dp")` and
-`vignette("cvxr-consensus-admm-dp")` draw fresh noise on every query,
-so two runs of the same code on the same data disagree by
-construction. Only distributional behavior is comparable: how the
-error grows with $\sigma$, and which optimizers degrade first.
-
-**Iteration counts.** A loop that stops when a residual first falls
-below a threshold is reporting where a continuous quantity crossed a
-line. CKKS noise alone can move it by one, and redrawing the data
-moves it further. It is a property of the sample, not of the method.
-
-## Where the data comes from
-
-**Measured data ships with the package.** The DLBCL cohort is real,
-so every vignette that uses it reads the same values each time and
-its numbers are reproducible in the strict sense.
-
-**Simulated data is drawn fresh.** The other vignettes generate their
-cohorts on each run. The claim they make is that the encrypted
-protocol reproduces the cleartext answer *on whatever data it was
-given*, which is a stronger claim than reproducing one fixed dataset.
-
-**Expensive fits are precomputed.** `data(cvxr_consensus)` carries the
-~150-iteration ADMM results that `vignette("cvxr-cox-lasso-dlbcl")`
-would otherwise recompute on every build. The script that produced it
-ships with the package, so the artifact is regenerable rather than
-merely asserted.
-
-## Categorical order is protocol semantics
-
-Sites are visited in a fixed order, and the first is the lead
-decryptor in the threshold ceremony. In the Cox vignettes the sites
-come from splitting the cohort on a factor, so that factor's *level*
-order determines which site leads:
-
-```{r}
-data(DLBCL, package = "homomorpheR")
-levels(DLBCL$Subgroup)
-```
-
-That is not alphabetical:
-
-```{r}
-sort(unique(as.character(DLBCL$Subgroup)))
-```
-
-`split()` orders its output by factor levels, so the protocol visits
-GCB first. Had `Subgroup` been stored as a character vector, `split()`
-would have sorted it and put ABC first instead — silently swapping
-which site holds the lead decryption role. The column is a factor with
-a deliberate level order for that reason, and it is worth knowing
-before anyone "tidies" it.
-
-```{r echo=FALSE}
-## Detach openfhe.R so its encrypt/decrypt generics do not bleed into
-## other vignettes built later in the same R session.
-detach("package:openfhe.R", unload = FALSE, force = TRUE)
-```

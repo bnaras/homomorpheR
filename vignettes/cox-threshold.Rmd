@@ -34,30 +34,20 @@ data(cox_threshold_results, package = "homomorpheR")
 ```
 
 ## Introduction
-The companion `cox` vignette fits a stratified Cox model across three
-sites under CKKS via master/worker. The master holds the secret key
-and decrypts the encrypted partial likelihood at every iteration of
-the optimizer. This is *operationally* convenient — one party owns
-decryption — but it leaves a meaningful piece of the threat model
-unaddressed: the master is trusted not to decrypt anything it
-shouldn't.
+The `cox` vignette fits a stratified Cox model across three sites
+under CKKS. There the master holds the secret key and decrypts the
+encrypted sum at every iteration of the optimizer, so the master
+must be trusted not to decrypt anything else, such as a single
+site's contribution.
 
-The end of the `cox` vignette flagged this:
+In this vignette the three sites generate the CKKS key pair
+jointly, and each keeps its own share of the secret key. No single
+party holds the whole key. The master becomes an aggregator: it
+adds the encrypted contributions and collects the sites' partial
+decryptions, but it cannot decrypt anything by itself.
 
-> **Threshold key generation**: in a real deployment, the secret key
-> would be split across the sites (n-of-n threshold) so that no
-> single party — not even the master — can decrypt intermediate
-> values unilaterally.
-
-This vignette implements exactly that. Three sites jointly generate
-a CKKS key pair so that no single party holds the joint secret key.
-The master's role is reduced to an aggregator: it sums encrypted
-contributions and orchestrates partial-decryption fan-in, but it
-cannot decrypt anything by itself.
-
-The mathematical content is identical to `vignette("cox")` — same
-data, same fit, same coefficients to floating-point precision. Only
-the trust model changes.
+The data and the model are the same as in `vignette("cox")`. Only
+who can decrypt changes.
 
 ## Threat model
 
@@ -66,23 +56,22 @@ Three sites and one untrusted aggregator:
 - **Sites $1, 2, 3$** each hold private patient data and a secret
   key share $\mathit{sk}_i$. They are honest-but-curious among
   themselves and toward the aggregator.
-- **Aggregator** holds no secret-key material. It receives encrypted
-  contributions, sums them homomorphically, and broadcasts the sum
-  back for partial decryption. It is *fully untrusted*: a curious
-  or compromised aggregator gains no information from the
-  encrypted values it processes.
+- **Aggregator** holds no secret-key material. It receives the
+  encrypted contributions, adds them, and sends the sum back to the
+  sites for partial decryption. The encrypted values it handles
+  tell it nothing on their own.
 
 What the aggregator sees, by stage:
+
 1. Encrypted local contributions $\mathit{ct}_i = E_{\mathit{pk}_{1..n}}(\ell_i)$. None decryptable alone.
 2. The encrypted sum $\mathit{ct}_{\text{sum}} = \boxplus_i \mathit{ct}_i$. Not decryptable alone.
 3. Partial decryptions $\rho_i$ contributed by each site. Not decryptable individually.
-4. After fusion, the *sum in the clear* $\ell(\beta) = \sum_i \ell_i$. This appears at the aggregator only after step 4.
+4. After combining the partial decryptions, the sum $\ell(\beta) = \sum_i \ell_i$ in the clear.
 
-Step 4 reveals $\ell(\beta)$ to the aggregator — the same thing the
-master saw in `vignette("cox")`. The strict improvement is that
-*nobody else* can decrypt anything along the way: a captured log of
-encrypted values or partial decryptions is useless without the joint
-fusion.
+Step 4 reveals $\ell(\beta)$ to the aggregator, which is what the
+master saw in `vignette("cox")`. The difference is that no single
+party can decrypt an individual contribution or any intermediate
+value. That takes a partial decryption from every site.
 
 ## The Cox setup (same DLBCL data as `cox.Rmd`)
 
@@ -114,15 +103,12 @@ cox_data <- split(
 3. Each site partial-decrypts the sum using its own $\mathit{sk}_i$.
 4. The aggregator fuses the partials to recover $\ell(\beta)$.
 
-`homomorpheR` exports a `make_threshold_master()` constructor that
-runs this chain across the sites in one call and returns a
-[ThresholdMaster] holding the joint public key. Each site keeps the
-share it generated; the master holds no secret material at all, and
-decrypts by asking every site for a partial and fusing the results.
-The `master_aggregate()` runner used by the single-decrypter `cox.Rmd`
-works unchanged here — the threshold-specific partial-decrypt and fuse
-logic lives inside the `decrypt()` method on `ThresholdMaster`,
-so the per-iteration code looks the same as the single-decrypter case.
+`make_threshold_master()` runs this chain across the sites in one
+call and returns a `ThresholdMaster` holding the joint public key.
+Each site keeps the share it generated. To decrypt, the master asks
+every site for a partial decryption and combines them. This happens
+inside the `decrypt()` method, so the `master_aggregate()` runner
+from `cox.Rmd` works unchanged.
 
 ## Implementation
 
@@ -153,12 +139,9 @@ cc <- openfhe.R::fhe_context("CKKS",
                            features             = c(openfhe.R::Feature$MULTIPARTY))
 ```
 
-The sites come first, because the joint public key is built from them.
-`make_threshold_master(name, cc, sites)` walks the chain — each site
-generating and retaining its own share, passing on only a public key —
-and returns a master that holds the joint public key, holds nothing
-secret, and is already wired to the sites. Its `decrypt` method
-drives the partial-decrypt fan-in by asking each site in turn.
+The sites come first, because the joint public key is built from
+them. `make_threshold_master()` then takes the sites and returns
+the master.
 
 ```{r eval=RECOMPUTE}
 worker_gcb <- make_worker(name = "GCB",      data = cox_data[["GCB"]],
@@ -173,9 +156,8 @@ master <- make_threshold_master("Aggregator",
                                 sites = list(worker_gcb, worker_abc, worker_t3))
 ```
 
-The share each site generated stays in that site's own state; nothing
-in the returned master can decrypt on its own. We can check that rather
-than assert it:
+The check below confirms that the master has no property holding
+key shares and that the GCB site holds its own share:
 
 ```{r eval=RECOMPUTE}
 share_check <- c(master_holds_shares = "secret_keys" %in% names(S7::props(master)),
@@ -189,9 +171,8 @@ cox_threshold_results$share_check
 
 ## Iterative MLE through the threshold protocol
 
-The optimizer-facing code is *identical* to `cox.Rmd`. Same
-`master_aggregate()` runner, same `mle()` driver — only the
-underlying master class changed.
+The optimizer code is the same as in `cox.Rmd`. Only the master
+class differs.
 
 ```{r eval=RECOMPUTE}
 library(stats4)
@@ -267,10 +248,8 @@ coefficient.
    key, and has no property in which a share could sit. Encrypted
    intermediate values are undecryptable by any single party in the
    system, the aggregator included.
-2. **Same statistical fit as the trusted-master version.** The
-   coefficients agree with the cleartext fit of the same objective
-   to CKKS precision. Threshold key generation is a trust-model
-   improvement; it does not change the fit.
+2. **The fit does not change.** The coefficients agree with the
+   cleartext fit of the same objective to CKKS precision.
 3. **Same optimizer, same callback shape, same code structure.**
    Compared to `cox.Rmd` only the setup changed: the workers are
    built first and handed to `make_threshold_master()` instead of
@@ -280,12 +259,10 @@ coefficient.
 
 ## Limitations
 - **The aggregator sees $\ell(\beta)$ at every iteration.** That is
-  the optimizer's *function value* — what `mle()` is asking for.
-  The information leak is "the value of the joint partial
-  log-likelihood at every $\beta$ visited," not "individual
-  per-site contributions" (which are properly hidden). Hiding
-  $\ell(\beta)$ would require running the optimizer inside the
-  encrypted domain — feasible but considerably more complex.
+  the function value `mle()` asks for. The individual site
+  contributions stay hidden. Hiding $\ell(\beta)$ as well would
+  require running the optimizer on encrypted values, which is
+  possible but considerably more complex.
 - **Honest-but-curious is the trust model.** Sites are assumed to
   follow the protocol. A malicious site could submit a corrupted
   partial decryption to break the fit; detecting this requires
@@ -299,8 +276,6 @@ coefficient.
 
 ## Where this fits
 
-Read `vignette("cox")` first if you have not — that vignette
-establishes the master/worker protocol and the optimizer-driven
-shape this one inherits. The only difference here is the master:
-threshold instead of single-decrypter. Same code, stronger trust
-model.
+Read `vignette("cox")` first. It sets up the master/worker
+protocol and the optimizer code that this vignette reuses. Only
+the master differs: threshold instead of single-decrypter.

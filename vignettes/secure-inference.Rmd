@@ -33,16 +33,15 @@ patients but cannot send raw patient data to the lab in cleartext.
 The lab does not want to send its model coefficients to the
 hospital in cleartext either.
 
-With FHE the hospital encrypts patient biomarkers, sends the
-encrypted values to the lab, the lab applies its weighted-sum
-scoring to them while they stay encrypted, and the hospital
-decrypts the scores.
-The biomarker values never appear in cleartext on the lab's
-machine, and the lab's coefficients are never sent to the
-hospital. These are the *transport* guarantees and they are what
-the pipeline below illustrates. They are not the whole story of
-deploying a model-as-a-service — see *Threat model: model
-extraction from the hospital side* below.
+With FHE the hospital encrypts patient biomarkers, sends the encrypted
+values to the lab, the lab applies its weighted-sum scoring to them
+while they stay encrypted, and the hospital decrypts the scores.  The
+biomarker values never appear in cleartext on the lab's machine, and
+the lab's coefficients are never sent to the hospital. These are the
+*transport* guarantees and they are what the pipeline below
+illustrates. They are not the whole story of deploying a
+model-as-a-service — see *Threat model: model extraction from the
+hospital side* below.
 
 This vignette is the two-party companion to the multi-site
 master/worker pattern (`vignette("mle")`, `vignette("cox")`).
@@ -217,7 +216,7 @@ not impede this extraction: the hospital is the party that
 decrypts, the scoring function is the thing being released, and
 the standard basis is a legal query vector.
 
-## What this means for deployment
+## Layered defenses
 
 A deployment that needs the scoring function to stay proprietary
 has to layer defences *on top of* the FHE transport:
@@ -242,12 +241,11 @@ has to layer defences *on top of* the FHE transport:
   closed-form basis-vector attacks, though approximation attacks
   from the model-extraction literature still apply.
 
-The vignette above shows the transport mechanics end-to-end. It
-is a *toy illustration* in that the linear scorer plus
-hospital-held secret key is exactly the configuration where the
-five-query attack works; a production model-as-a-service
-deployment is the transport layer plus at least one of the
-defences above.
+The vignette above shows the transport mechanics end-to-end. It is a
+*toy illustration* in that the linear scorer plus hospital-held secret
+key is exactly the configuration where the five-query attack works; a
+production model-as-a-service deployment is the transport layer plus
+at least one of the defences above.
 
 ## Network protocol: serialization
 
@@ -275,10 +273,4 @@ ct_recv <- fhe_deserialize(file.path(tdir, "weighted.bin"), "Ciphertext")
 result  <- decrypt(ct_recv, keys@secret, cc = cc)
 set_length(result, 8L)
 get_real_packed_value(result)[1:8]
-```
-
-```{r echo=FALSE}
-## Detach openfhe.R so its `encrypt`/`decrypt` generics do not bleed
-## into other vignettes built later in the same R session.
-detach("package:openfhe.R", unload = FALSE, force = TRUE)
 ```

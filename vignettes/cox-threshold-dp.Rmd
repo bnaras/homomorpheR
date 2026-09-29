@@ -23,6 +23,14 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## Inline numbers in scientific notation as HTML (knitr's default
+## prints a bare "1.8^{-6}" in HTML output).
+sci <- function(x, digits = 2) {
+  e <- floor(log10(abs(x)))
+  if (x == 0 || e >= -2) return(formatC(x, format = "fg", digits = digits))
+  sprintf("%s&nbsp;&times;&nbsp;10<sup>%d</sup>",
+          formatC(x / 10^e, format = "f", digits = digits - 1), e)
+}
 ## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
 ## not run when the vignette builds; their results are read from
 ## data(cox_threshold_dp_results), produced by
@@ -34,32 +42,26 @@ data(cox_threshold_dp_results, package = "homomorpheR")
 ```
 
 ## Introduction
-This vignette is a **demonstration**, not a recommendation.
-`vignette("cox-threshold")` shows the lossless threshold-FHE
-protocol: bit-identical to `coxph()`, no single decrypter, and the
-aggregator sees only $\ell(\beta)$ at each optimizer query. That
-trajectory of joint log-likelihood values is the residual exposure
-the lossless protocol accepts as the cost of preserving accuracy.
+This vignette is a demonstration. `vignette("cox-threshold")` fits
+the Cox model under threshold FHE: the fit matches the cleartext
+fit, no single party can decrypt, and the aggregator sees only the
+joint log-likelihood $\ell(\beta)$ at each optimizer query. Those
+values are what the protocol reveals.
 
-A natural question is whether one can compose the threshold-FHE
-channel with **output differential privacy** to bound that
-residual exposure formally. The answer in this simulation is "yes,
-the cryptographic protocol composes cleanly and the implementation
-is one extra `rnorm()` call per site per query, but the
-accuracy/privacy trade-off does not produce a usable point at
-small $\varepsilon$ given the optimizers we use here." This
-vignette runs that trade-off end-to-end and reports the numbers.
+Here we ask what happens if each site also adds noise, so that the
+released values satisfy **output differential privacy**. Adding the
+noise takes one extra `rnorm()` call per site per query. With the
+optimizers used here, the fits are poor at any noise level that
+gives a small $\varepsilon$. The vignette runs the fits and reports
+the numbers.
 
-`feedback_he_not_dp` in the package's notes records the framing
-explicitly: lossless threshold-FHE is the package's primary path;
-DP demonstrations show *what happens if* a user composes output
-DP on top, not the recommended deployment for precision-critical
-workloads.
+Threshold FHE without noise remains the package's main path. This
+vignette shows what adding output DP on top costs.
 
 ## A brief output-DP primer
 
 Given a query $f: \mathcal{D} \to \mathbb{R}$ on a dataset $D$,
-the **Gaussian mechanism** releases
+the **Gaussian mechanism** [@DworkRoth2014, §3.5.3] releases
 $\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2)$. If $f$'s
 *sensitivity* (the largest change $f$ can undergo when one record
 is added or removed) is $\Delta$, then for any
@@ -69,7 +71,7 @@ single release of $\tilde f$ satisfy $(\varepsilon, \delta)$
 differential privacy.
 
 The optimizer issues many queries, so the per-query budget
-composes. We use **zCDP composition** [Bun & Steinke, 2016]:
+composes. We use **zCDP composition** [@BunSteinke2016]:
 the Gaussian mechanism is $\rho$-zCDP with $\rho = (\Delta/\sigma)^2/2$;
 $T$ queries compose linearly to $T \cdot \rho$ in zCDP units; and
 that converts to $(\varepsilon, \delta)$ via
@@ -119,11 +121,10 @@ local_cox_nll <- function(data, beta) {
 
 ## Threshold setup and DP-noised workers
 
-The threshold infrastructure is the same as `cox-threshold`. The
-DP twist lives entirely inside the per-worker `contribution_fn`: each
-worker adds an independent $\mathcal{N}(0, \sigma^2/N)$ draw to its
-local nLL before returning. The master/worker runner sees only the
-noisy local value and encrypts it as usual.
+The threshold setup is the same as in `cox-threshold`. The only
+change is in each worker's `contribution_fn`: it adds an
+independent $\mathcal{N}(0, \sigma^2/N)$ draw to its local nLL
+before returning it. The noisy value is then encrypted as usual.
 
 ```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
@@ -188,10 +189,8 @@ knitr::kable(cox_threshold_dp_results$clean_check, digits = 9,
 ```
 
 The maximum absolute coefficient difference at $\sigma = 0$ is
-`r signif(max(cox_threshold_dp_results$clean_check$abs_diff), 3)`. The DP layer adds no
-measurable error when the noise is zero, so the cryptographic
-channel is doing exactly what it does in the lossless vignette.
-Every deviation from `coxph()` below is attributable to the noise.
+`r sci(max(cox_threshold_dp_results$clean_check$abs_diff), 3)`.
+So any deviation from `coxph()` below comes from the noise.
 
 ## BFGS at increasing noise: where does it break?
 
@@ -222,10 +221,9 @@ knitr::kable(cox_threshold_dp_results$bfgs_table, digits = 6,
              caption = "BFGS over the threshold-DP nLL at five noise scales")
 ```
 
-Read `max_abs_diff`: it grows roughly linearly with $\sigma$ in
-the small-$\sigma$ regime (1e-4 → 1e-2) and the qualitative answer
-collapses between $\sigma = 0.1$ and $\sigma = 1$. At $\sigma = 1$
-BFGS exits cleanly but the fit is unusable.
+`max_abs_diff` grows slowly up to $\sigma = 0.01$ and jumps at
+$\sigma = 0.1$. At $\sigma = 1$ BFGS converges, but the fit is
+far from the cleartext one.
 
 ### Why BFGS breaks
 
@@ -233,14 +231,10 @@ BFGS estimates gradients by finite differences. With default
 `ndeps = 1e-3` the gradient noise per coordinate inflates from
 the function-value noise of $\sigma$ to roughly $\sigma\sqrt{2}/(2h)
 \approx 707\,\sigma$. Near the optimum the true gradient is small
-and the noise dominates. Any optimizer that takes derivatives by
-differencing nearby function values will have this exact failure
-mode against any DP mechanism that adds enough noise to be
-meaningful.
-
-This is not a defect of the cryptographic protocol. The protocol
-is doing exactly what it claims: releasing $\ell(\beta) +
-\mathcal{N}(0, \sigma^2)$ at every query.
+and the noise dominates. Any optimizer that differences nearby
+function values has the same problem. The encryption is not
+involved: the protocol releases $\ell(\beta) +
+\mathcal{N}(0, \sigma^2)$ at every query, as intended.
 
 ## Nelder–Mead at the same noise scale
 
@@ -272,11 +266,10 @@ knitr::kable(cox_threshold_dp_results$nm_compare, digits = 6,
              caption = cox_threshold_dp_results$nm_caption)
 ```
 
-At $\sigma = 1$ BFGS is unusable: at least one signature lands at
-the wrong sign relative to the aggregated cleartext fit. Nelder–Mead at
-the same $\sigma$ keeps every coefficient on the side of zero
-that the centralized fit puts it on. The price is more function
-evaluations, which feeds back into the privacy budget below.
+At $\sigma = 1$ BFGS gets at least one coefficient's sign wrong
+relative to the cleartext fit. Nelder–Mead at the same $\sigma$
+gets every sign right, but uses more function evaluations, and
+each one adds to the privacy budget below.
 
 ## Privacy budget
 
@@ -316,10 +309,9 @@ knitr::kable(cox_threshold_dp_results$budget, digits = 4,
              caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
 ```
 
-Read the `epsilon_at_delta_1e_minus_5` column. At noise scales the
-optimizers can tolerate without producing a broken fit, the
-resulting $\varepsilon$ is large. Whether large $\varepsilon$ is
-acceptable is a use-case decision; we report the numbers and stop.
+The `epsilon_at_delta_1e_minus_5` column shows that at noise
+levels where the fits are still close, $\varepsilon$ is large.
+Whether that is acceptable depends on the application.
 
 ### What it would take to push $\varepsilon$ smaller
 
@@ -336,46 +328,35 @@ Three directions, none pursued here:
    current "compute the whole nLL at every site at every query"
    shape, but adaptable.
 
-These are research questions, not package-level concerns. The
-package's main story is the lossless cox progression.
+These are open research questions and outside the scope of the
+package.
 
-## What this demonstrates
+## Summary
 
-1. **The cryptographic protocol is correct under the noise.** At
-   $\sigma = 0$ it reproduces `cox-threshold` exactly.
-2. **The two layers compose without interaction.** Threshold FHE
-   handles "who holds the key"; output DP handles "what the
-   released values reveal." Adding the DP layer is one `rnorm()`
-   call per site per query and zero new homomorpheR machinery.
-3. **The accuracy/noise trade-off is characterized end-to-end.**
-   The vignette runs five $\sigma$ values with BFGS and one with
-   Nelder–Mead, and reports the recovered fits and the privacy
-   budgets in tables.
-4. **The optimizer-vs-noise interaction shapes the trade-off.**
-   BFGS amplifies function-value noise through finite-difference
-   gradients and breaks at moderate $\sigma$; Nelder–Mead at
-   $\sigma = 1$ recovers a usable estimate at the cost of more
-   queries. The cryptographic layer is not the limit — the
-   optimizer is.
+1. At $\sigma = 0$ the protocol matches the cleartext `coxph()`
+   fit to CKKS precision.
+2. Threshold FHE controls who can decrypt; output DP limits what
+   the released values reveal. Adding DP takes one `rnorm()` call
+   per site per query and nothing new in homomorpheR.
+3. The vignette fits five values of $\sigma$ with BFGS and one
+   with Nelder–Mead, and tabulates the fits and privacy budgets.
+4. BFGS amplifies the noise through finite-difference gradients
+   and fails at moderate $\sigma$. Nelder–Mead at $\sigma = 1$
+   gets the signs right but needs more queries. The accuracy loss
+   comes from the optimizer's response to noise, not from the
+   encryption.
 
 ## Limitations
 - **Tight Cox sensitivity.** $\Delta = 1$ is a placeholder.
-- **DP-SGD or stochastic gradient methods.** Standard alternative
-  for tight DP budgets; out of scope here.
+- **DP-SGD or stochastic gradient methods** [@AbadiCKMMTZ2016].
+  Standard alternative for tight DP budgets; out of scope here.
 - **Adaptive noise schedules.** All queries here use the same
   $\sigma$; adaptive schedules can be tighter.
-- **Malicious-site protection.** A hostile site can corrupt
-  either its $\text{nLL}_i$ or its $z_i$. Out of scope.
+- **Malicious-site protection.** A hostile site can corrupt its
+  $\text{nLL}_i$. Out of scope.
 
-Readers who need lossless fits should use
-`vignette("cox-threshold")` and accept the residual
-released-function leakage that comes with it.
+For fits that match the cleartext fit, use
+`vignette("cox-threshold")`; the aggregator then sees the exact
+$\ell(\beta)$ values.
 
 ## References
-
-- Dwork & Roth (2014). *The Algorithmic Foundations of
-  Differential Privacy.* §3.5.3 (Gaussian mechanism).
-- Bun & Steinke (2016). *Concentrated Differential Privacy.* TCC.
-  Source for the zCDP composition bound used above.
-- Abadi et al. (2016). *Deep Learning with Differential Privacy.*
-  CCS. The DP-SGD paper.

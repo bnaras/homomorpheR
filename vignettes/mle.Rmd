@@ -107,24 +107,9 @@ strengthens when paired with threshold key generation, where no
 single party holds the secret key. We will revisit that in the Cox
 threshold vignette.
 
-(The companion Paillier vignette `vignette("homomorphing")` uses an
-older *round-robin* protocol with a random offset traveling around a
-chain. That idiom was a Paillier-era pedagogical artifact; with
-proper FHE plus threshold key generation we no longer need it.)
-
-## Why CKKS, not Paillier?
-
-The companion `homomorphing` vignette uses Paillier, which is purely
-*additive*. Real-valued log-likelihoods had to be split into integer
-and fractional parts and rationally approximated with a denominator
-of $2^{256}$. CKKS encrypts real numbers natively and the protocol
-becomes much cleaner: each step is just `+` between two encrypted
-values.
-CKKS also supports multiplication, which the Cox vignette will need.
-
 ## Implementation
 
-The actor surface — `Site` (worker), `Master`, the master/worker
+The computational topology — `Site` (worker), `Master`, the master/worker
 runner — is the same code as in any other distributed-stats
 vignette in this package; only the master's *backend* changes.
 `homomorpheR` exports `make_ckks_master()` that takes an `openfhe.R`

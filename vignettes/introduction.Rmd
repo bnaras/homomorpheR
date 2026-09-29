@@ -2,6 +2,7 @@
 title: "Introduction to homomorpheR"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
+bibliography: homomorphing.bib
 output:
   html_document:
   fig_caption: yes
@@ -28,15 +29,15 @@ knitr::opts_chunk$set(
 
 A recurring situation in biomedical research: several sites hold
 patient records that cannot leave the institutions that collected
-them, and you would like to fit a single model to the pooled data.
+them, and one would like to fit a single model to the pooled data.
 
-For a large class of models this is less hopeless than it sounds.
-The log-likelihood, the score, and the information matrix are all
-*sums over observations*, so they are also sums over sites. An
-optimizer fitting such a model never needs an individual record — it
-needs the total of the per-site contributions at whatever parameter
-value it is currently considering. If the sites can compute that
-total without revealing their individual contributions, the fit
+It is well known that for a many models---row-paritioned data---this
+is easy to do.  The log-likelihood, the score, and the information
+matrix are all *sums over observations*, so they are also sums over
+sites. An optimizer fitting such a model never needs an individual
+record — it needs the total of the per-site contributions at whatever
+parameter value it is currently considering. If the sites can compute
+that total without revealing their individual contributions, the fit
 proceeds exactly as it would on pooled data.
 
 Homomorphic encryption is what makes the total computable. It is a
@@ -142,7 +143,7 @@ the protocols using only these terms.
 
 ## How the pieces fit together
 
-Three objects carry the protocol.
+Three objects are the building blocks for the protocol.
 
 A **site** is built with `make_worker()`. It holds the site's data
 and a function `contribution_fn(data, theta)` returning that site's
@@ -178,16 +179,14 @@ S7::method(contribute, HttpSite) <- function(site, theta) {
 }
 ```
 
-Read `?RemoteSite` before writing one. The contract has a few sharp
-edges, the sharpest being that **`NA` and "unreachable" are different
-events**. `NA` means *this* `theta` broke the site's solver, and the
-optimizer responds sensibly by trying a different parameter. A
-network or timeout failure is not that, and backing off to another
-`theta` does nothing about it — signal `site_unavailable()` instead,
-which aborts the round. Returning `NA` for an offline host, or
-quietly dropping the site, changes the set of sites being summed
-over between iterations and the fit converges to something that is
-not the estimand, with no error raised anywhere.
+See `?RemoteSite` and note in particular how `NA` and runtime errors
+have to be handled differently. In our examples, `NA` means *this*
+`theta` broke the site's solver, and because our examples involve
+optimization, everything works: the optimizer responds sensibly to a
+function evaluating to `NA` by trying a different parameter. A network
+or timeout failure is not that, and backing off to another `theta`
+does nothing about it — signal `site_unavailable()` instead, which
+aborts the round. 
 
 An **aggregator** is built with either `make_ckks_master()` or
 `make_threshold_master()`. The two differ in exactly one respect,
@@ -217,8 +216,10 @@ summaries together and decrypts only the total. An optimizer calls
 this once per iteration, and the fit proceeds.
 
 The topology is a flat fan-out and fan-in, which is how federated
-analysis frameworks such as `distcomp` and DataSHIELD are actually
-deployed.
+analysis frameworks such as `distcomp`
+[@NarasimhanRubinGrossBenderskyLavori2017; @distcomp] and
+DataSHIELD [@WolfsonDataSHIELD2010; @GayeDataSHIELD2014] are
+actually deployed.
 
 ### Sites that are not in this R session
 
@@ -247,20 +248,6 @@ The ordering in the second one is the whole point: the summary is
 encrypted before it leaves the site, so no individual contribution
 ever exists in the clear outside the site that produced it.
 
-The package refuses to fake either step for you. The base
-`RemoteSite` has no `set_public_params()` method, so wiring a
-subclass that has not implemented one fails immediately rather than
-leaving a proxy that looks configured while the endpoint was never
-told anything. `keygen_round()` and `partial_decrypt()` refuse in
-the same way, since performing a remote party's secret-key
-operation in this process is precisely what threshold keys exist to
-prevent. And `master_aggregate()` checks that what came back is an
-encrypted value under this protocol's key before adding it to a
-total — a site that replied with a plain number would otherwise
-have its answer summed in silently, and the round would report the
-correct result having been handed the one quantity the protocol
-hides.
-
 What the package does not supply is everything else a deployment
 needs: transport, authentication, key storage at the endpoint, retry
 and timeout policy, and any defense against a party that actively
@@ -282,16 +269,21 @@ interpreting any number in the vignettes below.
 revealing who contributed what. These are the simplest complete
 protocols in the package and the best place to begin: the
 statistical content is a sum, so nothing distracts from the
-mechanics.
+mechanics. The Observational Health Data Sciences and Informatics
+(OHDSI) network [@HripcsakOHDSI2015] would be a platform for such
+queries.
 
 - *Privacy-Preserving Count Aggregation* — a single encrypted
-  total, with one party holding the secret key.
+  total, with one party holding the secret key. 
 - *Distributed Query Count with Threshold Keys* — the same count
   with no single party able to decrypt.
 
 **Fitting models across sites.** Fitting a model to data you
 cannot pool. Each of these wraps an ordinary R fitting routine
-that is used unmodified.
+that is used unmodified. The DataSHIELD network
+[@WolfsonDataSHIELD2010; @GayeDataSHIELD2014] and the `distcomp`
+package [@NarasimhanRubinGrossBenderskyLavori2017; @distcomp] may
+be platforms for such model fitting.
 
 - *Distributed Maximum Likelihood Estimation* — the smallest
   complete model fit, and the place to start in this group.
@@ -330,3 +322,5 @@ exported for the packages that depend on it, but it is not extended,
 and the protocols documented here use the schemes provided through
 `openfhe.R` instead. The Paillier vignettes are retained separately
 for reference.
+
+## References

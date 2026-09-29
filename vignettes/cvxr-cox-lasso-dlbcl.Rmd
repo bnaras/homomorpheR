@@ -23,6 +23,14 @@ knitr::opts_chunk$set(
   tidy    = FALSE,
   cache   = FALSE
 )
+## Inline numbers in scientific notation as HTML (knitr's default
+## prints a bare "8.3^{-4}" in HTML output).
+sci <- function(x, digits = 2) {
+  e <- floor(log10(abs(x)))
+  if (x == 0 || e >= -2) return(formatC(x, format = "fg", digits = digits))
+  sprintf("%s&nbsp;&times;&nbsp;10<sup>%d</sup>",
+          formatC(x / 10^e, format = "f", digits = digits - 1), e)
+}
 ```
 
 ```{r setup, purl=FALSE, include=FALSE}
@@ -33,9 +41,10 @@ knitr::opts_chunk$set(
 ## (the ~150-iteration encrypted ADMM is far too slow for that). The
 ## displayed numbers are read from data(cvxr_consensus), which was
 ## produced by knitr::purl()-ing exactly these chunks and running them
-## (see data-raw/cvxr_consensus.R and the verification note below). The
-## openfhe-jss manuscript reads the same purled chunks, so vignette,
-## script, manuscript, and data object cannot drift.
+## (see data-raw/cvxr_consensus.R and the verification note below).
+## That script writes the purled chunks to inst/scripts/cvxr-consensus.R,
+## which the openfhe-jss manuscript reads with knitr::read_chunk(), so
+## vignette, script, manuscript, and data object cannot drift.
 ## Default stays FALSE, but an environment variable can turn the real
 ## pipeline on for a whole build -- `HOMOMORPHER_RECOMPUTE=true R CMD
 ## build ...` or the same in front of a pkgdown run. Without a hook at
@@ -78,19 +87,18 @@ a stratified **Cox lasso** on the diffuse large-B-cell lymphoma (DLBCL)
 gene-expression cohort of @Rosenwald2002, the dataset @BayleFanLou2025
 use to motivate distributed Cox estimation.
 
-The lesson is the same as in the `cox` and `cox-threshold` vignettes —
-*function-call* optimizers such as `mle()` or `coxph()`'s
-Newton-Raphson compose with an encrypted master/worker round without
-the optimizer noticing — but it does not extend to arbitrary convex
-programs. [CVXR][] operates on a *symbolic* problem: it canonicalizes
-once and ships the canonical form to a solver, so we cannot hand it a
-callback that secretly performs FHE. The remedy is **federated
-consensus ADMM** (Boyd, Parikh, Chu, Peleato and Eckstein, 2011): split
-the global problem into per-site subproblems each solved by [CVXR][] in
-the clear, and use the encrypted channel only for the cross-site
-**consensus average**. Disciplined parametric programming (DPP) keeps
-the per-site solves fast because the `Parameter` values change every
-iteration but the symbolic structure does not.
+The `cox` and `cox-threshold` vignettes give an optimizer such as
+`mle()` an objective function that runs one encrypted round across
+the sites. That does not work for [CVXR][], which does not call a
+function we supply: it converts a symbolic problem once to a
+standard form and passes that to a solver. Instead we use
+**federated consensus ADMM** (Boyd, Parikh, Chu, Peleato and
+Eckstein, 2011). The global problem is split into per-site
+subproblems, each solved by [CVXR][] in the clear, and only the
+cross-site **consensus average** is encrypted. Disciplined
+parametrized programming (DPP) keeps the per-site solves fast:
+between iterations only the `Parameter` values change, not the
+problem structure.
 
 We develop the fit in two passes. First we run the whole thing **in the
 clear** to fix the target: standardize, screen, and solve the consensus
@@ -106,8 +114,8 @@ encrypted fit reproduces the in-the-clear reference.
 > not run when the vignette builds (the encrypted ADMM takes ~150
 > iterations of per-site [CVXR][] solves). The displayed numbers come
 > from `data(cvxr_consensus)`, which was produced by extracting these
-> very chunks with `knitr::purl()` and running them. To verify the
-> results, do exactly that yourself:
+> chunks with `knitr::purl()` and running them. To verify the
+> results, do the same:
 >
 > ```r
 > vig <- system.file("doc", "cvxr-cox-lasso-dlbcl.Rmd",
@@ -117,11 +125,11 @@ encrypted fit reproduces the in-the-clear reference.
 > source(src)                                        # runs the pipeline (minutes)
 > fresh <- cvxr_consensus                            # just recomputed
 > data(cvxr_consensus, package = "homomorpheR")      # the shipped copy
-> max(abs(fresh$z_enc - cvxr_consensus$z_enc))       # ~1e-7
+> max(abs(fresh$z_enc - cvxr_consensus$z_enc))       # small, not zero
 > ```
 >
 > Threshold key generation is randomized, so a re-run reproduces the
-> shipped coefficients up to CKKS approximation noise (~1e-7), not
+> shipped coefficients up to CKKS approximation noise, not
 > bit-for-bit. This `purl()`-then-`source()` is exactly what
 > `data-raw/cvxr_consensus.R` does to build the shipped object.
 
@@ -326,13 +334,12 @@ sites_problem <- lapply(sites_KS, function(s)
     build_local(s$X, s$time, s$status, RHO))
 ```
 
-The ADMM driver below is the whole federated algorithm, and it is
-deliberately agnostic to *how* the cross-site average is formed: the
-`consensus` argument is a function of the per-site $(x_k,u_k)$ vectors,
-and everything else — the local [CVXR][] solves, the soft-threshold
-$z$-update, the dual update, the stopping rule — is ordinary R. We call
-it once now with an unencrypted average and, unchanged, once more
-under encryption.
+The ADMM driver below is the whole federated algorithm. How the
+cross-site average is formed is left to its `consensus` argument, a
+function of the per-site $(x_k,u_k)$ vectors. Everything else (the
+local [CVXR][] solves, the soft-threshold $z$-update, the dual
+update, the stopping rule) is ordinary R. We call it now with an
+unencrypted average, and later, unchanged, with an encrypted one.
 
 A note on the constants. We fix $\rho = `r RHO`$ and a cap of
 `r MAX_ITER` iterations. The dual residual $\rho\lVert z^{t+1}-z^t\rVert$
@@ -381,7 +388,7 @@ z_ref <- ref$z
 In the clear the consensus is a single line — the average of the
 $(x_k+u_k)$ vectors. The unencrypted ADMM converges in `r n_iter_ref`
 iterations and matches the centralized [CVXR][] fit to
-`r signif(max(abs(z_ref - agg_beta)), 2)` in maximum absolute
+`r sci(max(abs(z_ref - agg_beta)))` in maximum absolute
 coefficient difference, so `agg_beta` — equivalently `z_ref` — is the
 target the encrypted protocol must reproduce.
 
@@ -403,9 +410,8 @@ generates its own share and keeps it; only public keys move along the
 chain, so no party — the aggregator included — ever holds the joint
 secret.
 
-That means the key-holding parties have to exist before the aggregator
-does. The subgroups are already our sites; here we give each one an
-object to hold its share in.
+So the sites have to exist before the aggregator does. Here we
+give each subgroup a site object to hold its share.
 
 ```{r cvxr-context, eval=RECOMPUTE}
 cc <- fhe_context("CKKS",
@@ -428,17 +434,16 @@ master <- make_threshold_master("Aggregator",
 pub <- lapply(key_sites, site_params)
 ```
 
-That wiring is the one and only exchange between the aggregator and the
-sites, apart from the encrypted values each round carries. From here on each
-site is autonomous: everything below encrypts with `pub`, which the
-site already holds, and nothing reaches back for the aggregator.
+Apart from the encrypted values in each round, this setup is the
+only exchange between the aggregator and the sites. Everything
+below encrypts with `pub`, which each site already holds.
 
-Printing the bundle shows why handing it out is safe — it is a scheme,
-a public-key fingerprint, and nothing else. There is no property in an
-`OpenFHEParams` object for a key share to travel in.
+Each element of `pub` is an `OpenFHEParams` object. Its class has
+two properties, the crypto context and the joint public key, and
+none for a key share:
 
-```{r cvxr-params-shown, eval=RECOMPUTE, purl=FALSE}
-pub[[1]]
+```{r cvxr-params-shown, purl=FALSE}
+homomorpheR::OpenFHEParams
 ```
 
 The standardization round is `pool_plain` with the two `colSums`
@@ -472,12 +477,11 @@ fhe_pool <- encrypt_pool(master, sites_raw, N_total, P_raw)
 ```
 
 The encrypted moments agree with the unencrypted `pool` to
-`r signif(cvxr_consensus$pool_agree$mu, 2)` (mean) and
-`r signif(cvxr_consensus$pool_agree$sigma, 2)` (SD) — essentially
-machine precision, since these are exact sums under CKKS. The screening
-round is structurally identical, the same `score_info_at_zero` summands
-$(U^{(k)},I^{(k)})$ encrypted and summed the same way, so we show it
-compactly and confirm it selects the same probes.
+`r sci(cvxr_consensus$pool_agree$mu)` (mean) and
+`r sci(cvxr_consensus$pool_agree$sigma)` (SD), the CKKS
+approximation error. The screening round works the same way: the
+`score_info_at_zero` summands $(U^{(k)},I^{(k)})$ are encrypted and
+summed, and we confirm it selects the same probes.
 
 ```{r cvxr-screen-encrypt, eval=RECOMPUTE}
 ## Site side: compute the score and information at beta = 0 on the
@@ -501,15 +505,14 @@ fhe_top <- encrypt_screen(master, sites_std, P_raw, K)
 stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
 ```
 
-With standardization and screening recovering the same design, the
-consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`, with the encryption on the site's side of the
-boundary: each site encrypts its own $(x_k+u_k)$, the aggregator sums
-the encrypted values, scales by $1/N$ under encryption (one multiplication
-by an unencrypted constant, which costs one level of the precision
-budget), and threshold-decrypts the length-$K$ average.
-Soft-thresholding stays in the clear at the aggregator, on the
-aggregate.
+Standardization and screening give the same design as in the
+clear, so the consensus round is the only piece left to encrypt.
+It mirrors `plain_consensus`. Each site encrypts its own
+$(x_k+u_k)$. The aggregator sums the encrypted values, scales by
+$1/N$ (one multiplication by an unencrypted constant, which uses
+one level of multiplicative depth), and threshold-decrypts the
+length-$K$ average. Soft-thresholding is applied to that average
+in the clear at the aggregator.
 
 ```{r cvxr-consensus, eval=RECOMPUTE}
 ## Site side: form x_k + u_k and encrypt it there. The per-site vector
@@ -549,11 +552,11 @@ cvxr_consensus <- list(
     screen_match = setequal(fhe_top, top_idx))
 ```
 
-Passing `encrypted_consensus` in place of `plain_consensus` is the
-*entire* change. The encrypted ADMM ran for `r n_iter_enc` iterations
-and lands on the same coefficients as the unencrypted run, differing by
-only `r signif(max(abs(z_enc - z_ref)), 2)` — the CKKS approximation
-noise.
+The only change is passing `encrypted_consensus` in place of
+`plain_consensus`. The encrypted ADMM ran for `r n_iter_enc`
+iterations, and its coefficients differ from the unencrypted run
+by at most `r sci(max(abs(z_enc - z_ref)))`, the CKKS
+approximation error.
 
 ## Comparison with the centralized fit
 
@@ -615,47 +618,40 @@ appear in cleartext anywhere in the protocol. Decryption at every step
 is $n$-of-$n$ threshold: no single party — the aggregator included — can
 recover any intermediate quantity unilaterally.
 
-Two things in this document sit outside that sentence, and both are
-artifacts of writing it rather than parts of the protocol. The
-unencrypted reference pass forms exactly the per-site averages just
-ruled out; we can run it, and the centralized solve we check against,
-only because this vignette holds all three sites' data in one R
-session. The constants inherit the same caveat — as the note above
-says, $\rho = `r RHO`$ was kept for the tightest agreement with that
-centralized solve, which is a comparison no deployment can make.
+Two steps in this vignette would not exist in a real deployment.
+The unencrypted reference pass forms the per-site averages that
+the protocol keeps encrypted, and the centralized solve pools all
+the data. We can run both only because this vignette holds all
+three sites' data in one R session. The choice
+$\rho = `r RHO`$ depends on them too: it was kept because it agreed
+best with the centralized solve, which a deployment cannot compute.
 
-This is worth naming, because it is the kind of thing a threat model
-misses: the guarded computation gets audited, while the step that
-*chooses its constants* looks like setup and does not. It need not
-be exposed. `vignette("cvxr-consensus-admm")` sweeps $\rho$ over the
-encrypted channel itself — the tuning needs no cryptographic
-machinery beyond what one run already needs, and the crypto is small
-beside the per-iteration [CVXR][] solves. Where the protocol also
-carries a privacy budget, as in
+A deployment can instead tune $\rho$ over the encrypted channel, as
+`vignette("cvxr-consensus-admm")` does. The encrypted part of each
+iteration is small next to the per-site [CVXR][] solves. When the
+protocol also spends a privacy budget, as in
 `vignette("cvxr-consensus-admm-dp")`, encrypting the sweep is not
-enough and the constants have to come from data the protocol may
-read for free.
+enough, and the constants have to be chosen from data that does not
+count against the budget.
 
 ## Discussion
 
-1. **CVXR symbolic problems compose with threshold FHE.** The local
-   Cox-lasso solve runs in the clear at each site; only the cross-site
-   consensus update goes through the encrypted channel. The reader does
-   not rewrite their [CVXR][] model for the encrypted setting — the same
-   `Problem(Minimize(...))` is used verbatim, and `run_admm` is called
-   with `encrypted_consensus` instead of `plain_consensus`.
-2. **The encrypted layer is lossless to working precision.** The
-   encrypted fit reproduces the unencrypted ADMM to
-   `r signif(max(abs(z_enc - z_ref)), 2)` and recovers the identical
-   active set; the residual gap to the one-shot centralized solve
-   (`r signif(max(abs(z_ref - agg_beta)), 2)`) is the ADMM iteration
-   budget, not the cryptography.
-3. **No single party holds the secret key.** Each site generated its
-   own share during the key-generation chain and kept it; the
-   aggregator holds only the joint public key. Encrypted intermediates
-   are undecryptable by any one party, and each round's result appears
-   only after $n$-of-$n$ partial-decryption fusion, which the
-   aggregator can only obtain by asking every site.
+1. **CVXR problems work unchanged.** Each site solves its local
+   Cox-lasso problem in the clear. Only the consensus update is
+   encrypted. The [CVXR][] `Problem(Minimize(...))` is the same as
+   in the clear, and `run_admm` is called with
+   `encrypted_consensus` instead of `plain_consensus`.
+2. **Encryption does not change the fit.** The encrypted fit
+   matches the unencrypted ADMM to
+   `r sci(max(abs(z_enc - z_ref)))` and has the same active
+   set. The remaining gap to the centralized solve
+   (`r sci(max(abs(z_ref - agg_beta)))`) comes from stopping
+   ADMM at a finite tolerance, not from the encryption.
+3. **No single party holds the secret key.** Each site generated
+   its own share during key generation and kept it. The aggregator
+   holds only the joint public key. No single party can decrypt an
+   intermediate value, and each round's result is decrypted only
+   when every site contributes a partial decryption.
 4. **DPP keeps the inner loop fast.** Each site's [CVXR][] problem is
    built once at setup; ADMM iterations only update the `Parameter`
    values.
