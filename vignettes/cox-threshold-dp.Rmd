@@ -15,7 +15,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r echo=F}
+```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -23,6 +23,14 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
+## not run when the vignette builds; their results are read from
+## data(cox_threshold_dp_results), produced by
+## data-raw/cox_threshold_dp_results.R from these same chunks.
+## HOMOMORPHER_RECOMPUTE=true runs them for real.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
+data(cox_threshold_dp_results, package = "homomorpheR")
 ```
 
 ## Introduction
@@ -117,7 +125,7 @@ worker adds an independent $\mathcal{N}(0, \sigma^2/N)$ draw to its
 local nLL before returning. The master/worker runner sees only the
 noisy local value and encrypts it as usual.
 
-```{r}
+```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
@@ -162,7 +170,7 @@ When the noise is zero the protocol reduces to the lossless
 threshold protocol. The fitted coefficients match `coxph()` to
 threshold-CKKS precision.
 
-```{r}
+```{r eval=RECOMPUTE}
 fit_clean <- fit_at_sigma(0)
 clean_check <- data.frame(
     coefficient = names(agg_coef),
@@ -174,8 +182,13 @@ knitr::kable(clean_check, digits = 9,
              caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
 ```
 
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+knitr::kable(cox_threshold_dp_results$clean_check, digits = 9,
+             caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
+```
+
 The maximum absolute coefficient difference at $\sigma = 0$ is
-`r signif(max(clean_check$abs_diff), 3)`. The DP layer adds no
+`r signif(max(cox_threshold_dp_results$clean_check$abs_diff), 3)`. The DP layer adds no
 measurable error when the noise is zero, so the cryptographic
 channel is doing exactly what it does in the lossless vignette.
 Every deviation from `coxph()` below is attributable to the noise.
@@ -185,7 +198,7 @@ Every deviation from `coxph()` below is attributable to the noise.
 We sweep $\sigma$ across four orders of magnitude. Each fit is
 one full BFGS run over the threshold-DP encrypted nLL.
 
-```{r}
+```{r eval=RECOMPUTE}
 sigma_grid_bfgs <- c(1e-4, 1e-3, 1e-2, 1e-1, 1)
 fits_bfgs <- lapply(sigma_grid_bfgs, fit_at_sigma, method = "BFGS")
 names(fits_bfgs) <- sprintf("sigma_%g", sigma_grid_bfgs)
@@ -201,6 +214,11 @@ bfgs_table <- data.frame(
     max_abs_diff = sapply(fits_bfgs, function(f)
         max(abs(coef(f) - agg_coef[names(coef(f))]))))
 knitr::kable(bfgs_table, digits = 6,
+             caption = "BFGS over the threshold-DP nLL at five noise scales")
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+knitr::kable(cox_threshold_dp_results$bfgs_table, digits = 6,
              caption = "BFGS over the threshold-DP nLL at five noise scales")
 ```
 
@@ -229,7 +247,7 @@ is doing exactly what it claims: releasing $\ell(\beta) +
 Nelder–Mead is gradient-free; it never amplifies noise through a
 $1/h$ divisor. Noise still hurts it, but more gently than BFGS.
 
-```{r}
+```{r eval=RECOMPUTE}
 fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
 
 bfgs1 <- coef(fits_bfgs[["sigma_1"]])
@@ -242,11 +260,16 @@ nm_compare <- data.frame(
     BFGS_sigma1  = unname(bfgs1[coefs]),
     NM_sigma1    = unname(nm1[coefs])
 )
-knitr::kable(nm_compare, digits = 6,
-             caption = sprintf(
-                 "BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)",
-                 fits_bfgs[["sigma_1"]]@details$counts[["function"]],
-                 fit_nm_1@details$counts[["function"]]))
+nm_caption <- sprintf(
+    "BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)",
+    fits_bfgs[["sigma_1"]]@details$counts[["function"]],
+    fit_nm_1@details$counts[["function"]])
+knitr::kable(nm_compare, digits = 6, caption = nm_caption)
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+knitr::kable(cox_threshold_dp_results$nm_compare, digits = 6,
+             caption = cox_threshold_dp_results$nm_caption)
 ```
 
 At $\sigma = 1$ BFGS is unusable: at least one signature lands at
@@ -260,7 +283,7 @@ evaluations, which feeds back into the privacy budget below.
 For each fit, with sensitivity $\Delta = 1$ (placeholder) and
 target $\delta = 10^{-5}$, zCDP composition gives:
 
-```{r}
+```{r eval=RECOMPUTE}
 zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
 
 bfgs_budget <- data.frame(
@@ -277,6 +300,19 @@ budget$rho_per_query              <- (1 / budget$sigma)^2 / 2
 budget$rho_total                  <- budget$n_queries * budget$rho_per_query
 budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
 knitr::kable(budget, digits = 4,
+             caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
+```
+
+```{r eval=RECOMPUTE, echo=FALSE}
+cox_threshold_dp_results <- list(clean_check = clean_check,
+                                 bfgs_table  = bfgs_table,
+                                 nm_compare  = nm_compare,
+                                 nm_caption  = nm_caption,
+                                 budget      = budget)
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+knitr::kable(cox_threshold_dp_results$budget, digits = 4,
              caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
 ```
 

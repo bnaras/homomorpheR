@@ -15,7 +15,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r echo=F}
+```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -23,6 +23,13 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
+## not run when the vignette builds; their results are read from
+## data(cox_results), produced by data-raw/cox_results.R from these
+## same chunks. HOMOMORPHER_RECOMPUTE=true runs them for real.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
+data(cox_results, package = "homomorpheR")
 ```
 
 ## The statistical problem
@@ -172,7 +179,7 @@ the default scaling parameters. We lift `scaling_mod_size` from
 50 to 59 for a safety margin and state `first_mod_size = 60`
 explicitly, which is the library default.
 
-```{r}
+```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
@@ -196,17 +203,13 @@ We hand `stats4::mle()` a function that looks like a standard
 multivariate negative log-likelihood. Each call drives one
 master/worker round and returns a single decrypted scalar.
 
-```{r}
+```{r eval=RECOMPUTE}
 library(stats4)
 
 encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
     master_aggregate(master, c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig))
 }
 
-## Parameter order matches the coxph formula above, so the
-## side-by-side comparison below is honest. BFGS uses numerical
-## finite-difference gradients, the fair comparison given a
-## generic optimizer driven through an encrypted channel.
 fit <- mle(encrypted_nLL,
            start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
                           BMP6    = 0, MHC2_sig = 0),
@@ -216,29 +219,27 @@ summary(fit)
 logLik(fit)
 ```
 
-## Comparison with the aggregated fit
-
-```{r}
-summary(agg_model)
-cat(sprintf("logLik(distributed encrypted): %f\n", as.numeric(logLik(fit))))
-cat(sprintf("logLik(aggregated cleartext) : %f\n", agg_model$loglik[2]))
+```{r eval=RECOMPUTE, echo=FALSE}
+cox_results <- list(coef   = summary(fit)@coef,
+                    loglik = as.numeric(logLik(fit)),
+                    counts = fit@details$counts)
 ```
 
-The estimates and standard errors agree to high precision: the
-encrypted distributed fit reproduces the aggregated cleartext fit
-without any site revealing its raw patient data.
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cox_results$coef
+cat(sprintf("'log Lik.' %f (df=5)\n", cox_results$loglik))
+```
 
-Comparing the encrypted fit directly against `coxph()` would,
-however, confound two differences at once: the optimizer is not
-the same (BFGS through `mle()` rather than `coxph()`'s
-Newton-Raphson), and the objective is evaluated through CKKS
-rather than in the clear. To separate them we run the identical
-`mle()` objective a second time with the encrypted aggregation
-replaced by an ordinary sum of the three sites' cleartext values.
-This is the cleartext baseline: same likelihood, same optimizer,
+## Comparison with the cleartext fit
+
+To check the encrypted fit, we run the identical `mle()` objective a
+second time with the encrypted aggregation replaced by an ordinary sum
+of the three sites' cleartext values: same likelihood, same optimizer,
 same starting values and tolerance, no encryption.
 
 ```{r}
+library(stats4)
+
 plain_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
     beta <- c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
     sum(vapply(cox_data, local_cox_nll, numeric(1), beta = beta))
@@ -251,42 +252,24 @@ fit_plain <- mle(plain_nLL,
                  control = list(reltol = 1e-7))
 ```
 
-The table below reports both differences. The **optimizer** column
-is the cleartext `mle()` fit against `coxph()`, and is what changing
-the optimization routine costs. The **encryption** column is the
-encrypted `mle()` fit against the cleartext one at the same
-objective, and is what CKKS costs.
-
 ```{r echo = FALSE}
-mle_coefs   <- coef(fit)
+mle_coefs   <- cox_results$coef[, "Estimate"]
 plain_coefs <- coef(fit_plain)[names(mle_coefs)]
-coxph_coefs <- coef(agg_model)[names(mle_coefs)]
-opt_err     <- abs(plain_coefs - coxph_coefs)
-enc_err     <- abs(mle_coefs - plain_coefs)
+enc_diff    <- abs(mle_coefs - plain_coefs)
 comparison <- data.frame(
-    check.names        = FALSE,
-    coefficient        = names(mle_coefs),
-    `coxph()`          = unname(coxph_coefs),
-    `mle(), cleartext` = unname(plain_coefs),
-    `mle(), encrypted` = unname(mle_coefs),
-    optimizer          = formatC(unname(opt_err), format = "e", digits = 2),
-    encryption         = formatC(unname(enc_err), format = "e", digits = 2)
+    check.names           = FALSE,
+    Coefficient           = names(mle_coefs),
+    `mle(), encrypted`    = unname(mle_coefs),
+    `mle(), cleartext`    = unname(plain_coefs),
+    `Absolute Difference` = formatC(unname(enc_diff), format = "e", digits = 2)
 )
 knitr::kable(comparison, digits = 7,
-             caption = "Distributed DLBCL Cox: the two sources of discrepancy separated. `optimizer` is the absolute difference between cleartext mle() and coxph(); `encryption` is the absolute difference between encrypted mle() and cleartext mle().")
+             caption = "Single-decrypter CKKS DLBCL Cox against the same objective evaluated in the clear.")
 ```
 
-The largest optimizer discrepancy is
-`r formatC(max(opt_err), format = "e", digits = 1)`, set by BFGS's
-convergence tolerance against `coxph()`'s Newton-Raphson. The
-largest discrepancy attributable to CKKS is about
-`r formatC(max(enc_err), format = "e", digits = 0)`, roughly
-`r format(signif(max(opt_err) / max(max(enc_err), .Machine$double.eps), 1), big.mark = ",", scientific = FALSE)`
-times smaller. (The encryption figure is CKKS noise and changes
-from one build to the next; the optimizer figure does not.) What
-limits agreement with `coxph()` is the change of optimizer, not the
-encrypted channel, and the cleartext baseline is what lets that be
-measured rather than asserted.
+The encrypted fit agrees with the cleartext fit to within
+`r formatC(max(enc_diff), format = "e", digits = 2)` in every
+coefficient.
 
 ## What just happened
 
@@ -300,20 +283,7 @@ across three hospital sites and returned a single decrypted scalar.
 
 `mle()` does not know — and does not need to know — that any of
 this happened. From its perspective it called a function and got
-a number. The result matches the aggregated `coxph()` fit at the
-precision the optimizer cares about.
-
-## A note on the comparison
-
-`coxph()` uses Newton-Raphson with the **analytic gradient and
-Hessian** of the Cox partial log-likelihood — a scheme-specific
-advantage. We use BFGS with **numerical finite-difference
-gradients**, which is the fair comparison given that we're driving
-a generic optimizer through an encrypted channel. The cleartext
-baseline above puts a number on each effect: the optimizer accounts
-for a discrepancy of `r formatC(max(opt_err), format = "e", digits = 1)`
-in the coefficients, CKKS for about
-`r formatC(max(enc_err), format = "e", digits = 0)`.
+a number. The result matches the cleartext fit of the same objective.
 
 ## What this demonstrates
 

@@ -15,7 +15,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r echo=F}
+```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -23,6 +23,14 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
+## not run when the vignette builds; their results are read from
+## data(similarity_results), produced by data-raw/similarity_results.R
+## from these same chunks. The cleartext recall study runs live.
+## HOMOMORPHER_RECOMPUTE=true runs everything for real.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
+data(similarity_results, package = "homomorpheR")
 ```
 
 ## Introduction
@@ -387,7 +395,7 @@ public key and holds no secret material at all.
 Because the joint key is built *from* the sites, the sites are
 constructed first.
 
-```{r}
+```{r eval=RECOMPUTE}
 cc <- fhe_context(
   scheme               = "CKKS",
   multiplicative_depth = 3L,
@@ -410,6 +418,10 @@ master <- make_threshold_master(name = "master",
 ## involved, and the object has no property a key share could sit in.
 pub <- site_params(sites[[1]])
 pub
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(similarity_results$pub_print, sep = "\n")
 ```
 
 Site $k$'s share lives in `sites[[k]]@state$sk` and nowhere else.
@@ -446,7 +458,7 @@ encoded $p$-vector into slot 0. The same set of rotation
 indices serves both purposes; we generate keys for indices
 $1, \ldots, p-1$ and rely on the subset that each step needs.
 
-```{r}
+```{r eval=RECOMPUTE}
 rotation_indices <- seq_len(p - 1L)
 joint_pk_tag <- get_key_tag(master@joint_pubkey)
 
@@ -495,7 +507,7 @@ We encrypt a known vector, rotate by 3 slots, decrypt via the
 $n$-of-$n$ ceremony, and check that slot $i$ now holds
 $x_{(i+3) \bmod p}$:
 
-```{r}
+```{r eval=RECOMPUTE}
 x <- 1:p
 ct_x      <- encrypt(pub, x)
 ct_rot    <- eval_rotate(ct_x, 3L)
@@ -505,6 +517,11 @@ expected <- x[((seq_len(p) - 1L + 3L) %% p) + 1L]
 stopifnot(max(abs(recovered - expected)) < 1e-6)
 cat("rotation round-trip max error:",
     sprintf("%.2e\n", max(abs(recovered - expected))))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat("rotation round-trip max error:",
+    sprintf("%.2e\n", similarity_results$rot_err))
 ```
 
 ## Per-site adapter fit and database setup
@@ -615,7 +632,7 @@ encrypted_matvec <- function(ct_q, M, cc, p) {
 A round-trip smoke test on a known query vector confirms the
 matvec recovers $A_1 \cdot q$ to floating-point precision:
 
-```{r}
+```{r eval=RECOMPUTE}
 q_demo <- public_query$z[1, ]
 ct_q  <- encrypt(pub, q_demo)
 ct_Aq <- encrypted_matvec(ct_q, A_hat[[1]], cc, p)
@@ -623,6 +640,10 @@ Aq_recovered <- decrypt(master, ct_Aq, len = p)
 Aq_expected  <- as.numeric(A_hat[[1]] %*% q_demo)
 cat(sprintf("matvec max error (site 1): %.2e\n",
             max(abs(Aq_recovered - Aq_expected))))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("matvec max error (site 1): %.2e\n", similarity_results$matvec_err))
 ```
 
 ## Inner product against the local database
@@ -667,13 +688,18 @@ encrypted_inner_product <- function(ct_x, v_plain, cc, p) {
 A smoke test against a single database vector confirms the
 inner product matches the unencrypted computation at slot 0:
 
-```{r}
+```{r eval=RECOMPUTE}
 v_test <- db[[1]]$z[1, ]
 ct_score <- encrypted_inner_product(ct_Aq, v_test, cc, p)
 score_recovered <- decrypt(master, ct_score, len = 1L)
 score_expected  <- sum(Aq_expected * v_test)
 cat(sprintf("inner-product error (site 1, patient 1): %.2e\n",
             abs(score_recovered - score_expected)))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("inner-product error (site 1, patient 1): %.2e\n",
+            similarity_results$ip_err))
 ```
 
 The same `encrypted_inner_product` serves the **Design 1**
@@ -683,12 +709,17 @@ database vectors. At the orthogonal endpoint this matches the
 matvec route exactly; for a non-isometric adapter it is the
 route that stays a valid cosine.
 
-```{r}
+```{r eval=RECOMPUTE}
 ct_score_fold <- encrypted_inner_product(ct_q, db_fold[[1]]$z[1, ], cc, p)
 fold_recovered <- decrypt(master, ct_score_fold, len = 1L)
 fold_expected  <- sum(q_demo * db_fold[[1]]$z[1, ])
 cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
             abs(fold_recovered - fold_expected)))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("Design-1 inner-product error (site 1, patient 1): %.2e\n",
+            similarity_results$fold_err))
 ```
 
 ### What is in the slots we do not read
@@ -704,11 +735,16 @@ wide, so it does not leave partial sums behind — it broadcasts the
 total to every slot. The other slots hold the same score that is
 released anyway.
 
-```{r}
+```{r eval=RECOMPUTE}
 all_slots <- decrypt(master, ct_score, len = p)
 cat(sprintf("slots holding the released score: %d of %d (max deviation %.2e)\n",
             sum(abs(all_slots - score_recovered) < 1e-6), p,
             max(abs(all_slots - score_recovered))))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("slots holding the released score: %d of %d (max deviation %.2e)\n",
+            similarity_results$slots_same, p, similarity_results$slots_dev))
 ```
 
 That is a property of this reduction width, not of CKKS. A layout
@@ -729,7 +765,7 @@ local indices in the clear. This is the **Design 2** branch:
 the adapter is applied to the encrypted query (the matvec), and
 scoring runs against the site's raw private database.
 
-```{r}
+```{r eval=RECOMPUTE}
 make_similarity_site_fn <- function(A_k, db_k, cc, p) {
   function(ct_q) {
     ct_Aq <- encrypted_matvec(ct_q, A_k, cc, p)
@@ -751,12 +787,17 @@ site_fns <- lapply(seq_len(n_sites), function(k) {
 A timed end-to-end run on the demo query through site 1
 returns one encrypted score per local patient:
 
-```{r}
+```{r eval=RECOMPUTE}
 t0 <- proc.time()
 site1_out <- site_fns[[1]](ct_q)
-elapsed <- (proc.time() - t0)[["elapsed"]]
+site1_elapsed <- (proc.time() - t0)[["elapsed"]]
 cat(sprintf("site 1 produced %d encrypted scores in %.2f s\n",
-            length(site1_out$scores), elapsed))
+            length(site1_out$scores), site1_elapsed))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("site 1 produced %d encrypted scores in %.2f s\n",
+            similarity_results$site1_n, similarity_results$site1_elapsed))
 ```
 
 ## Master orchestration and threshold-decrypted top-`k`
@@ -777,7 +818,7 @@ total patients this runs in a few seconds; production
 deployments would pack many patients into the slots of a
 single encrypted value and amortize the ceremony.
 
-```{r}
+```{r eval=RECOMPUTE}
 run_similarity_query <- function(ct_q, site_fns, master, top_k) {
   ## Fan out to every site.
   site_results <- lapply(seq_along(site_fns), function(k) {
@@ -815,6 +856,13 @@ cat(sprintf("Query phenotype label: %d\n", public_query$label))
 print(top_result, row.names = FALSE)
 ```
 
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("Top-%d retrieval over %d sites and %d patients in %.1f s\n",
+            top_k, n_sites, sum(cohort_sizes), similarity_results$query_elapsed))
+cat(sprintf("Query phenotype label: %d\n", public_query$label))
+print(similarity_results$top_result, row.names = FALSE)
+```
+
 ## Reference-truth comparison
 
 The protocol output is meaningful only if the inner products
@@ -823,7 +871,7 @@ in the clear, to within CKKS approximation error. The reference
 computation runs the same $A_k \cdot q$ adapter application and
 inner-product reduction unencrypted on each site's database:
 
-```{r}
+```{r eval=RECOMPUTE}
 plaintext_top_k <- function(q, site_data, A_list, top_k) {
   rows <- list()
   for (k in seq_along(site_data)) {
@@ -860,6 +908,30 @@ enc_set   <- paste(top_result$site_id, top_result$local_index, sep = ":")
 plain_set <- paste(plain_top$site_id,  plain_top$local_index,  sep = ":")
 cat(sprintf("Top-%d set match: %d of %d\n",
             top_k, length(intersect(enc_set, plain_set)), top_k))
+```
+
+```{r eval=RECOMPUTE, echo=FALSE}
+similarity_results <- list(
+    pub_print     = capture.output(print(pub)),
+    rot_err       = max(abs(recovered - expected)),
+    matvec_err    = max(abs(Aq_recovered - Aq_expected)),
+    ip_err        = abs(score_recovered - score_expected),
+    fold_err      = abs(fold_recovered - fold_expected),
+    slots_same    = sum(abs(all_slots - score_recovered) < 1e-6),
+    slots_dev     = max(abs(all_slots - score_recovered)),
+    site1_n       = length(site1_out$scores),
+    site1_elapsed = site1_elapsed,
+    query_elapsed = elapsed,
+    top_result    = top_result,
+    score_err     = score_err,
+    set_match     = length(intersect(enc_set, plain_set)))
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("Top-%d encrypted vs cleartext score max error: %.2e\n",
+            top_k, similarity_results$score_err))
+cat(sprintf("Top-%d set match: %d of %d\n",
+            top_k, similarity_results$set_match, top_k))
 ```
 
 ## What the adapter buys: fidelity, posture, and a sweet spot

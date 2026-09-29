@@ -15,7 +15,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r echo=F}
+```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -23,6 +23,13 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
+## not run when the vignette builds; their results are read from
+## data(cvxr_admm_results), produced by data-raw/cvxr_admm_results.R
+## from these same chunks. HOMOMORPHER_RECOMPUTE=true runs them for real.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
+data(cvxr_admm_results, package = "homomorpheR")
 ```
 
 ## Introduction
@@ -228,7 +235,7 @@ reason: the aggregator sends the encrypted value out and each site applies
 its own share, because a share that traveled to the aggregator would
 make the whole construction pointless.
 
-```{r}
+```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
@@ -304,7 +311,7 @@ Now the sites exist, so the chain can run through them. Each generates
 its own share and keeps it; what comes back is an aggregator holding
 the joint public key and nothing secret.
 
-```{r}
+```{r eval=RECOMPUTE}
 sites <- lapply(seq_len(N), function(i)
     make_consensus_site(paste0("Site ", i),
                         site_data[[i]]$X, site_data[[i]]$y))
@@ -313,8 +320,13 @@ master <- make_threshold_master("Aggregator",
                                 crypto_context = cc,
                                 sites          = sites)
 
-c(aggregator_has_share = !is.null(master@state$sk),
-  every_site_has_one   = all(vapply(sites, function(s) !is.null(s@state$sk), TRUE)))
+share_check <- c(aggregator_has_share = !is.null(master@state$sk),
+                 every_site_has_one   = all(vapply(sites, function(s) !is.null(s@state$sk), TRUE)))
+share_check
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cvxr_admm_results$share_check
 ```
 
 ## Centralized CVXR fit
@@ -374,7 +386,7 @@ The cost of not taking the shortcut is small: the encrypted
 channel moves a length-$p$ vector, while each iteration pays for
 $N$ interior-point solves.
 
-```{r}
+```{r eval=RECOMPUTE}
 rho_grid    <- c(10, 50, 200)
 sweep_iters <- integer(length(rho_grid))
 
@@ -413,6 +425,14 @@ cat(sprintf("Selected rho = %g (converged in %d iterations).\n",
             rho_chosen, min(sweep_iters, na.rm = TRUE)))
 ```
 
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+knitr::kable(cvxr_admm_results$sweep_table,
+             caption = "Threshold-FHE ADMM iterations to convergence")
+cat(sprintf("Selected rho = %g (converged in %d iterations).\n",
+            cvxr_admm_results$rho_chosen,
+            min(cvxr_admm_results$sweep_table$iters, na.rm = TRUE)))
+```
+
 ## The ADMM run at the chosen $\rho$
 
 Local problems rebuilt at the chosen $\rho$ — the same parties, holding
@@ -420,7 +440,7 @@ the same shares from the key-generation chain above — then the main
 loop, identical to the sweep body except that it records the
 trajectory:
 
-```{r}
+```{r eval=RECOMPUTE}
 for (s in sites) set_rho(s, rho_chosen)
 
 z_curr    <- rep(0, p)
@@ -451,6 +471,22 @@ if (!converged)
     stop("Encrypted ADMM did not converge within max_iter; rerun the rho sweep.")
 
 cat(sprintf("Encrypted ADMM converged in %d iterations.\n", length(trajectory)))
+```
+
+```{r eval=RECOMPUTE, echo=FALSE}
+cvxr_admm_results <- list(share_check = share_check,
+                          sweep_table = sweep_table,
+                          rho_chosen  = rho_chosen,
+                          trajectory  = trajectory,
+                          z_final     = z_curr,
+                          reltol      = reltol)
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cat(sprintf("Encrypted ADMM converged in %d iterations.\n",
+            length(cvxr_admm_results$trajectory)))
+z_curr <- cvxr_admm_results$z_final
+reltol <- cvxr_admm_results$reltol
 ```
 
 ## Comparison with the centralized fit
@@ -512,5 +548,6 @@ if (max_diff > 10 * reltol)
   protocol than this one.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the
   same coefficient vector as the centralized fit. Output-level
-  attacks are out of scope here; the companion DP vignettes (not
-  yet ported) demonstrate output DP composition.
+  attacks are out of scope here; the companion
+  `vignette("cvxr-consensus-admm-dp")` demonstrates output DP
+  composition.

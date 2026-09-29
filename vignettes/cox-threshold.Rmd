@@ -15,7 +15,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-```{r echo=F}
+```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
@@ -23,6 +23,14 @@ knitr::opts_chunk$set(
   tidy = FALSE,
   cache = FALSE
 )
+## The encrypted chunks are gated `eval = RECOMPUTE` and are shown but
+## not run when the vignette builds; their results are read from
+## data(cox_threshold_results), produced by
+## data-raw/cox_threshold_results.R from these same chunks.
+## HOMOMORPHER_RECOMPUTE=true runs them for real.
+if (!exists("RECOMPUTE"))
+    RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
+data(cox_threshold_results, package = "homomorpheR")
 ```
 
 ## Introduction
@@ -87,11 +95,6 @@ cox_data <- split(
   DLBCL[, c("time", "status", "GCB_sig", "LN_sig",
             "Prolif_sig", "BMP6", "MHC2_sig", "Subgroup")],
   DLBCL$Subgroup)
-
-agg_model <- coxph(Surv(time, status) ~ GCB_sig + LN_sig +
-                       Prolif_sig + BMP6 + MHC2_sig +
-                       strata(Subgroup),
-                   data = DLBCL)
 ```
 
 ## The protocol
@@ -141,7 +144,7 @@ local_cox_nll <- function(data, beta) {
 The CKKS context needs the `MULTIPARTY` feature enabled so the
 chained `multiparty_key_gen()` calls work:
 
-```{r}
+```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
                            multiplicative_depth = 1L,
                            scaling_mod_size     = 59L,
@@ -157,7 +160,7 @@ and returns a master that holds the joint public key, holds nothing
 secret, and is already wired to the sites. Its `decrypt` method
 drives the partial-decrypt fan-in by asking each site in turn.
 
-```{r}
+```{r eval=RECOMPUTE}
 worker_gcb <- make_worker(name = "GCB",      data = cox_data[["GCB"]],
                           contribution_fn = local_cox_nll)
 worker_abc <- make_worker(name = "ABC",      data = cox_data[["ABC"]],
@@ -174,9 +177,14 @@ The share each site generated stays in that site's own state; nothing
 in the returned master can decrypt on its own. We can check that rather
 than assert it:
 
-```{r}
-c(master_holds_shares = "secret_keys" %in% names(S7::props(master)),
-  gcb_holds_own_share = !is.null(worker_gcb@state$sk))
+```{r eval=RECOMPUTE}
+share_check <- c(master_holds_shares = "secret_keys" %in% names(S7::props(master)),
+                 gcb_holds_own_share = !is.null(worker_gcb@state$sk))
+share_check
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cox_threshold_results$share_check
 ```
 
 ## Iterative MLE through the threshold protocol
@@ -185,7 +193,7 @@ The optimizer-facing code is *identical* to `cox.Rmd`. Same
 `master_aggregate()` runner, same `mle()` driver — only the
 underlying master class changed.
 
-```{r}
+```{r eval=RECOMPUTE}
 library(stats4)
 
 encrypted_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
@@ -201,28 +209,57 @@ summary(fit)
 logLik(fit)
 ```
 
+```{r eval=RECOMPUTE, echo=FALSE}
+cox_threshold_results <- list(coef        = summary(fit)@coef,
+                              loglik      = as.numeric(logLik(fit)),
+                              counts      = fit@details$counts,
+                              share_check = share_check)
+```
+
+```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
+cox_threshold_results$coef
+cat(sprintf("'log Lik.' %f (df=5)\n", cox_threshold_results$loglik))
+```
+
 ## Comparison with the cleartext fit
 
+As in `vignette("cox")`, the check is the identical `mle()` objective
+with the encrypted aggregation replaced by an ordinary sum of the
+three sites' cleartext values.
+
 ```{r}
-summary(agg_model)
-cat(sprintf("logLik(threshold-distributed encrypted): %f\n",
-            as.numeric(logLik(fit))))
-cat(sprintf("logLik(aggregated cleartext)            : %f\n",
-            agg_model$loglik[2]))
+library(stats4)
+
+plain_nLL <- function(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig) {
+    beta <- c(GCB_sig, LN_sig, Prolif_sig, BMP6, MHC2_sig)
+    sum(vapply(cox_data, local_cox_nll, numeric(1), beta = beta))
+}
+
+fit_plain <- mle(plain_nLL,
+                 start   = list(GCB_sig = 0, LN_sig = 0, Prolif_sig = 0,
+                                BMP6    = 0, MHC2_sig = 0),
+                 method  = "BFGS",
+                 control = list(reltol = 1e-7))
 ```
 
 ```{r echo = FALSE}
-mle_coefs   <- coef(fit)
-coxph_coefs <- coef(agg_model)
+thr_coefs   <- cox_threshold_results$coef[, "Estimate"]
+plain_coefs <- coef(fit_plain)[names(thr_coefs)]
+thr_diff    <- abs(thr_coefs - plain_coefs)
 comparison <- data.frame(
-    coefficient            = names(mle_coefs),
-    threshold_distributed  = unname(mle_coefs),
-    aggregated_cleartext   = unname(coxph_coefs[names(mle_coefs)]),
-    abs_diff               = unname(abs(mle_coefs - coxph_coefs[names(mle_coefs)]))
+    check.names           = FALSE,
+    Coefficient           = names(thr_coefs),
+    `mle(), threshold`    = unname(thr_coefs),
+    `mle(), cleartext`    = unname(plain_coefs),
+    `Absolute Difference` = formatC(unname(thr_diff), format = "e", digits = 2)
 )
-knitr::kable(comparison, digits = 9,
-             caption = "Threshold-distributed BFGS vs. aggregated-cleartext coxph()")
+knitr::kable(comparison, digits = 7,
+             caption = "Threshold-CKKS DLBCL Cox against the same objective evaluated in the clear.")
 ```
+
+The threshold fit agrees with the cleartext fit to within
+`r formatC(max(thr_diff), format = "e", digits = 2)` in every
+coefficient.
 
 ## Discussion
 1. **No single party holds the decryption key.** Each site generated
@@ -231,9 +268,9 @@ knitr::kable(comparison, digits = 9,
    intermediate values are undecryptable by any single party in the
    system, the aggregator included.
 2. **Same statistical fit as the trusted-master version.** The
-   coefficients and standard errors agree with `coxph()` to the
-   precision the optimizer cares about. Threshold key generation
-   is a trust-model improvement; it does not change the fit.
+   coefficients agree with the cleartext fit of the same objective
+   to CKKS precision. Threshold key generation is a trust-model
+   improvement; it does not change the fit.
 3. **Same optimizer, same callback shape, same code structure.**
    Compared to `cox.Rmd` only the setup changed: the workers are
    built first and handed to `make_threshold_master()` instead of
