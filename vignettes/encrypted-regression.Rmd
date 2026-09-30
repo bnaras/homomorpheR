@@ -147,7 +147,7 @@ cat(sprintf("Max absolute error vs cleartext sigmoid: %.2e\n", max_err))
   the depth set in the context. Deeper computations need larger
   parameters and more memory.
 - **Approximation error**: CKKS is approximate. For deployment,
-  precision would need to be validate for the use case.
+  precision would need to be validated for the use case.
 - **Performance**: encrypted computation is orders of magnitude
   slower than cleartext.
 - **Threat model**: the model-extraction caveat of

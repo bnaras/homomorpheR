@@ -86,7 +86,7 @@ scheme lets anyone compute $E(c_1) + E(c_2) + E(c_3) = E(c_1 + c_2 +
 c_3)$ without decrypting the parts.
 
 The historical difficulty was not the arithmetic but the *trust
-model*. Whoever holds it can decrypt anything — including a lone
+model*. Whoever holds the private key can decrypt anything — including a lone
 $E(c_i)$. So if the aggregator holds the key, it can read each site's
 count individually, defeating the purpose.
 
@@ -220,5 +220,3 @@ stopifnot(identical(as.integer(encrypted_count), as.integer(cleartext_count)))
   assumed to follow the protocol.  A malicious site could submit a
   wrong count or a corrupted partial decryption; detecting that
   requires verifiable decryption, which is beyond this demonstration.
-
-## References

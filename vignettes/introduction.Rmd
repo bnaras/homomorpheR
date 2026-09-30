@@ -31,7 +31,7 @@ A recurring situation in biomedical research: several sites hold
 patient records that cannot leave the institutions that collected
 them, and one would like to fit a single model to the pooled data.
 
-It is well known that for a many models---row-paritioned data---this
+It is well known that for many models fit to row-partitioned data this
 is easy to do.  The log-likelihood, the score, and the information
 matrix are all *sums over observations*, so they are also sums over
 sites. An optimizer fitting such a model never needs an individual
@@ -256,12 +256,11 @@ contract.
 
 ## What "the right answer" means
 
-*Precision* is the companion to this page. It sets out what an
-encrypted result being correct actually means — exact for integer
-counting, approximate within a measurable bound for real-valued
-arithmetic, and merely statistical when an optimizer is involved — and
-which comparisons are not meaningful at all. Worth reading before
-interpreting any number in the vignettes below.
+*Precision* is the companion to this page. It sets out what it
+means for an encrypted result to be correct: exact for integer
+counting, and approximate within a measurable bound for real-valued
+arithmetic. Read it before interpreting any number in the vignettes
+below.
 
 ## Which vignette to read
 

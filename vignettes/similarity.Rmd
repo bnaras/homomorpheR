@@ -922,7 +922,7 @@ cat(sprintf("Top-%d set match: %d of %d\n",
 
 The encrypted mechanics work to floating-point precision, as the
 smoke tests and reference comparison above confirm (max error
-$\sim 10^{-11}$). So we now investigate three questions:
+$\sim 10^{`r with(similarity_results, floor(log10(max(rot_err, matvec_err, ip_err, fold_err, score_err))))`}$). So we now investigate three questions:
 
 1. **Fidelity.** When the drift is genuinely non-isometric, does
    a near-orthogonal or least-squares adapter recover retrieval
@@ -1082,7 +1082,7 @@ adapter and can beat both endpoints — a secondary effect that
 appears only under scarce calibration. The Gram-PSD reference
 sits near the unaligned floor: its rotation invariance loses the
 public-frame orientation, so it is the wrong tool for a
-public-query retrieval (see the discussion).
+public-query retrieval.
 
 ```{r recall-figure, fig.width=9, fig.height=7, fig.align="center"}
 op <- par(mfrow = c(2, 2), mar = c(4.2, 4.2, 2.4, 1.0))
@@ -1180,7 +1180,7 @@ par(op)
   score, not a top-$k$ release. See the Limitations below, which is
   where encrypted top-$k$ would change this. The encrypted
   protocol's scores agree with the same computation run unencrypted
-  to $\sim 10^{-11}$.
+  to $\sim 10^{`r floor(log10(similarity_results$score_err))`}$.
 - **Fidelity under non-isometric drift.** When fine-tuning is a
   genuine non-isometry, the rigid orthogonal endpoint leaves
   recall on the table while a relaxed (least-squares or
