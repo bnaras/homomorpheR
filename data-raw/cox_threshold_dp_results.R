@@ -16,7 +16,8 @@ source(script)
 
 stopifnot(is.list(cox_threshold_dp_results),
           nrow(cox_threshold_dp_results$clean_check) == 5L,
-          nrow(cox_threshold_dp_results$bfgs_table)  == 5L,
+          nrow(cox_threshold_dp_results$bfgs_table)  == 6L,
+          nrow(cox_threshold_dp_results$nm_table)    == 6L,
           nrow(cox_threshold_dp_results$budget)      == 6L)
 
 save(cox_threshold_dp_results, file = "data/cox_threshold_dp_results.rda",

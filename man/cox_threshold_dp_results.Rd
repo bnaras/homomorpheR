@@ -6,10 +6,9 @@
 \title{Precomputed results for the \code{cox-threshold-dp} vignette}
 \format{
 A list of the vignette's tables: \code{clean_check} (the fit at
-zero noise against \code{coxph()}), \code{bfgs_table} (BFGS fits over the
-noise grid), \code{nm_compare} and \code{nm_caption} (BFGS against
-Nelder-Mead at the largest noise), and \code{budget} (the zCDP privacy
-budget of each fit).
+zero noise against \code{coxph()}), \code{bfgs_table} and \code{nm_table} (BFGS
+and Nelder-Mead fits over the noise grid), and \code{budget} (the zCDP
+privacy budget of the fits at the first three noise scales).
 }
 \source{
 \code{data-raw/cox_threshold_dp_results.R}, from

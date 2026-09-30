@@ -124,10 +124,9 @@
 #' Precomputed results for the `cox-threshold-dp` vignette
 #'
 #' @format A list of the vignette's tables: `clean_check` (the fit at
-#'   zero noise against `coxph()`), `bfgs_table` (BFGS fits over the
-#'   noise grid), `nm_compare` and `nm_caption` (BFGS against
-#'   Nelder-Mead at the largest noise), and `budget` (the zCDP privacy
-#'   budget of each fit).
+#'   zero noise against `coxph()`), `bfgs_table` and `nm_table` (BFGS
+#'   and Nelder-Mead fits over the noise grid), and `budget` (the zCDP
+#'   privacy budget of the fits at the first three noise scales).
 #' @source `data-raw/cox_threshold_dp_results.R`, from
 #'   `vignettes/cox-threshold-dp.Rmd`.
 #' @keywords datasets

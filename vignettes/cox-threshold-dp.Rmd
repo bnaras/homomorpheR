@@ -42,26 +42,22 @@ data(cox_threshold_dp_results, package = "homomorpheR")
 ```
 
 ## Introduction
-This vignette is a demonstration. `vignette("cox-threshold")` fits
+This vignette is a demonstration. The previous `vignette("cox-threshold")` fits
 the Cox model under threshold FHE: the fit matches the cleartext
 fit, no single party can decrypt, and the aggregator sees only the
-joint log-likelihood $\ell(\beta)$ at each optimizer query. Those
-values are what the protocol reveals.
+joint log-likelihood $\ell(\beta)$ at each optimizer query. 
 
 Here we ask what happens if each site also adds noise, so that the
-released values satisfy **output differential privacy**. Adding the
+released values satisfy *output differential privacy*. Adding the
 noise takes one extra `rnorm()` call per site per query. With the
 optimizers used here, the fits are poor at any noise level that
 gives a small $\varepsilon$. The vignette runs the fits and reports
 the numbers.
 
-Threshold FHE without noise remains the package's main path. This
-vignette shows what adding output DP on top costs.
-
 ## A brief output-DP primer
 
 Given a query $f: \mathcal{D} \to \mathbb{R}$ on a dataset $D$,
-the **Gaussian mechanism** [@DworkRoth2014, §3.5.3] releases
+the *Gaussian mechanism* [@DworkRoth2014, §3.5.3] releases
 $\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2)$. If $f$'s
 *sensitivity* (the largest change $f$ can undergo when one record
 is added or removed) is $\Delta$, then for any
@@ -71,7 +67,7 @@ single release of $\tilde f$ satisfy $(\varepsilon, \delta)$
 differential privacy.
 
 The optimizer issues many queries, so the per-query budget
-composes. We use **zCDP composition** [@BunSteinke2016]:
+composes. We use *zCDP composition* [@BunSteinke2016]:
 the Gaussian mechanism is $\rho$-zCDP with $\rho = (\Delta/\sigma)^2/2$;
 $T$ queries compose linearly to $T \cdot \rho$ in zCDP units; and
 that converts to $(\varepsilon, \delta)$ via
@@ -121,10 +117,10 @@ local_cox_nll <- function(data, beta) {
 
 ## Threshold setup and DP-noised workers
 
-The threshold setup is the same as in `cox-threshold`. The only
-change is in each worker's `contribution_fn`: it adds an
-independent $\mathcal{N}(0, \sigma^2/N)$ draw to its local nLL
-before returning it. The noisy value is then encrypted as usual.
+The threshold setup is also the same as in `cox-threshold`. The only
+change is in each worker's `contribution_fn`: it adds an independent
+$\mathcal{N}(0, \sigma^2/N)$ draw to its local nLL before returning
+it. The noisy value is then encrypted as usual.
 
 ```{r eval=RECOMPUTE}
 cc <- openfhe.R::fhe_context("CKKS",
@@ -171,6 +167,49 @@ When the noise is zero the protocol reduces to the lossless
 threshold protocol. The fitted coefficients match `coxph()` to
 threshold-CKKS precision.
 
+```{r echo=FALSE}
+## Table display in mathematical notation. The stored tables keep
+## their plain column names; only what is printed changes.
+tex_pow10 <- function(x)
+    ifelse(x == 1, "$1$", sprintf("$10^{%d}$", as.integer(round(log10(x)))))
+tex_sci <- function(x, digits = 4) {
+    e <- floor(log10(abs(x)))
+    ifelse(x == 0 | (e >= -2 & e < 4),
+           sprintf("$%s$", trimws(formatC(x, format = "fg", digits = digits))),
+           sprintf("$%s \\times 10^{%d}$",
+                   trimws(formatC(x / 10^e, format = "fg", digits = digits)),
+                   as.integer(e)))
+}
+show_clean <- function(tab) {
+    tab$abs_diff <- tex_sci(tab$abs_diff)
+    knitr::kable(tab, digits = 9, col.names = clean_cols, caption = clean_caption,
+                 align = "lrrr")
+}
+clean_cols  <- c("Coefficient", "$\\hat\\beta$, `coxph()`",
+                 "$\\hat\\beta$, protocol at $\\sigma = 0$",
+                 "$\\lvert \\text{difference} \\rvert$")
+clean_caption <- "Threshold-DP protocol at $\\sigma = 0$ vs cleartext `coxph()`"
+sweep_cols  <- c("$\\sigma$", "Evaluations", "GCB_sig", "LN_sig", "Prolif_sig",
+                 "BMP6", "MHC2_sig",
+                 "$\\max_j \\lvert \\hat\\beta_j - \\hat\\beta_j^{\\text{coxph}} \\rvert$")
+budget_cols <- c("Optimizer", "$\\sigma$", "Queries $k$", "$\\rho$ per query",
+                 "$\\rho_{\\text{total}} = k\\rho$", "$\\varepsilon$ at $\\delta = 10^{-5}$")
+budget_caption <- "zCDP composition; sensitivity $\\Delta = 1$, target $\\delta = 10^{-5}$"
+show_sweep <- function(tab, optimizer) {
+    tab$sigma <- tex_pow10(tab$sigma)
+    knitr::kable(tab, digits = 6, row.names = FALSE, col.names = sweep_cols,
+                 caption = sprintf("%s over the threshold-DP nLL at %d values of $\\sigma$",
+                                   optimizer, nrow(tab)))
+}
+show_budget <- function(tab) {
+    tab$sigma <- tex_pow10(tab$sigma)
+    for (v in c("rho_per_query", "rho_total", "epsilon_at_delta_1e_minus_5"))
+        tab[[v]] <- tex_sci(tab[[v]])
+    knitr::kable(tab, row.names = FALSE, col.names = budget_cols,
+                 caption = budget_caption, align = "lrrrrr")
+}
+```
+
 ```{r eval=RECOMPUTE}
 fit_clean <- fit_at_sigma(0)
 clean_check <- data.frame(
@@ -179,184 +218,99 @@ clean_check <- data.frame(
     protocol    = unname(coef(fit_clean)[names(agg_coef)]),
     abs_diff    = abs(unname(coef(fit_clean)[names(agg_coef)] - agg_coef))
 )
-knitr::kable(clean_check, digits = 9,
-             caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
+show_clean(clean_check)
 ```
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
-knitr::kable(cox_threshold_dp_results$clean_check, digits = 9,
-             caption = "Threshold-DP protocol at sigma = 0 vs cleartext coxph()")
+show_clean(cox_threshold_dp_results$clean_check)
 ```
 
 The maximum absolute coefficient difference at $\sigma = 0$ is
 `r sci(max(cox_threshold_dp_results$clean_check$abs_diff), 3)`.
 So any deviation from `coxph()` below comes from the noise.
 
-## BFGS at increasing noise: where does it break?
+## Increasing noise: where does it break?
 
-We sweep $\sigma$ across four orders of magnitude. Each fit is
-one full BFGS run over the threshold-DP encrypted nLL.
+We sweep $\sigma$ across five orders of magnitude. Each fit is one
+full BFGS run over the threshold-DP encrypted nLL. BFGS estimates the
+gradient by finite differences of these nLL values.
 
 ```{r eval=RECOMPUTE}
-sigma_grid_bfgs <- c(1e-4, 1e-3, 1e-2, 1e-1, 1)
-fits_bfgs <- lapply(sigma_grid_bfgs, fit_at_sigma, method = "BFGS")
-names(fits_bfgs) <- sprintf("sigma_%g", sigma_grid_bfgs)
+sigma_grid <- c(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1)
 
-bfgs_table <- data.frame(
-    sigma        = sigma_grid_bfgs,
-    n_evals      = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
-    GCB_sig      = sapply(fits_bfgs, function(f) coef(f)[["GCB_sig"]]),
-    LN_sig       = sapply(fits_bfgs, function(f) coef(f)[["LN_sig"]]),
-    Prolif_sig   = sapply(fits_bfgs, function(f) coef(f)[["Prolif_sig"]]),
-    BMP6         = sapply(fits_bfgs, function(f) coef(f)[["BMP6"]]),
-    MHC2_sig     = sapply(fits_bfgs, function(f) coef(f)[["MHC2_sig"]]),
-    max_abs_diff = sapply(fits_bfgs, function(f)
+sweep_table <- function(fits) data.frame(
+    sigma        = sigma_grid,
+    n_evals      = sapply(fits, function(f) f@details$counts[["function"]]),
+    GCB_sig      = sapply(fits, function(f) coef(f)[["GCB_sig"]]),
+    LN_sig       = sapply(fits, function(f) coef(f)[["LN_sig"]]),
+    Prolif_sig   = sapply(fits, function(f) coef(f)[["Prolif_sig"]]),
+    BMP6         = sapply(fits, function(f) coef(f)[["BMP6"]]),
+    MHC2_sig     = sapply(fits, function(f) coef(f)[["MHC2_sig"]]),
+    max_abs_diff = sapply(fits, function(f)
         max(abs(coef(f) - agg_coef[names(coef(f))]))))
-knitr::kable(bfgs_table, digits = 6,
-             caption = "BFGS over the threshold-DP nLL at five noise scales")
+
+fits_bfgs  <- lapply(sigma_grid, fit_at_sigma, method = "BFGS")
+bfgs_table <- sweep_table(fits_bfgs)
+show_sweep(bfgs_table, "BFGS")
 ```
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
-knitr::kable(cox_threshold_dp_results$bfgs_table, digits = 6,
-             caption = "BFGS over the threshold-DP nLL at five noise scales")
+show_sweep(cox_threshold_dp_results$bfgs_table, "BFGS")
 ```
 
-`max_abs_diff` grows slowly up to $\sigma = 0.01$ and jumps at
-$\sigma = 0.1$. At $\sigma = 1$ BFGS converges, but the fit is
-far from the cleartext one.
+## Nelder–Mead at the same noise scales
 
-### Why BFGS breaks
-
-BFGS estimates gradients by finite differences. With default
-`ndeps = 1e-3` the gradient noise per coordinate inflates from
-the function-value noise of $\sigma$ to roughly $\sigma\sqrt{2}/(2h)
-\approx 707\,\sigma$. Near the optimum the true gradient is small
-and the noise dominates. Any optimizer that differences nearby
-function values has the same problem. The encryption is not
-involved: the protocol releases $\ell(\beta) +
-\mathcal{N}(0, \sigma^2)$ at every query, as intended.
-
-## Nelder–Mead at the same noise scale
-
-Nelder–Mead is gradient-free; it never amplifies noise through a
-$1/h$ divisor. Noise still hurts it, but more gently than BFGS.
+The same sweep with Nelder–Mead.
 
 ```{r eval=RECOMPUTE}
-fit_nm_1 <- fit_at_sigma(1, method = "Nelder-Mead")
-
-bfgs1 <- coef(fits_bfgs[["sigma_1"]])
-nm1   <- coef(fit_nm_1)
-coefs <- names(agg_coef)
-
-nm_compare <- data.frame(
-    coefficient  = coefs,
-    coxph_agg = unname(agg_coef[coefs]),
-    BFGS_sigma1  = unname(bfgs1[coefs]),
-    NM_sigma1    = unname(nm1[coefs])
-)
-nm_caption <- sprintf(
-    "BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)",
-    fits_bfgs[["sigma_1"]]@details$counts[["function"]],
-    fit_nm_1@details$counts[["function"]])
-knitr::kable(nm_compare, digits = 6, caption = nm_caption)
+fits_nm  <- lapply(sigma_grid, fit_at_sigma, method = "Nelder-Mead")
+nm_table <- sweep_table(fits_nm)
+show_sweep(nm_table, "Nelder–Mead")
 ```
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
-knitr::kable(cox_threshold_dp_results$nm_compare, digits = 6,
-             caption = cox_threshold_dp_results$nm_caption)
+show_sweep(cox_threshold_dp_results$nm_table, "Nelder–Mead")
 ```
 
-At $\sigma = 1$ BFGS gets at least one coefficient's sign wrong
-relative to the cleartext fit. Nelder–Mead at the same $\sigma$
-gets every sign right, but uses more function evaluations, and
-each one adds to the privacy budget below.
+For both optimizers, fidelity decays monotonically as expected.
 
 ## Privacy budget
 
-For each fit, with sensitivity $\Delta = 1$ (placeholder) and
-target $\delta = 10^{-5}$, zCDP composition gives:
+For the fits at the first three values of $\sigma$, with
+sensitivity $\Delta = 1$ (placeholder) and target
+$\delta = 10^{-5}$, zCDP composition gives:
 
 ```{r eval=RECOMPUTE}
 zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
 
-bfgs_budget <- data.frame(
-    optimizer = "BFGS",
-    sigma     = sigma_grid_bfgs,
-    n_queries = sapply(fits_bfgs, function(f) f@details$counts[["function"]]),
-    stringsAsFactors = FALSE)
-nm_budget <- data.frame(
-    optimizer = "Nelder-Mead",
-    sigma     = 1,
-    n_queries = fit_nm_1@details$counts[["function"]])
-budget <- rbind(bfgs_budget, nm_budget)
+budget_rows <- function(optimizer, tab) data.frame(
+    optimizer = optimizer,
+    sigma     = tab$sigma[1:3],
+    n_queries = tab$n_evals[1:3])
+budget <- rbind(budget_rows("BFGS", bfgs_table),
+                budget_rows("Nelder–Mead", nm_table))
 budget$rho_per_query              <- (1 / budget$sigma)^2 / 2
 budget$rho_total                  <- budget$n_queries * budget$rho_per_query
 budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
-knitr::kable(budget, digits = 4,
-             caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
+show_budget(budget)
 ```
 
 ```{r eval=RECOMPUTE, echo=FALSE}
 cox_threshold_dp_results <- list(clean_check = clean_check,
                                  bfgs_table  = bfgs_table,
-                                 nm_compare  = nm_compare,
-                                 nm_caption  = nm_caption,
+                                 nm_table    = nm_table,
                                  budget      = budget)
 ```
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
-knitr::kable(cox_threshold_dp_results$budget, digits = 4,
-             caption = "zCDP composition; sensitivity Delta = 1, target delta = 1e-5")
+show_budget(cox_threshold_dp_results$budget)
 ```
 
-The `epsilon_at_delta_1e_minus_5` column shows that at noise
+The $\varepsilon$ column shows that at noise
 levels where the fits are still close, $\varepsilon$ is large.
 Whether that is acceptable depends on the application.
 
-### What it would take to push $\varepsilon$ smaller
-
-Three directions, none pursued here:
-
-1. **Tighter sensitivity bound.** $\Delta = 1$ is conservative;
-   careful Cox-specific analysis could reduce it.
-2. **Far fewer queries.** An optimizer that found the MLE in
-   $\le 10$ queries would improve the budget by $\sim 10\times$;
-   DP-SGD-style methods achieve this via subsampling and
-   momentum.
-3. **Subsampling amplification.** Per-record subsampling with the
-   appropriate amplification accountant — incompatible with the
-   current "compute the whole nLL at every site at every query"
-   shape, but adaptable.
-
-These are open research questions and outside the scope of the
-package.
-
-## Summary
-
-1. At $\sigma = 0$ the protocol matches the cleartext `coxph()`
-   fit to CKKS precision.
-2. Threshold FHE controls who can decrypt; output DP limits what
-   the released values reveal. Adding DP takes one `rnorm()` call
-   per site per query and nothing new in homomorpheR.
-3. The vignette fits five values of $\sigma$ with BFGS and one
-   with Nelder–Mead, and tabulates the fits and privacy budgets.
-4. BFGS amplifies the noise through finite-difference gradients
-   and fails at moderate $\sigma$. Nelder–Mead at $\sigma = 1$
-   gets the signs right but needs more queries. The accuracy loss
-   comes from the optimizer's response to noise, not from the
-   encryption.
-
-## Limitations
-- **Tight Cox sensitivity.** $\Delta = 1$ is a placeholder.
-- **DP-SGD or stochastic gradient methods** [@AbadiCKMMTZ2016].
-  Standard alternative for tight DP budgets; out of scope here.
-- **Adaptive noise schedules.** All queries here use the same
-  $\sigma$; adaptive schedules can be tighter.
-- **Malicious-site protection.** A hostile site can corrupt its
-  $\text{nLL}_i$. Out of scope.
-
-For fits that match the cleartext fit, use
-`vignette("cox-threshold")`; the aggregator then sees the exact
-$\ell(\beta)$ values.
+One could also explore tighter sensitivity bound $\Delta$ or allow far
+fewer queries, etc. We don't do that here.
 
 ## References
