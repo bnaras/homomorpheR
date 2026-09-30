@@ -1207,7 +1207,7 @@ par(op)
   $\lVert A_k^\top v\rVert$. At the orthogonal end they are all
   one, which buys two things at once: the homomorphic
   inverse-square-root (the depth-dominating Newton iteration of
-  Qu & Xu 2023 / Prantl et al. *De Bello Homomorphico* 2023) is
+  @QuXu2023 and @Prantl2024DeBello) is
   avoided, *and* every per-site score is a cosine in $[-1,1]$ on
   the same scale across sites, so the raw-database matvec
   (Design 2) is directly comparable. As $\mu$ relaxes for better
@@ -1241,34 +1241,20 @@ par(op)
   decryption and verifiable computation on the encrypted
   scores; that is heavy machinery and out of scope.
 
-## Where this fits
+## Related work
 
-This vignette extends the threshold-FHE family in
-`homomorpheR` — `cox-threshold` and `cvxr-cox-lasso-dlbcl` —
-with a third protocol shape. Cox-threshold and ADMM use a
-master/worker fan-in — each worker's encrypted contribution is
-summed by the master; the similarity protocol uses a
-broadcast-and-aggregate shape: encrypted query in, per-site
-scoring, master-side threshold decryption of the released
-top-$k$. The actor surface (`make_threshold_master`,
-`make_worker`, `encrypt`, `decrypt`) carries over
-unchanged.
+In `cox-threshold` and `cvxr-cox-lasso-dlbcl` the aggregator sums
+the sites' encrypted contributions. Here an encrypted query goes to
+every site, each site scores it, and the aggregator
+threshold-decrypts the scores. The actor functions
+(`make_threshold_master`, `make_worker`, `encrypt`, `decrypt`) are
+the same.
 
-The closest precedents in the literature combine some but
-not all of the ingredients used here: FRAG (Lin et al.,
-arXiv:2410.13272) federates encrypted retrieval across
-distrusting parties but assumes a shared embedding model;
-FedE4RAG (arXiv:2504.19101) federates *training* of RAG
-retrievers under CKKS-on-gradients, with each client running
-its own fine-tuned model, but does the cross-client alignment
-through knowledge distillation rather than a fitted
-compatibility adapter; the AMPPERE three-party setup for PPER
-(arXiv:2405.18430) uses CKKS for entity resolution but
-assumes homogeneous models and tokenization-based alignment.
-The composition of (a) site-private fine-tuned models, (b)
-a private per-site compatibility adapter on the near-isometry
-($\mu$) family, fit on a public anchor cohort, (c) threshold
-CKKS with $n$-of-$n$ decryption, and (d) two interchangeable
-deployments (encrypted-query matvec or offline fold) with the
-adapter held privately at each site does not appear to have
-been studied as a unified pipeline.
+@Zhao2024FRAG federates encrypted vector search across mutually
+distrusting parties. @Mao2025FedE4RAG train retrievers by federated
+learning, with knowledge distillation between the server and client
+models and homomorphic encryption of the model parameters.
+@Yao2024PPER use homomorphic encryption for entity resolution across
+healthcare databases.
+
+## References

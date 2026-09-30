@@ -62,26 +62,41 @@
 - [`ThresholdMaster()`](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md)
   : Threshold-CKKS master (n-of-n key generation)
 
+- [`actor-encryption`](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)
+  [`actor-decryption`](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)
+  : Encrypt and decrypt with protocol actors
+
 - [`add_site()`](https://bnaras.github.io/homomorpheR/reference/add_site.md)
   : Add a site to a non-cooperating party
 
 - [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
   : A site's encrypted contribution at a parameter value
 
+- [`cox_results`](https://bnaras.github.io/homomorpheR/reference/cox_results.md)
+  :
+
+  Precomputed results for the `cox` vignette
+
+- [`cox_threshold_dp_results`](https://bnaras.github.io/homomorpheR/reference/cox_threshold_dp_results.md)
+  :
+
+  Precomputed results for the `cox-threshold-dp` vignette
+
+- [`cox_threshold_results`](https://bnaras.github.io/homomorpheR/reference/cox_threshold_results.md)
+  :
+
+  Precomputed results for the `cox-threshold` vignette
+
+- [`cvxr_admm_dp_results`](https://bnaras.github.io/homomorpheR/reference/cvxr_admm_dp_results.md)
+  :
+
+  Precomputed results for the `cvxr-consensus-admm-dp` vignette
+
 - [`cvxr_consensus`](https://bnaras.github.io/homomorpheR/reference/cvxr_consensus.md)
   : Precomputed encrypted Cox-lasso consensus-ADMM results
 
-- [`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
-  : Decrypt a Paillier ciphertext
-
-- [`encrypt()`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)
-  : Encrypt a value under a Paillier public key
-
 - [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md)
   : Encrypt a real number under a Paillier public key
-
-- [`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
-  : Encrypt a value under the public parameters a party holds
 
 - [`get_lambda()`](https://bnaras.github.io/homomorpheR/reference/get_lambda.md)
   : Return the secret lambda from a private key
@@ -114,9 +129,6 @@
 - [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
   : Run one round of the master/worker protocol
 
-- [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-  : Decrypt the master's protocol result back to a scalar real
-
 - [`paillier_keypair()`](https://bnaras.github.io/homomorpheR/reference/paillier_keypair.md)
   : Generate a new Paillier key pair
 
@@ -145,6 +157,11 @@
 
 - [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
   : Wire a master to a flat list of workers
+
+- [`similarity_results`](https://bnaras.github.io/homomorpheR/reference/similarity_results.md)
+  :
+
+  Precomputed results for the `similarity` vignette
 
 - [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md)
   : The public parameters a party holds

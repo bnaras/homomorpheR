@@ -15,6 +15,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -137,10 +155,13 @@ The pipeline above delivers two concrete protections:
    hospital in cleartext.** They are used only to construct the
    returned encrypted score inside the lab's R session.
 
-| Party | Cleartext view |
-|-------|----------------|
-| Hospital | Patient biomarkers (local), decrypted scores |
-| Lab | Encrypted values only — no cleartext biomarker values, no cleartext scores |
+```{r echo=FALSE}
+ktab(data.frame(
+    party = c("Hospital", "Lab"),
+    view  = c("Patient biomarkers (local), decrypted scores",
+              "Encrypted values only — no cleartext biomarker values, no cleartext scores")),
+    col.names = c("Party", "Cleartext view"))
+```
 
 These are necessary conditions for any model-as-a-service
 deployment that does not trust the lab with cleartext patient

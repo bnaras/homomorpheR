@@ -82,11 +82,12 @@ through
 which the base `RemoteSite` method refuses, so an endpoint that was
 never provisioned fails closed rather than looking wired; the base class
 likewise refuses
+[`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md),
 [`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md)
 and
 [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
-rather than performing a remote party's secret-key operation in this
-process; and
+rather than evaluating a remote party's data or performing its
+secret-key operation in this process; and
 [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
 checks that a reply is an encrypted value under this protocol's key
 before adding it to a total.

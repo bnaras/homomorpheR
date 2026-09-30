@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" sizes="any" href="favicon.ico">
 <link rel="manifest" href="site.webmanifest">
-<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Homomorphic Computations in R">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
+<meta property="og:title" content="Homomorphic Computations in R">
 <meta name="description" content="Homomorphic computations in R for privacy-preserving applications. Provides the Paillier additive scheme natively; companion schemes (CKKS, BFV, BGV, FHEW/TFHE) are available through the openfhe.R package.">
 <meta property="og:description" content="Homomorphic computations in R for privacy-preserving applications. Provides the Paillier additive scheme natively; companion schemes (CKKS, BFV, BGV, FHEW/TFHE) are available through the openfhe.R package.">
 <meta property="og:image" content="https://bnaras.github.io/homomorpheR/logo.png">
@@ -28,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,7 +60,6 @@
     <li><a class="dropdown-item" href="articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -107,6 +113,12 @@
 <li>
 <code>introduction</code> — a quick tour of homomorphic computation in R.</li>
 <li>
+<code>precision</code> — which encrypted computations are exact and which are approximate.</li>
+<li>
+<code>privacy-preserving-aggregation</code> — exact integer aggregation under BFV.</li>
+<li>
+<code>query-count-threshold</code> — a count across sites under threshold keys.</li>
+<li>
 <code>mle</code> — homomorphic maximum-likelihood estimation for a Poisson parameter.</li>
 </ul>
 <p><strong>Distributed statistical modeling under FHE</strong></p>
@@ -116,22 +128,20 @@
 <li>
 <code>cox-threshold</code> — the same fit under <em>n</em>-of-<em>n</em> threshold key generation, so no single party can decrypt.</li>
 <li>
-<code>cvxr-consensus-admm</code> — consensus ADMM for a <code>CVXR</code> convex program under threshold FHE.</li>
+<code>cvxr-cox-lasso-dlbcl</code> — a Cox-lasso fit by consensus ADMM, with <code>CVXR</code> at each site, under threshold FHE on the DLBCL gene-expression data.</li>
 <li>
 <code>secure-inference</code> — two-party encrypted prediction.</li>
 <li>
 <code>encrypted-regression</code> — logistic regression on encrypted data via a Chebyshev sigmoid approximation.</li>
 <li>
 <code>similarity</code> — federated cosine-similarity retrieval with site-private fine-tuned models.</li>
-<li>
-<code>privacy-preserving-aggregation</code> — exact integer aggregation under BFV.</li>
 </ul>
 <p><strong>Differential-privacy variants</strong></p>
 <ul>
 <li>
 <code>cox-threshold-dp</code>, <code>cvxr-consensus-admm-dp</code> — the threshold-FHE protocols above with site-side differential-privacy noise.</li>
 </ul>
-<p><strong>Legacy Paillier vignettes</strong> (the historical predecessors)</p>
+<p><strong>Legacy Paillier vignettes.</strong> These no longer ship with the package. They are kept in the <code>paillier-archive/</code> directory of this repository.</p>
 <ul>
 <li>
 <code>homomorphing</code> — Paillier homomorphic computations.</li>

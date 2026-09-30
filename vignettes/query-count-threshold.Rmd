@@ -15,6 +15,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -181,7 +199,7 @@ encrypted_count
 comparison <- data.frame(
     method = c("pooled cleartext", "threshold-BFV distributed"),
     count  = c(cleartext_count, as.integer(encrypted_count)))
-knitr::kable(comparison,
+ktab(comparison, col.names = c("Method", "Count"),
              caption = "Distributed encrypted query count vs. the pooled answer")
 ```
 

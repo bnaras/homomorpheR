@@ -14,6 +14,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -114,10 +132,20 @@ rows <- do.call(rbind, lapply(c(1, 1e2, 1e4), function(m) {
 ```{r echo=FALSE}
 ## Scientific notation explicitly: these span ten orders of magnitude,
 ## and any fixed number of decimal places renders most of them as zero.
+tex_sci <- function(x) {
+  e <- floor(log10(abs(x)))
+  sprintf("$%.2f \\times 10^{%d}$", x / 10^e, as.integer(e))
+}
+tex_pow10 <- function(x)
+  ifelse(x == 1, "$1$", sprintf("$10^{%d}$", as.integer(round(log10(x)))))
 shown <- transform(rows,
-                   absolute = sprintf("%.2e", absolute),
-                   relative = sprintf("%.2e", relative))
-knitr::kable(shown,
+                   magnitude = tex_pow10(magnitude),
+                   absolute  = tex_sci(absolute),
+                   relative  = tex_sci(relative))
+ktab(shown, row.names = FALSE, align = "lrrrrr",
+             col.names = c("Computation", "Magnitude", "Depth",
+                           "`scaling_mod_size`", "Absolute error",
+                           "Relative error"),
              caption = "CKKS error against the same computation in the clear.")
 ```
 

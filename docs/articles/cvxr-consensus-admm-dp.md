@@ -2,83 +2,88 @@
 
 ## Introduction
 
-This vignette is a **demonstration**, not a recommendation.
-[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md)
-shows the lossless consensus-ADMM protocol over the threshold-FHE
-channel: bit-identical to the centralized CVXR fit, no single decrypter,
-residuals drive convergence. The aggregator sees the full trajectory
-$`\{z^k\}`$ in the clear after each iteration’s threshold fusion.
+This vignette is a demonstration. It fits an L2-regularized logistic
+regression across \\N\\ sites by consensus ADMM under threshold FHE, the
+protocol
+[`vignette("cvxr-cox-lasso-dlbcl")`](https://bnaras.github.io/homomorpheR/articles/cvxr-cox-lasso-dlbcl.md)
+uses for the Cox lasso. Each site solves its local problem with CVXR,
+and the aggregator decrypts only the average of the sites’ encrypted
+vectors.
 
-A natural question is whether one can compose that lossless channel with
-**output differential privacy** to bound the trajectory leakage
-formally. The answer in this simulation is: yes, the cryptographic
-protocol composes cleanly and the implementation is one extra
-[`rnorm()`](https://rdrr.io/r/stats/Normal.html) call per site per
-iteration, but the accuracy/privacy trade-off does not produce a usable
-point at small $`\varepsilon`$ given the optimizer structure here. This
-vignette runs that trade-off end-to-end.
+## The problem and its consensus split
 
-`feedback_he_not_dp` in the package’s notes records the framing
-explicitly: lossless threshold-FHE is the package’s primary path; DP
-demonstrations show *what happens if* a user composes output DP on top,
-not the recommended deployment for precision-critical workloads.
+With \\N\\ sites, local data \\(X_i, y_i)\\ at site \\i\\, and a shared
+coefficient \\x \in \mathbb{R}^p\\, the global problem is
+
+\\ \min\_{x \in \mathbb{R}^p} \sum\_{i=1}^{N} \ell_i(x; X_i, y_i) +
+\frac{\lambda}{2}\\ \lVert x \rVert_2^2 \\
+
+where \\\ell_i\\ is the logistic loss on site \\i\\. The standard
+consensus split (Boyd, Parikh, Chu, Peleato, Eckstein, 2011) introduces
+local copies \\x_i \in \mathbb{R}^p\\ and a single global consensus \\z
+\in \mathbb{R}^p\\:
+
+\\ \min\_{\\x_i\\, z} \sum_i \ell_i(x_i; X_i, y_i) + \frac{\lambda}{2}\\
+\lVert z \rVert_2^2 \quad \text{s.t.}\quad x_i = z, \\ \forall i. \\
+
+The augmented-Lagrangian iteration is:
+
+\\ \begin{aligned} x_i^{k+1} &= \arg\min\_{x_i}\\ \ell_i(x_i) +
+\frac{\lambda}{2N}\lVert x_i\rVert_2^2 + \frac{\rho}{2}\lVert x_i -
+z^k + u_i^k\rVert_2^2, \\ z^{k+1} &= \frac{1}{N}\sum_i (x_i^{k+1} +
+u_i^k), \\ u_i^{k+1} &= u_i^k + (x_i^{k+1} - z^{k+1}). \end{aligned} \\
+
+The \\x\\-update is local at each site; the \\z\\-update is the
+consensus average that has to traverse the encrypted channel; the
+\\u\\-update is local again. Only the \\z\\-update needs cryptography.
+
+## Adding noise
+
+Here we ask what happens if each site also adds noise, so that the
+released iterates satisfy *output differential privacy*. Adding the
+noise takes one extra [`rnorm()`](https://rdrr.io/r/stats/Normal.html)
+call per site per iteration. With this optimizer, the fits are poor at
+any noise level that gives a small \\\varepsilon\\. The vignette runs
+the fits and reports the numbers.
 
 ## A brief output-DP primer
 
-Given a query $`f: \mathcal{D} \to \mathbb{R}^p`$, the **Gaussian
-mechanism** releases
-$`\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2 I)`$. Sensitivity-driven
-$`\sigma`$ gives single-query $`(\varepsilon, \delta)`$ DP. Multi-query
-composition uses **zCDP** \[Bun & Steinke 2016\]: each release is
-$`(\Delta/\sigma)^2/2`$-zCDP; $`T`$ releases compose linearly to
-$`T \cdot \rho`$; convert back to $`(\varepsilon, \delta)`$ via
-$`\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}`$.
+Given a query \\f: \mathcal{D} \to \mathbb{R}^p\\, the *Gaussian
+mechanism* releases \\\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2 I)\\.
+Sensitivity-driven \\\sigma\\ gives single-query \\(\varepsilon,
+\delta)\\ DP. Multi-query composition uses *zCDP* (Bun and Steinke
+2016): each release is \\(\Delta/\sigma)^2/2\\-zCDP; \\T\\ releases
+compose linearly to \\T \cdot \rho\\; convert back to \\(\varepsilon,
+\delta)\\ via \\\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}\\.
 
 ## The protocol modification
 
-The setup is identical to
-[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md).
-The only change is **noise injection at each site**: at every ADMM
-iteration site $`i`$ adds an independent draw
-$`\eta_i \sim \mathcal{N}(0, \sigma^2 N \cdot I)`$ to
-$`x_i + u_i`$*before* encrypting. The encrypted noise terms sum under
-the joint key, the $`1/N`$ scaling contracts the variance back to
-$`\sigma^2`$ per coordinate, and the recovered $`z`$ has noise
-$`\mathcal{N}(0, \sigma^2 I)`$.
+Without noise, site \\i\\ encrypts \\x_i + u_i\\ and the aggregator
+decrypts only their average \\z\\. The change here is that at every ADMM
+iteration site \\i\\ adds an independent draw \\\eta_i \sim
+\mathcal{N}(0, \sigma^2 N \cdot I)\\ to \\x_i + u_i\\ *before*
+encrypting. The encrypted noise terms sum under the joint key, the
+\\1/N\\ scaling contracts the variance back to \\\sigma^2\\ per
+coordinate, and the recovered \\z\\ has noise \\\mathcal{N}(0, \sigma^2
+I)\\.
 
-Distributing the noise across sites (rather than centralizing it at the
-aggregator) means:
+As in `cox-threshold-dp`, each site draws its own noise, so only site
+\\i\\ sees its noiseless \\x_i + u_i\\. The aggregator sees encrypted
+noisy contributions and, after decryption, their noisy average.
 
-1.  No single point ever holds the noiseless value. Even if the
-    aggregator is compromised it sees only encrypted *noised*
-    contributions until the final fusion.
-2.  The trust model matches `cox-threshold-dp`: each site is its own
-    randomness boundary.
-
-Both are properties of the code below rather than of this paragraph:
-`site_contribution_dp()` draws the noise *and* encrypts inside the site,
-so `encrypted_consensus_dp()` receives encrypted values and nothing
-else. Had the aggregator done the noising — reading each site’s
-$`x_i + u_i`$ and adding a draw itself — every sentence above would be
-false while the numbers came out identical.
+In the code below, `site_contribution_dp()` adds the noise and encrypts
+inside the site, so `encrypted_consensus_dp()` receives only encrypted
+values. If the aggregator added the noise instead, the numbers would be
+the same, but the aggregator would see each site’s noiseless \\x_i +
+u_i\\.
 
 ## The stopping rule changes
 
-Residual-based convergence checks are not meaningful under noise: the
-residuals never shrink below the per-iteration noise floor. So $`T`$ is
-**fixed in advance** rather than discovered.
-
-That is forced twice over. Even without noise, a residual-based stop is
-an adaptive, data-dependent decision — the iteration at which you halt
-is a function of the records — and $`T`$ is exactly the quantity that
-multiplies the privacy budget below. A protocol that reads $`T`$ off the
-cohort and then bills $`T`$ releases against $`\varepsilon`$ has left
-the accounting open at the step that defines it. The next section picks
-$`\rho`$ and $`T`$ without touching the cohort at all.
-
-The $`\sigma = 0`$ row of the table below verifies that the protocol
-with the noise mechanism turned off lands on the lossless ADMM fit at
-that pre-committed $`T`$.
+Under noise the residuals do not shrink below the per-iteration noise,
+so the number of iterations \\T\\ is *fixed in advance*. Stopping on the
+residuals would also make \\T\\ depend on the data, and \\T\\ multiplies
+the privacy budget below. The next section picks \\\rho\\ and \\T\\
+without using the cohort.
 
 ## Setup
 
@@ -155,45 +160,15 @@ that pre-committed $`T`$.
 `}`\
 `site_data`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``n_per_site``, ``make_site_data``)`
 
-## Choosing $`\rho`$ and $`T`$ without touching the cohort
+## Choosing \\\rho\\ and \\T\\ without touching the cohort
 
-The lossless ADMM vignette tunes $`\rho`$ by sweeping candidates through
-the encrypted channel, *on the real data*. Under output DP that sweep is
-not available to us. Every read of the cohort is a release that has to
-be paid for, and a sweep is a large one: it solves at every site, at
-every candidate, at every iteration, and what comes out — the chosen
-$`\rho`$, and above all $`T`$ — is a function of the records. Billing
-$`T \cdot N`$ Gaussian releases while $`T`$ itself was read off the data
-is not an accounting, it is an accounting with its own parameter left
-outside.
-
-There are two honest ways to close that. One is to **pay for the
-selection**: report-noisy-max or the exponential mechanism over the
-grid, with negative iteration count as utility. That is the principled
-route, but it needs a sensitivity bound for “iterations to convergence”
-under a one-record change, and we do not have one — it would trade this
-gap for a weaker one.
-
-The other is to make the selection **data-independent**, which is what
-DP deployments in practice do, and what we do here. The sweep runs on a
-**surrogate cohort** built only from facts the protocol already treats
-as public — how many sites there are, roughly how large they are, and
-the covariate schema — together with nominal effect sizes written into
-the analysis plan and claimed by nobody to be correct. No record from
-any site enters it.
-
-Two consequences worth being explicit about. First, this sweep needs
-**no encrypted channel**: there is no secret in it to protect. That is
-the exact opposite of the situation in
-[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md),
-where the sweep goes through the threshold channel *because* it touches
-real data. Cleartext here is a conclusion, not a convenience. Second,
-the cost is real but it is paid in **utility, not privacy**: a surrogate
-that misjudges the curvature returns a $`\rho`$ the cohort would not
-have picked and a $`T`$ shorter than it needed. There is no way to check
-that against the cohort without spending budget, so the $`T`$ below is a
-pre-commitment — and since the budget grows linearly in $`T`$,
-pre-committing generously is not free either.
+Tuning \\\rho\\ on the real data would itself be a release: the chosen
+\\\rho\\ and \\T\\ depend on the records, and the budget below counts
+only the \\T\\ Gaussian releases. So the sweep runs on a *surrogate
+cohort* built only from facts the protocol already treats as public: the
+number of sites, their approximate sizes, and the covariate schema. The
+effect sizes are nominal values fixed in the analysis plan. No record
+from any site enters it, so the sweep needs no encryption.
 
 \
 `tol``      ``<-`` ``1e-3`\
@@ -242,35 +217,30 @@ pre-committing generously is not free either.
 `rho_sweep`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``,`\
 `                     `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``rho_grid``,`\
 `                            ``function``(``r``)`` ``sweep_one_rho``(``surrogate_data``, ``r``)``)``)`\
-`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``rho_sweep``,`\
-`             caption ``=`` ``"Consensus-ADMM convergence on the surrogate cohort"``)`
-
-| rho | iters | converged |
-|----:|------:|:----------|
-|  10 |    60 | FALSE     |
-|  20 |    60 | FALSE     |
-|  50 |    33 | TRUE      |
-| 100 |    28 | TRUE      |
-| 500 |    60 | FALSE     |
-
-Consensus-ADMM convergence on the surrogate cohort {.table}
-
+`show_rho_sweep``(``rho_sweep``)`\
 \
 `converged_rows`` ``<-`` ``rho_sweep``[``rho_sweep``$``converged``, ``]`\
 `if`` ``(`[`nrow`](https://rdrr.io/r/base/nrow.html)`(``converged_rows``)`` ``==`` ``0L``)`\
 `    `[`stop`](https://rdrr.io/r/base/stop.html)`(``"No rho in the grid converged within max_iter on the surrogate."``)`\
 \
 `rho_chosen`` ``<-`` ``converged_rows``$``rho``[`[`which.min`](https://rdrr.io/r/base/which.min.html)`(``converged_rows``$``iters``)``]`\
-`T_fixed``    ``<-`` ``converged_rows``$``iters``[``converged_rows``$``rho`` ``==`` ``rho_chosen``]`\
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Pre-committed rho = %g, T = %d (surrogate cohort).\n"``,`\
-`            ``rho_chosen``, ``T_fixed``)``)`
+`T_fixed``    ``<-`` ``converged_rows``$``iters``[``converged_rows``$``rho`` ``==`` ``rho_chosen``]`
 
-    ## Pre-committed rho = 100, T = 28 (surrogate cohort).
+| \\\rho\\ | Iterations | Converged |
+|---------:|-----------:|:----------|
+|       10 |         60 | FALSE     |
+|       20 |         60 | FALSE     |
+|       50 |         33 | TRUE      |
+|      100 |         28 | TRUE      |
+|      500 |         60 | FALSE     |
 
-These two numbers are now constants of the protocol. The DP-ADMM loop
-below runs for exactly $`T = 28`$ iterations regardless of residuals,
-and nothing downstream is allowed to revisit them in light of what the
-cohort does.
+Consensus-ADMM convergence on the surrogate cohort {.table .table
+.table-striped .table-condensed
+style="margin-left: auto; margin-right: auto;"}
+
+The value of \\\rho\\ with the fewest iterations to convergence is
+\\\rho = 100\\, with \\T = 28\\. Both are now fixed. The DP-ADMM loop
+below runs exactly \\T = 28\\ iterations, whatever the residuals do.
 
 ## Threshold-FHE setup
 
@@ -287,15 +257,13 @@ ADMM vignette’s `encrypted_consensus()` is the
 `rnorm(p, ..., sd = sigma * sqrt(Nv))` term inside the per-site loop:
 
 \
-`## Site-side, and this is the whole point of the DP variant: the site`\
-`## draws its own noise, adds it, and encrypts with the public bundle it`\
-`## was handed at setup -- all before anything leaves. The noiseless`\
-`## x_i + u_i exists nowhere but here, which is what "each site is its`\
-`## own randomness boundary" has to mean.`\
+`## Site-side: the site draws its own noise, adds it, and encrypts with`\
+`## the public parameters it received at setup, all before anything`\
+`## leaves the site. The noiseless x_i + u_i never leaves.`\
 `site_contribution_dp`` ``<-`` ``function``(``site``, ``sigma``, ``Nv``)`` ``{`\
 `    ``st`` ``<-`` ``site``@``state`\
 `    ``noised`` ``<-`` ``st``$``x_curr`` ``+`` ``st``$``u_curr`` ``+`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``p``, mean ``=`` ``0``, sd ``=`` ``sigma`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``Nv``)``)`\
-`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(`[`site_params`](https://bnaras.github.io/homomorpheR/reference/site_params.md)`(``site``)``, ``noised``)`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``site``, ``noised``)`\
 `}`\
 \
 `## Aggregator-side: sum the encrypted values, scale, threshold-decrypt. The`\
@@ -304,7 +272,7 @@ ADMM vignette’s `encrypted_consensus()` is the
 `    ``Nv``  ``<-`` `[`length`](https://rdrr.io/r/base/length.html)`(``sites``)`\
 `    ``cts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites``, ``site_contribution_dp``, sigma ``=`` ``sigma``, Nv ``=`` ``Nv``)`\
 `    ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` ``Nv``)`\
-`    `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``threshold_master``, ``ct_avg``, len ``=`` ``p``)`\
+`    `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``threshold_master``, ``ct_avg``, len ``=`` ``p``)`\
 `}`
 
 ## The DP-ADMM loop
@@ -338,13 +306,10 @@ ADMM vignette’s `encrypted_consensus()` is the
 
 ## Centralized CVXR fit
 
-This fit, and every `max_dev` column derived from it below, is a
-**simulation diagnostic and not part of the protocol**. It pools the raw
-data, which the deployed protocol never does, and it is not charged to
-the budget because it is not released — it exists so that this document
-can show you how far the noise moved the answer. A real deployment has
-no access to it, which is precisely why $`\rho`$ and $`T`$ had to be
-pre-committed above.
+This fit pools the raw data, so it is not part of the protocol. We use
+it only to measure how far the noise moves the answer, in the last
+column of the table below. It is not released, so it is not charged to
+the budget.
 
 \
 `X_pooled``  ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``site_data``, ``` `[[` ```, ``"X"``)``)`\
@@ -363,10 +328,10 @@ pre-committed above.
 `beta_central`` ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(`[`value`](https://www.cvxgrp.org/CVXR/reference/value.html)`(``beta_var``)``)`\
 [`names`](https://rdrr.io/r/base/names.html)`(``beta_central``)`` ``<-`` `[`names`](https://rdrr.io/r/base/names.html)`(``beta_true``)`
 
-## The $`\sigma`$ sweep
+## The \\\sigma\\ sweep
 
-Six $`\sigma`$ values from zero to one. The $`\sigma = 0`$ row is the
-sanity check that the DP mechanism is a no-op when off.
+Six \\\sigma\\ values from zero to one. The \\\sigma = 0\\ row checks
+that the protocol without noise matches the centralized fit.
 
 \
 `sigma_grid``    ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``1e-4``, ``1e-3``, ``1e-2``, ``1e-1``, ``1``)`\
@@ -376,19 +341,14 @@ sanity check that the DP mechanism is a no-op when off.
 `}`\
 [`names`](https://rdrr.io/r/base/names.html)`(``sweep_results``)`` ``<-`` `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"sigma=%.0e"``, ``sigma_grid``)`
 
-## $`\sigma = 0`$ sanity check
-
 \
 `clean_dev`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``sweep_results``[[``1``]``]``$``z`` ``-`` ``beta_central``)``)`\
 `agree_tol`` ``<-`` ``10`` ``*`` ``tol`\
 `if`` ``(``clean_dev`` ``>`` ``agree_tol``)`\
-`    `[`stop`](https://rdrr.io/r/base/stop.html)`(``"DP-ADMM at sigma = 0 disagrees with the centralized fit."``)`\
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n"``,`\
-`            ``clean_dev``, ``agree_tol``)``)`
+`    `[`stop`](https://rdrr.io/r/base/stop.html)`(``"DP-ADMM at sigma = 0 disagrees with the centralized fit."``)`
 
-    ## Sigma = 0 max coefficient deviation: 2.96e-05 (tol 1e-02)
-
-## Summary table
+At \\\sigma = 0\\ the largest coefficient deviation from the centralized
+fit is 2.91 × 10⁻⁵, within \\10 \times\\ the ADMM tolerance of 0.001.
 
 \
 `summary_df`` ``<-`` `[`do.call`](https://rdrr.io/r/base/do.call.html)`(``rbind``, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_along`](https://rdrr.io/r/base/seq.html)`(``sigma_grid``)``, ``function``(``j``)`` ``{`\
@@ -405,117 +365,67 @@ sanity check that the DP mechanism is a no-op when off.
 `                         sex ``=`` ``beta_central``[``4``]``, max_dev ``=`` ``0``)`\
 `summary_table`` ``<-`` `[`rbind`](https://rdrr.io/r/base/cbind.html)`(``summary_df``, ``central_row``)`\
 [`rownames`](https://rdrr.io/r/base/colnames.html)`(``summary_table``)`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"sigma=%g"``, ``sigma_grid``)``, ``"centralized"``)`\
-`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``summary_table``, digits ``=`` ``6``,`\
-`             caption ``=`` ``"DP-ADMM coefficients vs centralized CVXR"``)`
+`show_summary``(``summary_table``)`
 
-|              | sigma | intercept |      age |       bmi |      sex |  max_dev |
-|:-------------|------:|----------:|---------:|----------:|---------:|---------:|
-| sigma=0      | 0e+00 | -0.591081 | 0.402672 | -0.325981 | 0.641534 | 0.000030 |
-| sigma=0.0001 | 1e-04 | -0.591148 | 0.402593 | -0.326072 | 0.641677 | 0.000113 |
-| sigma=0.001  | 1e-03 | -0.589677 | 0.401934 | -0.325976 | 0.642103 | 0.001427 |
-| sigma=0.01   | 1e-02 | -0.619390 | 0.398715 | -0.323019 | 0.648941 | 0.028286 |
-| sigma=0.1    | 1e-01 | -0.617981 | 0.428505 | -0.372438 | 0.754536 | 0.112973 |
-| sigma=1      | 1e+00 | -3.460462 | 2.788708 |  2.514526 | 2.062808 | 2.869358 |
-| centralized  |    NA | -0.591104 | 0.402674 | -0.325983 | 0.641564 | 0.000000 |
+| \\\sigma\\ | intercept | age | bmi | sex | \\\max_j \lvert \hat z_j - \hat\beta_j^{\text{centralized}} \rvert\\ |
+|:---|---:|---:|---:|---:|---:|
+| \\0\\ | -0.591081 | 0.402672 | -0.325981 | 0.641535 | \\2.91 \times 10^{-5}\\ |
+| \\10^{-4}\\ | -0.591148 | 0.402593 | -0.326072 | 0.641677 | \\1.132 \times 10^{-4}\\ |
+| \\10^{-3}\\ | -0.589677 | 0.401934 | -0.325976 | 0.642103 | \\1.427 \times 10^{-3}\\ |
+| \\10^{-2}\\ | -0.619390 | 0.398715 | -0.323019 | 0.648941 | \\0.02829\\ |
+| \\10^{-1}\\ | -0.617981 | 0.428505 | -0.372438 | 0.754537 | \\0.113\\ |
+| \\1\\ | -3.460462 | 2.788708 | 2.514526 | 2.062808 | \\2.869\\ |
+| centralized | -0.591104 | 0.402674 | -0.325983 | 0.641564 | \\0\\ |
 
-DP-ADMM coefficients vs centralized CVXR {.table style="width:100%;"}
+DP-ADMM coefficients vs the centralized CVXR fit {.table .table
+.table-striped .table-condensed
+style="margin-left: auto; margin-right: auto;"}
 
-The deviation grows roughly linearly with $`\sigma`$ in the
-small-$`\sigma`$ regime and then leaves the linear band — at
-$`\sigma = 1`$ the recovered coefficients drift far from the centralized
-fit. The protocol is faithfully running the same algorithm at every
-$`\sigma`$; the deterioration is what the noise mechanism does to the
-optimization, not what the cryptographic channel does.
+Fidelity decays monotonically as expected.
 
 ## Privacy budget
 
-Per-iteration zCDP: $`\rho_{\text{iter}} = (\Delta/\sigma)^2/2`$ per
-*site* per coordinate. Across $`T = 28`$ iterations and $`N = 3`$ sites,
-total $`\rho = T \cdot N \cdot (\Delta/\sigma)^2/2`$. Convert to
-$`(\varepsilon, \delta)`$ via the standard formula.
+Each iteration releases one noisy average \\z\\, with noise
+\\\mathcal{N}(0, \sigma^2 I)\\. Let \\\Delta\\ be the largest change in
+\\z\\ (L2 norm over all \\p\\ coordinates) from adding or removing one
+record. Each record sits at one site, and the aggregator decrypts only
+the average, so one iteration is a single Gaussian release with
+\\\rho\_{\text{iter}} = (\Delta/\sigma)^2/2\\. Over \\T = 28\\
+iterations the total is \\\rho = T \cdot (\Delta/\sigma)^2/2\\, whatever
+the number of sites. This is the same accounting as `cox-threshold-dp`.
+With sensitivity \\\Delta = 1\\ (placeholder) and target \\\delta =
+10^{-5}\\, zCDP composition gives:
 
 \
 `zcdp_to_eps`` ``<-`` ``function``(``rho``, ``delta`` ``=`` ``1e-5``)`` ``rho`` ``+`` ``2`` ``*`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``rho`` ``*`` `[`log`](https://rdrr.io/r/base/Log.html)`(``1`` ``/`` ``delta``)``)`\
 \
 `budget`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(``sigma ``=`` ``sigma_grid``[``sigma_grid`` ``>`` ``0``]``)`\
-`budget``$``rho_total``                  ``<-`` ``T_fixed`` ``*`` ``N`` ``*`` ``(``1`` ``/`` ``budget``$``sigma``)``^``2`` ``/`` ``2`\
+`budget``$``rho_total``                  ``<-`` ``T_fixed`` ``*`` ``(``1`` ``/`` ``budget``$``sigma``)``^``2`` ``/`` ``2`\
 `budget``$``epsilon_at_delta_1e_minus_5`` ``<-`` ``zcdp_to_eps``(``budget``$``rho_total``)`\
-`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``budget``, digits ``=`` ``4``,`\
-`             caption ``=`` ``"zCDP composition; sensitivity Delta = 1, delta = 1e-5"``)`
+`show_budget``(``budget``, ``T_fixed``)`
 
-| sigma | rho_total | epsilon_at_delta_1e_minus_5 |
-|------:|----------:|----------------------------:|
-| 1e-04 |   4.2e+09 |                4.200440e+09 |
-| 1e-03 |   4.2e+07 |                4.204398e+07 |
-| 1e-02 |   4.2e+05 |                4.243979e+05 |
-| 1e-01 |   4.2e+03 |                4.639792e+03 |
-| 1e+00 |   4.2e+01 |                8.597920e+01 |
+| \\\sigma\\ | \\\rho\_{\text{total}} = 28\\\rho\\ | \\\varepsilon\\ at \\\delta = 10^{-5}\\ |
+|:---|---:|---:|
+| \\10^{-4}\\ | \\1.4 \times 10^{9}\\ | \\1.4 \times 10^{9}\\ |
+| \\10^{-3}\\ | \\1.4 \times 10^{7}\\ | \\1.403 \times 10^{7}\\ |
+| \\10^{-2}\\ | \\1.4 \times 10^{5}\\ | \\1.425 \times 10^{5}\\ |
+| \\10^{-1}\\ | \\1400\\ | \\1654\\ |
+| \\1\\ | \\14\\ | \\39.39\\ |
 
-zCDP composition; sensitivity Delta = 1, delta = 1e-5 {.table}
+zCDP composition; sensitivity \\\Delta = 1\\, target \\\delta =
+10^{-5}\\ {.table .table .table-striped .table-condensed
+style="margin-left: auto; margin-right: auto;"}
 
-This total is the whole of the procedure’s data-dependent exposure,
-which is the point of having chosen $`\rho`$ and $`T`$ off the
-surrogate: the selection step contributes nothing to it, because it read
-nothing. The one quantity still taken on faith is the sensitivity
-$`\Delta = 1`$, and that is flagged as a placeholder in the limitations
-below — an honest budget with one declared placeholder, rather than a
-budget whose own $`T`$ came from an unbilled read.
+The smallest \\\varepsilon\\, at \\\sigma = 1\\ where the fit is already
+poor, is 39. Whether that is acceptable depends on the application.
 
-Read `epsilon_at_delta_1e_minus_5`. The smallest $`\varepsilon`$
-attained — at $`\sigma = 1`$ where the fit is already broken — is still
-in the dozens. Whether large $`\varepsilon`$ is acceptable is a use-case
-decision; we report the numbers and stop.
-
-## What this demonstrates
-
-1.  **The cryptographic protocol composes cleanly with output DP.** At
-    $`\sigma = 0`$ the DP-ADMM protocol reproduces the lossless ADMM
-    fit. The DP layer is one
-    [`rnorm()`](https://rdrr.io/r/stats/Normal.html) call per site per
-    iteration and zero new homomorpheR machinery.
-2.  **The accuracy/privacy trade-off is reported end-to-end.** Six
-    $`\sigma`$ values, one fixed-$`T`$ DP-ADMM run each, summary table
-    showing the recovered coefficients and the deviation from the
-    centralized fit.
-3.  **At noise scales the optimizer tolerates, $`\varepsilon`$ is
-    large.** zCDP composition over $`T \cdot N`$ Gaussian releases
-    inflates the budget; tightening it requires either fewer iterations,
-    tighter sensitivity, or subsampling amplification — all out of scope
-    for this demonstration.
-4.  **Hyperparameter selection is part of the budget, or it is outside
-    the guarantee.** The step that picks $`\rho`$ and $`T`$ looks like
-    setup rather than analysis, which is exactly why it escapes
-    scrutiny; here it also *sets the multiplier on the budget*. Making
-    it data-independent keeps the accounting closed and costs utility
-    instead. Composing a cryptographic channel with a DP guarantee does
-    not make that step go away — encryption hides intermediates, not
-    choices.
-
-## Limitations
-
-- **Tight sensitivity bounds** for the consensus update. $`\Delta = 1`$
-  is a placeholder.
-- **Paying for the selection instead of avoiding it.** Report-noisy-max
-  or the exponential mechanism over the $`\rho`$ grid would let the
-  cohort inform the choice for a declared cost. That needs a sensitivity
-  bound on iterations-to-convergence under a one-record change, which we
-  do not have.
-- **Surrogate quality.** A surrogate that misjudges the cohort’s
-  curvature costs accuracy — a worse $`\rho`$, or a $`T`$ too short to
-  converge — and there is no way to detect that from inside the protocol
-  without spending budget.
-- **Adaptive noise** schedules across iterations.
-- **Subsampling amplification** of the DP accountant.
-- **Malicious-site protection.** A hostile site can corrupt either its
-  $`(x_i + u_i)`$ or its noise draw; out of scope.
-
-Readers who need the lossless fit should use
-[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md)
-and accept the trajectory exposure that comes with it.
+One could also explore a tighter sensitivity bound \\\Delta\\, or pay
+for the choice of \\\rho\\ and \\T\\ with a DP selection mechanism, etc.
+We don’t do that here.
 
 ## References
 
-- Bun & Steinke (2016). *Concentrated Differential Privacy.* TCC.
-- Cyffers, Bellet & Upadhyay (2023). *Muffliato: Peer-to-Peer Privacy
-  Amplification for Decentralized Optimisation and Averaging.* The
-  DP-ADMM analytic companion to this empirical demonstration.
+Bun, Mark, and Thomas Steinke. 2016. “Concentrated Differential Privacy:
+Simplifications, Extensions, and Lower Bounds.” *Theory of Cryptography
+Conference (TCC)*, 635–58.
+<https://doi.org/10.1007/978-3-662-53641-4_24>.

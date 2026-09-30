@@ -2,34 +2,34 @@
 
 ## Introduction
 
-A recurring problem in federated medical analytics is similarity search
-across silos. A clinician at one hospital sees an unusual case and wants
-to ask “do other hospitals in our network have similar patients?” —
-without sending the patient out, without the other hospitals revealing
-which of their patients were checked, and without any single party
-(including a coordinating master) seeing similarity scores in the clear.
+Similarity search across silos is another common problem. A clinician at
+one hospital sees an unusual case and wants to ask “do other hospitals
+in our network have similar patients?” — without sending the patient
+out, without the other hospitals revealing which of their patients were
+checked, and without any single party (including a coordinating master)
+seeing similarity scores in the clear.
 
-The natural primitive is cosine similarity between embeddings. Modern
-foundation models map patient data (radiology reports, chest X-rays,
-pathology slides) into a fixed-dimensional vector space where geometric
-proximity tracks clinical similarity. Cosine similarity reduces to an
-inner product on unit-norm vectors, which is exactly what threshold CKKS
+Modern foundation models map patient data (radiology reports, chest
+X-rays, pathology slides) into a fixed-dimensional vector space where
+geometric proximity tracks clinical similarity. The natural primitive is
+cosine similarity between such embeddings, which reduces to an inner
+product on unit-norm vectors, which is exactly what threshold CKKS
 computes efficiently.
 
-The wrinkle is that hospitals do not all use the *same* model. Each
-hospital starts from a public foundation model and fine-tunes it on its
-own data for its own purposes — it does not constrain the result to be
-an isometry of the public model. The fine-tuned embeddings therefore
+The wrinkle is that hospitals do not all use the *same* model. We assume
+each hospital starts from a public foundation model and fine-tunes it on
+its own data for its own purposes — it does not constrain the result to
+be an isometry of the public model. The fine-tuned embeddings therefore
 differ from the public baseline by a generically *non-isometric*
 transformation of the geometry, and a query in the public-model space is
 no longer directly comparable to a database vector in a hospital’s
 private space.
 
-This vignette closes the gap with a per-site *compatibility adapter*
-$`A_k`$, fit post hoc on a public anchor cohort. The adapter lives on a
-one-parameter family indexed by a near-isometry penalty $`\mu`$:
-orthogonal Procrustes at one end ($`\mu\to\infty`$), unconstrained least
-squares at the other ($`\mu = 0`$), near-orthogonal maps in between. It
+One way to close the gap is with a per-site *compatibility adapter*
+\\A_k\\, fit post hoc on a public anchor cohort. The adapter lives on a
+one-parameter family indexed by a near-isometry penalty \\\mu\\:
+orthogonal Procrustes at one end (\\\mu\to\infty\\), unconstrained least
+squares at the other (\\\mu = 0\\), near-orthogonal maps in between. It
 is deployed in either of two ways — applied to the encrypted query (the
 homomorphic matrix–vector multiply, valid as a cosine near the
 orthogonal end), or folded into the database offline so the encrypted
@@ -37,84 +37,70 @@ query reduces to a plain inner product. Threshold decryption returns the
 top-`k` matches, with no party able to decrypt any intermediate value
 unilaterally.
 
-The accompanying `similarity-sideexp.md` document describes a deferred
-experiment on a real fine-tuned model. The vignette uses synthetic data
-so it renders quickly during package build.
-
 ## The setup
 
-Three sites — labeled $`S_1, S_2, S_3`$ — each hold a cohort of
+Three sites — labeled \\S_1, S_2, S_3\\ — each hold a cohort of
 patients. Each cohort is embedded with the site’s privately fine-tuned
-model into $`\mathbf{R}^p`$ for some fixed dimension $`p`$ (the
+model into \\\mathbf{R}^p\\ for some fixed dimension \\p\\ (the
 architecture is shared across sites; only the weights differ).
 
 The query enters the system from a clinician who does not have access to
 any site’s private model. They embed their candidate patient with the
-*public* foundation model, producing $`q \in
-\mathbf{R}^p`$. The query is encrypted under a joint threshold key whose
-secret-key material is shared $`n`$-of-$`n`$ across the three sites.
+*public* foundation model, producing \\q \in \mathbf{R}^p\\. The query
+is encrypted under a joint threshold key whose secret-key material is
+shared \\n\\-of-\\n\\ across the three sites.
 
-The retrieval target is the top-$`k`$ patients across all sites whose
+The retrieval target is the top-\\k\\ patients across all sites whose
 private-model embeddings are most cosine-similar to the query, returned
-as a list of $`(\text{site\_id},
-\text{local\_patient\_id}, \text{score})`$ tuples.
+as a list of \\(\text{site\\id}, \text{local\\patient\\id},
+\text{score})\\ tuples.
 
-The friction is that $`q`$ lives in the public-model geometry while each
-site’s database lives in the site’s private-model geometry. We close the
-gap with a per-site *compatibility adapter* $`A_k`$ fit on a public
-anchor cohort. $`A_k`$ is held privately by site $`k`$ and never leaves;
-it is applied to encrypted queries to bring them into agreement with
-site $`k`$’s geometry before the inner-product step (or, equivalently,
-folded into the site’s database offline).
+The difficulty is that \\q\\ lives in the public-model geometry while
+each site’s database lives in the site’s private-model geometry. We
+close the gap with a per-site *compatibility adapter* \\A_k\\ fit on a
+public anchor cohort. \\A_k\\ is held privately by site \\k\\ and never
+leaves; it is applied to encrypted queries to bring them into agreement
+with site \\k\\’s geometry before the inner-product step (or,
+equivalently, folded into the site’s database offline).
 
 ## Threat model
 
 Three sites and one untrusted aggregator (the master):
 
-- **Sites $`S_1, S_2, S_3`$** each hold private patient embeddings, a
-  private compatibility adapter $`A_k`$, and a secret-key share
-  $`\mathit{sk}_k`$. They are honest-but-curious among themselves and
+- **Sites \\S_1, S_2, S_3\\** each hold private patient embeddings, a
+  private compatibility adapter \\A_k\\, and a secret-key share
+  \\\mathit{sk}\_k\\. They are honest-but-curious among themselves and
   toward the master. Each site sees the master’s encrypted query but
   cannot decrypt it; each site sees its own database in the clear (it is
   its own data); each site never sees other sites’ databases or scores.
 - **Master** holds no secret-key material. It receives the encrypted
   query from the querier, broadcasts it to the sites, collects their
   encrypted scores, orchestrates the n-of-n partial-decryption ceremony,
-  sorts the results, and returns the top-$`k`$ to the querier. A curious
-  or compromised master cannot decrypt anything by itself — but see
-  below for what it does hold once the sites have cooperated, which is
-  more than the top-$`k`$.
-- **Querier** sees only the top-$`k`$ result tuples. Repeated adaptive
+  sorts the results, and returns the top-\\k\\ to the querier. A curious
+  or compromised master cannot decrypt anything by itself.
+- **Querier** sees only the top-\\k\\ result tuples. Repeated adaptive
   queries leak structural information about the database in the same
   Hyrum-style sense as any retrieval system; this leakage is
   acknowledged but not eliminated.
 
 What the master sees, by stage:
 
-1.  The encrypted query $`\mathit{ct}_q`$. Not decryptable alone.
+1.  The encrypted query \\\mathit{ct}\_q\\. Not decryptable alone.
 2.  Per-site encrypted scores, one per candidate patient, with the site
     id, local index, and label in the clear alongside.
 3.  Partial decryptions from each site. Not decryptable individually.
 4.  After fusion, **every** candidate score in the clear. It sorts these
-    and returns the top-$`k`$ to the querier.
+    and returns the top-\\k\\ to the querier.
 
-Be precise about step 4, because it is easy to state too favorably. The
-master decrypts the whole score vector, not just the $`k`$ it releases,
-and it does so because this implementation ranks in the clear. Nothing
-can do better without encrypted comparison: the global top-$`k`$ is not
-knowable until enough scores are known to rank them. So the master’s
-view is one row per candidate patient in the whole federation — site,
-local index, label, and score — and the querier’s view is the top-$`k`$
-of it.
+The master decrypts the whole score vector, not just the \\k\\ it
+releases, and it does so because this implementation ranks in the clear.
+Nothing can do better without encrypted comparison: the global top-\\k\\
+is not knowable until enough scores are known to rank them. So the
+master’s view is one row per candidate patient in the whole federation —
+site, local index, label, and score — and the querier’s view is the
+top-\\k\\ of it.
 
-What the $`n`$-of-$`n`$ ceremony *does* buy, and it is not nothing: no
-single party, master included, can open any of this alone. Every release
-requires all $`n`$ sites to take part, which is a governance control on
-when scores are revealed rather than a bound on what a completed release
-contains. The Limitations section below says what encrypted top-$`k`$
-would change.
-
-The site-private compatibility adapters $`\{A_k\}`$ never leave their
+The site-private compatibility adapters \\\\A_k\\\\ never leave their
 sites. Each is applied to an encrypted vector while it stays encrypted —
 an unencrypted matrix times an encrypted vector — or else folded into
 the site’s database offline, so the adapter never appears in the clear
@@ -128,15 +114,14 @@ query phase and result phase run for each query.
 **Setup phase.**
 
 1.  The three sites jointly generate a CKKS threshold key pair
-    ($`n`$-of-$`n`$). Joint rotation keys for slot rotations
-    $`1, 2, \ldots, p-1`$ are also generated by an $`n`$-of-$`n`$
-    ceremony.
+    (\\n\\-of-\\n\\). Joint rotation keys for slot rotations \\1, 2,
+    \ldots, p-1\\ are also generated by an \\n\\-of-\\n\\ ceremony.
 2.  A public anchor cohort of patients with public-model embeddings is
     published.
 3.  Each site embeds the anchor cohort with its private fine-tuned model
-    and fits its $`p \times p`$ compatibility adapter $`A_k`$ along the
-    $`\mu`$ family (orthogonal Procrustes at $`\mu\to\infty`$, least
-    squares at $`\mu = 0`$).
+    and fits its \\p \times p\\ compatibility adapter \\A_k\\ along the
+    \\\mu\\ family (orthogonal Procrustes at \\\mu\to\infty\\, least
+    squares at \\\mu = 0\\).
 4.  Each site stores its local cohort, embedded with the private model
     and normalized to unit length — and, for the fold (Design 1)
     deployment, the public-compatible images of those vectors.
@@ -146,18 +131,18 @@ public model, normalizes to unit length, encrypts into a single
 slot-packed encrypted vector under the joint public key, and broadcasts
 that to the master.
 
-For each site $`k`$:
+For each site \\k\\:
 
-5.  The site receives the encrypted query $`\mathit{ct}_q`$.
-6.  The site applies its private $`A_k`$ to the encrypted query via
+5.  The site receives the encrypted query \\\mathit{ct}\_q\\.
+6.  The site applies its private \\A_k\\ to the encrypted query via
     diagonal-encoded matrix–vector multiplication, producing
-    $`\mathit{ct}_{A_k q}`$ (Design 2). Near the orthogonal end of the
+    \\\mathit{ct}\_{A_k q}\\ (Design 2). Near the orthogonal end of the
     family the result is unit-norm, so the score is a genuine cosine;
     alternatively the site skips this step and scores the query directly
     against its folded public-compatible database (Design 1).
 7.  The site computes inner products against each of its local
-    embeddings $`v_{k,i}`$ via slot-wise multiplication followed by
-    log-$`p`$ rotation-and-add slot summation, producing one encrypted
+    embeddings \\v\_{k,i}\\ via slot-wise multiplication followed by
+    log-\\p\\ rotation-and-add slot summation, producing one encrypted
     scalar per local patient.
 8.  The site returns its encrypted scores to the master, alongside its
     local patient indices in the clear.
@@ -166,11 +151,11 @@ For each site $`k`$:
 
 9.  The master concatenates encrypted scores across all sites. In v1,
     local indices are kept in the clear alongside the encrypted scores;
-    encrypted top-$`k`$ selection in CKKS is feasible but adds depth and
+    encrypted top-\\k\\ selection in CKKS is feasible but adds depth and
     complexity orthogonal to this vignette’s pedagogical aim.
 10. The master collects partial decryption shares from all three sites
     for the encrypted scores. Fusion yields the scores in the clear; the
-    master sorts them there and returns the top-$`k`$ to the querier.
+    master sorts them there and returns the top-\\k\\ to the querier.
 
 ## Synthetic data
 
@@ -193,9 +178,9 @@ that gives a meaningful retrieval ground truth.
 `top_k``         ``<-`` ``5L`
 
 A patient is one of `n_phenotypes` clinical phenotypes. Each phenotype
-is a Gaussian cluster in $`\mathbf{R}^p`$. Phenotype labels are the
-retrieval ground truth: a query of phenotype $`j`$ should be matched to
-database patients of phenotype $`j`$.
+is a Gaussian cluster in \\\mathbf{R}^p\\. Phenotype labels are the
+retrieval ground truth: a query of phenotype \\j\\ should be matched to
+database patients of phenotype \\j\\.
 
 \
 `phenotype_centers`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(`[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_phenotypes`` ``*`` ``p``, sd ``=`` ``1``)``,`\
@@ -212,15 +197,15 @@ database patients of phenotype $`j`$.
 
 A site fine-tunes for its own purposes; it does not constrain the result
 to be an isometry of the public model. We therefore model the per-site
-drift as a *non-isometric* linear map $`B_k = Q_k D_k`$ — a random
-rotation $`Q_k`$ composed with a diagonal stretch
-$`D_k = \mathrm{diag}(e^{\beta g})`$, $`g`$ standard normal. The
-parameter $`\beta`$ is the non-isometry magnitude: $`\beta = 0`$
-recovers an exactly orthogonal drift (the special case where the
-geometry is merely rotated), and $`\beta > 0`$ stretches the embedding
-directions anisotropically, as a freely fine-tuned model generically
-would. The site’s embeddings are unit-normalized after the map, so the
-drift acts on the sphere.
+drift as a *non-isometric* linear map \\B_k = Q_k D_k\\ — a random
+rotation \\Q_k\\ composed with a diagonal stretch \\D_k =
+\mathrm{diag}(e^{\beta g})\\, \\g\\ standard normal. The parameter
+\\\beta\\ is the non-isometry magnitude: \\\beta = 0\\ recovers an
+exactly orthogonal drift (the special case where the geometry is merely
+rotated), and \\\beta \> 0\\ stretches the embedding directions
+anisotropically, as a freely fine-tuned model generically would. The
+site’s embeddings are unit-normalized after the map, so the drift acts
+on the sphere.
 
 \
 `random_drift`` ``<-`` ``function``(``p``, ``beta``)`` ``{`\
@@ -245,27 +230,25 @@ drift acts on the sphere.
 
 The public anchor cohort is a small, publicly-available set of patient
 examples. Each site embeds the anchors twice — once with the public
-model (giving $`Z_{\text{pub}}`$, identical at every site by
+model (giving \\Z\_{\text{pub}}\\, identical at every site by
 construction) and once with its own private fine-tuned model (giving
-$`Z_{\text{priv},k}`$). The pair drives a post-hoc *compatibility
-adapter* $`A_k`$ that maps the site’s private geometry back to the
+\\Z\_{\text{priv},k}\\). The pair drives a post-hoc *compatibility
+adapter* \\A_k\\ that maps the site’s private geometry back to the
 public protocol, fit by
 
-``` math
-\min_{A}\ \lVert Z_{\text{priv},k}\,A - Z_{\text{pub}}\rVert_F^2
-        \;+\; \mu\,\lVert A^\top A - I\rVert_F^2 .
-```
+\\ \min\_{A}\\ \lVert Z\_{\text{priv},k}\\A - Z\_{\text{pub}}\rVert_F^2
+\\+\\ \mu\\\lVert A^\top A - I\rVert_F^2 . \\
 
-The penalty parameter $`\mu`$ traces a one-parameter family. At
-$`\mu \to \infty`$ the adapter is forced orthogonal and the fit is the
+The penalty parameter \\\mu\\ traces a one-parameter family. At \\\mu
+\to \infty\\ the adapter is forced orthogonal and the fit is the
 classical orthogonal Procrustes problem, solved in closed form by the
 singular value decomposition — this is the rigid endpoint, exact only
-when the drift is itself isometric. At $`\mu = 0`$ the adapter is an
+when the drift is itself isometric. At \\\mu = 0\\ the adapter is an
 unconstrained least-squares map, the best public-space fit but
-generically non-isometric. Intermediate $`\mu`$ interpolates: a
-*near-orthogonal* map. We deploy $`A_k`$ by applying it to the encrypted
-query, $`\langle A_k q,\, v\rangle`$, which recovers the public-space
-cosine $`\langle q, u\rangle`$ when the adapter inverts the drift
+generically non-isometric. Intermediate \\\mu\\ interpolates: a
+*near-orthogonal* map. We deploy \\A_k\\ by applying it to the encrypted
+query, \\\langle A_k q,\\ v\rangle\\, which recovers the public-space
+cosine \\\langle q, u\rangle\\ when the adapter inverts the drift
 (exactly, in the orthogonal limit).
 
 \
@@ -288,14 +271,12 @@ cosine $`\langle q, u\rangle`$ when the adapter inverts the drift
 `               control ``=`` `[`list`](https://rdrr.io/r/base/list.html)`(``maxit ``=`` ``400``)``)``$``par``, ``p``, ``p``)`\
 `}`
 
-A convex alternative one might reach for is *Gram / metric learning*
-(§10.4 of the companion exploration): fit a positive-semidefinite $`M`$
-matching the public Gram matrix,
-$`\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
-Z_{\text{pub}}Z_{\text{pub}}^\top\rVert_F^2`$. Its minimizer is analytic
-— $`M = A_{\text{LS}}A_{\text{LS}}^\top`$ — and we deploy its symmetric
-square root. We include it only to show, below, that it is the *wrong*
-tool here.
+A convex alternative is Gram (metric) learning: fit a
+positive-semidefinite \\M\\ matching the public Gram matrix,
+\\\min\_{M\succeq0}\lVert Z\_{\text{priv}}MZ\_{\text{priv}}^\top -
+Z\_{\text{pub}}Z\_{\text{pub}}^\top\rVert_F^2\\. Its minimizer is \\M =
+A\_{\text{LS}}A\_{\text{LS}}^\top\\, and we deploy its symmetric square
+root. The sweep below compares it with the \\\mu\\ family.
 
 \
 `fit_gram`` ``<-`` ``function``(``Z_priv``, ``Z_pub``)`` ``{`\
@@ -325,14 +306,14 @@ approximate by independent sampling).
 \
 `site_cohorts`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``cohort_sizes``, ``embed_public``)`
 
-We later fit one adapter $`A_k`$ per site, build both the raw-private
+We later fit one adapter \\A_k\\ per site, build both the raw-private
 and folded public-compatible databases, and report retrieval recall as
-the non-isometry $`\beta`$ and the penalty $`\mu`$ vary.
+the non-isometry \\\beta\\ and the penalty \\\mu\\ vary.
 
 ## Threshold key generation
 
 The three sites jointly construct a CKKS keypair so that the secret key
-is split $`n`$-of-$`n`$ across them.
+is split \\n\\-of-\\n\\ across them.
 [`make_threshold_master()`](https://bnaras.github.io/homomorpheR/reference/make_threshold_master.md)
 from `homomorpheR` walks that chain across the sites: each site
 generates its own share, keeps it, and passes on only a public key. The
@@ -367,14 +348,19 @@ constructed first.
 `pub`
 
     ## <OpenFHEParams> CKKS
-    ##   public key  286531b1b0b48b6a9630f8311b206f10
+    ##   public key  591d138acd9a79e6cea5ba212d9dbb35
     ##   secret material: none
 
-Site $`k`$’s share lives in `sites[[k]]@state$sk` and nowhere else.
-`master_decrypt(master, ct, len)` dispatches on `ThresholdMaster` and
-runs the $`n`$-of-$`n`$ ceremony by asking each site for a partial
-decryption — no party ever holds a usable secret unilaterally, the
-aggregator included.
+A CKKS encrypted value holds a vector of numbers, one per *slot*, and
+arithmetic acts on all slots at once. Setting `batch_size = p` gives
+each encrypted value exactly \\p\\ = 32 slots, so one embedding fills
+one encrypted value, a coordinate per slot.
+
+Site \\k\\’s share lives in `sites[[k]]@state$sk` and nowhere else.
+`decrypt(master, ct, len)` dispatches on `ThresholdMaster` and runs the
+\\n\\-of-\\n\\ ceremony by asking each site for a partial decryption —
+no party ever holds a usable secret unilaterally, the aggregator
+included.
 
 Everything below encrypts with `pub`. No party consults the aggregator
 again; each holds what it was given and works from that.
@@ -382,25 +368,23 @@ again; each holds what it was given and works from that.
 ## Joint rotation keys
 
 The matrix–vector multiply step in the protocol is implemented as a
-*diagonal-encoded matvec*. For a $`p \times p`$ matrix $`M`$ and an
-encrypted vector $`q \in \mathbf{R}^p`$ held one component per slot:
+*diagonal-encoded matvec*. For a \\p \times p\\ matrix \\M\\ and an
+encrypted vector \\q \in \mathbf{R}^p\\ held one component per slot:
 
-``` math
-M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \odot \mathrm{rot}(q, i),
-```
+\\ M \cdot q \\=\\ \sum\_{i=0}^{p-1} d_i \odot \mathrm{rot}(q, i), \\
 
-where $`d_i`$ is the $`i`$-th diagonal of $`M`$ (a $`p`$-vector, and
-never encrypted), $`\odot`$ is slot-wise multiplication, and
-$`\mathrm{rot}(q, i)`$ cyclically rotates the slots of $`q`$ by $`i`$.
+where \\d_i\\ is the \\i\\-th diagonal of \\M\\ (a \\p\\-vector, and
+never encrypted), \\\odot\\ is slot-wise multiplication, and
+\\\mathrm{rot}(q, i)\\ cyclically rotates the slots of \\q\\ by \\i\\.
 Each rotation requires a precomputed *rotation key*. In single-key CKKS
 these are generated from the secret key; in threshold CKKS they are
-generated by an $`n`$-of-$`n`$ ceremony that mirrors the encryption-key
+generated by an \\n\\-of-\\n\\ ceremony that mirrors the encryption-key
 ceremony.
 
-The inner-product step adds a second use of rotation keys: the log-$`p`$
+The inner-product step adds a second use of rotation keys: the log-\\p\\
 rotation-and-add reduction that sums the slots of an encoded
-$`p`$-vector into slot 0. The same set of rotation indices serves both
-purposes; we generate keys for indices $`1, \ldots, p-1`$ and rely on
+\\p\\-vector into slot 0. The same set of rotation indices serves both
+purposes; we generate keys for indices \\1, \ldots, p-1\\ and rely on
 the subset that each step needs.
 
 \
@@ -448,31 +432,31 @@ under `master@joint_pubkey`) can be rotated by any index in
 
 A round-trip smoke test confirms the joint rotation key works. We
 encrypt a known vector, rotate by 3 slots, decrypt via the
-$`n`$-of-$`n`$ ceremony, and check that slot $`i`$ now holds
-$`x_{(i+3) \bmod p}`$:
+\\n\\-of-\\n\\ ceremony, and check that slot \\i\\ now holds \\x\_{(i+3)
+\bmod p}\\:
 
 \
 `x`` ``<-`` ``1``:``p`\
-`ct_x``      ``<-`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``pub``, ``x``)`\
+`ct_x``      ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``pub``, ``x``)`\
 `ct_rot``    ``<-`` `[`eval_rotate`](https://openfheorg.github.io/openfhe.R/reference/eval_rotate.html)`(``ct_x``, ``3L``)`\
-`recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_rot``, len ``=`` ``p``)`\
+`recovered`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_rot``, len ``=`` ``p``)`\
 \
 `expected`` ``<-`` ``x``[``(``(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``p``)`` ``-`` ``1L`` ``+`` ``3L``)`` `[`%%`](https://rdrr.io/r/base/Arithmetic.html)` ``p``)`` ``+`` ``1L``]`\
 [`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)`` ``<`` ``1e-6``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(``"rotation round-trip max error:"``,`\
 `    `[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"%.2e\n"``, `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``recovered`` ``-`` ``expected``)``)``)``)`
 
-    ## rotation round-trip max error: 8.46e-12
+    ## rotation round-trip max error: 7.05e-12
 
 ## Per-site adapter fit and database setup
 
 For the encrypted walk-through we fit the adapter at the orthogonal
-endpoint ($`\mu = \infty`$), so the map applied to the query is exactly
+endpoint (\\\mu = \infty\\), so the map applied to the query is exactly
 norm-preserving and the matrix–vector multiply below produces a
 unit-norm result — the regime in which the raw-private-database matvec
-(Design 2) is a valid cosine. The recall sweeps later vary $`\mu`$ and
-the drift. Each site’s fine-tuned model is the non-isometric $`B_k`$;
-the adapter $`A_k`$ is fit post hoc on the public anchor cohort.
+(Design 2) is a valid cosine. The recall sweeps later vary \\\mu\\ and
+the drift. Each site’s fine-tuned model is the non-isometric \\B_k\\;
+the adapter \\A_k\\ is fit post hoc on the public anchor cohort.
 
 \
 `B`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_sites``)``, ``function``(``k``)`` ``random_drift``(``p``, ``beta_demo``)``)`\
@@ -521,30 +505,28 @@ the adapter $`A_k`$ is fit post hoc on the public anchor cohort.
 
 ## Diagonal-encoded matrix-vector multiply
 
-The CKKS-friendly way to multiply an unencrypted $`p \times p`$ matrix
-into an encrypted vector is the *diagonal encoding*. The matrix $`M`$ is
-decomposed into its $`p`$ generalized diagonals, each an unencrypted
-length-$`p`$ vector:
+The CKKS-friendly way to multiply an unencrypted \\p \times p\\ matrix
+into an encrypted vector is the *diagonal encoding*. The matrix \\M\\ is
+decomposed into its \\p\\ generalized diagonals, each an unencrypted
+length-\\p\\ vector:
 
-``` math
-d_i[j] = M[\,j,\, (j + i) \bmod p\,], \qquad i = 0, 1, \ldots, p-1.
-```
+\\ d_i\[j\] = M\[\\j,\\ (j + i) \bmod p\\\], \qquad i = 0, 1, \ldots,
+p-1. \\
 
 The matrix–vector product becomes
 
-``` math
-M \cdot q \;=\; \sum_{i=0}^{p-1} d_i \,\odot\, \mathrm{rot}(q, i),
-```
+\\ M \cdot q \\=\\ \sum\_{i=0}^{p-1} d_i \\\odot\\ \mathrm{rot}(q, i),
+\\
 
-where $`\odot`$ is slot-wise multiplication and $`\mathrm{rot}(q, i)`$
-is the $`i`$-step cyclic slot rotation. Each term multiplies an
+where \\\odot\\ is slot-wise multiplication and \\\mathrm{rot}(q, i)\\
+is the \\i\\-step cyclic slot rotation. Each term multiplies an
 encrypted vector by an unencrypted one and adds the result to a running
-encrypted total. The cost is $`p`$ rotations and $`p`$ such
+encrypted total. The cost is \\p\\ rotations and \\p\\ such
 multiplications per matrix-vector product, and it consumes a single
 level of the precision budget.
 
 Multiplying by an unencrypted vector rather than an encrypted one is
-what keeps that cost down: the adapter $`A_k`$ is the site’s own, so it
+what keeps that cost down: the adapter \\A_k\\ is the site’s own, so it
 never needs encrypting, and the operation is correspondingly cheaper
 than multiplying two encrypted quantities together.
 
@@ -574,34 +556,32 @@ than multiplying two encrypted quantities together.
 `}`
 
 A round-trip smoke test on a known query vector confirms the matvec
-recovers $`A_1 \cdot q`$ to floating-point precision:
+recovers \\A_1 \cdot q\\ to floating-point precision:
 
 \
 `q_demo`` ``<-`` ``public_query``$``z``[``1``, ``]`\
-`ct_q``  ``<-`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``pub``, ``q_demo``)`\
+`ct_q``  ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``pub``, ``q_demo``)`\
 `ct_Aq`` ``<-`` ``encrypted_matvec``(``ct_q``, ``A_hat``[[``1``]``]``, ``cc``, ``p``)`\
-`Aq_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_Aq``, len ``=`` ``p``)`\
+`Aq_recovered`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_Aq``, len ``=`` ``p``)`\
 `Aq_expected``  ``<-`` `[`as.numeric`](https://rdrr.io/r/base/numeric.html)`(``A_hat``[[``1``]``]`` `[`%*%`](https://rdrr.io/r/base/matmult.html)` ``q_demo``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"matvec max error (site 1): %.2e\n"``,`\
 `            `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Aq_recovered`` ``-`` ``Aq_expected``)``)``)``)`
 
-    ## matvec max error (site 1): 2.90e-11
+    ## matvec max error (site 1): 2.44e-11
 
 ## Inner product against the local database
 
 After the matvec, the encrypted query has been mapped by the adapter
-into site $`k`$’s private geometry (unit-norm at the orthogonal endpoint
+into site \\k\\’s private geometry (unit-norm at the orthogonal endpoint
 used here). The cosine similarity against a private-database vector
-$`v`$ (also unit-norm, and never encrypted since it never leaves the
+\\v\\ (also unit-norm, and never encrypted since it never leaves the
 site) is just
 
-``` math
-\cos(A_k q,\, v) \;=\; \langle A_k q,\, v \rangle
-\;=\; \sum_{j=1}^{p} (A_k q)_j \cdot v_j.
-```
+\\ \cos(A_k q,\\ v) \\=\\ \langle A_k q,\\ v \rangle \\=\\
+\sum\_{j=1}^{p} (A_k q)\_j \cdot v_j. \\
 
 In CKKS this is a slot-wise multiply of the matvec output by the
-unencrypted $`v`$, followed by a log-$`p`$ rotate-and-add
+unencrypted \\v\\, followed by a log-\\p\\ rotate-and-add
 *slot-summation reduction* that places the summed inner product in slot
 0.
 
@@ -631,12 +611,12 @@ matches the unencrypted computation at slot 0:
 \
 `v_test`` ``<-`` ``db``[[``1``]``]``$``z``[``1``, ``]`\
 `ct_score`` ``<-`` ``encrypted_inner_product``(``ct_Aq``, ``v_test``, ``cc``, ``p``)`\
-`score_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score``, len ``=`` ``1L``)`\
+`score_recovered`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_score``, len ``=`` ``1L``)`\
 `score_expected``  ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``Aq_expected`` ``*`` ``v_test``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"inner-product error (site 1, patient 1): %.2e\n"``,`\
 `            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``score_recovered`` ``-`` ``score_expected``)``)``)`
 
-    ## inner-product error (site 1, patient 1): 1.94e-11
+    ## inner-product error (site 1, patient 1): 1.90e-11
 
 The same `encrypted_inner_product` serves the **Design 1** deployment
 without any matvec: the encrypted *public-model* query is scored
@@ -646,47 +626,44 @@ non-isometric adapter it is the route that stays a valid cosine.
 
 \
 `ct_score_fold`` ``<-`` ``encrypted_inner_product``(``ct_q``, ``db_fold``[[``1``]``]``$``z``[``1``, ``]``, ``cc``, ``p``)`\
-`fold_recovered`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score_fold``, len ``=`` ``1L``)`\
+`fold_recovered`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_score_fold``, len ``=`` ``1L``)`\
 `fold_expected``  ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(``q_demo`` ``*`` ``db_fold``[[``1``]``]``$``z``[``1``, ``]``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Design-1 inner-product error (site 1, patient 1): %.2e\n"``,`\
 `            `[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fold_recovered`` ``-`` ``fold_expected``)``)``)`
 
-    ## Design-1 inner-product error (site 1, patient 1): 3.51e-12
+    ## Design-1 inner-product error (site 1, patient 1): 7.33e-12
 
 ### What is in the slots we do not read
 
-Reading `len = 1L` sets the *reported* length of a decrypted
-`Plaintext`. It is an API convenience, not a cryptographic erasure: the
-party that decrypts can ask for every slot. OpenFHE’s security notes
-warn about exactly this for slot-summation primitives, so the honest
-thing is to look rather than to assume.
+The score is read from slot 0, but the decrypted value has all 32 slots,
+and `len = 1L` only limits how many are shown. Whoever decrypts can read
+the rest. If those slots held partial sums, they would reveal more than
+the score.
 
-Here the reduction is cyclic over a batch that is exactly $`p`$ slots
-wide, so it does not leave partial sums behind — it broadcasts the total
-to every slot. The other slots hold the same score that is released
-anyway.
+They do not. The rotations wrap around exactly \\p\\ slots, so every
+slot ends up holding the full sum. The check below confirms that all 32
+slots hold the released score.
 
 \
-`all_slots`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_score``, len ``=`` ``p``)`\
+`all_slots`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_score``, len ``=`` ``p``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"slots holding the released score: %d of %d (max deviation %.2e)\n"``,`\
 `            `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``all_slots`` ``-`` ``score_recovered``)`` ``<`` ``1e-6``)``, ``p``,`\
 `            `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``all_slots`` ``-`` ``score_recovered``)``)``)``)`
 
     ## slots holding the released score: 32 of 32 (max deviation 1.46e-11)
 
-That is a property of this reduction width, not of CKKS. A layout that
-summed over fewer slots than the batch holds — packing several patients
-into one encrypted value, say — would leave genuine partial sums in the
-remainder, and those would be released along with the score. The fix is
-a slot mask: one multiplication by an unencrypted one-hot vector, which
-zeroes every other slot and costs one level of the precision budget. At
-`multiplicative_depth = 3` this protocol has exactly that level spare
-after the matvec and the inner product.
+This holds only because the sum covers the whole batch. If several
+patients were packed into one encrypted value, each sum would cover only
+some of the slots, and the other slots would hold partial sums.
+Multiplying by an unencrypted vector that is 1 in slot 0 and 0 elsewhere
+clears them. That multiplication uses one level of multiplicative depth.
+With `multiplicative_depth = 3`, the matrix–vector multiply and the
+inner product use two levels, which leaves one for it.
 
 ## Site `contribution_fn`: full per-site protocol step
 
-The site-side computation closes over the site’s adapter $`A_k`$ and
-database $`D_k`$, takes the encrypted query as input, and returns a list
+The site-side computation closes over the site’s adapter \\A_k\\ and
+database \\D_k\\, takes the encrypted query as input, and returns a list
 of encrypted scores plus the corresponding local indices in the clear.
 This is the **Design 2** branch: the adapter is applied to the encrypted
 query (the matvec), and scoring runs against the site’s raw private
@@ -716,9 +693,9 @@ encrypted score per local patient:
 \
 `t0`` ``<-`` `[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`\
 `site1_out`` ``<-`` ``site_fns``[[``1``]``]``(``ct_q``)`\
-`elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`\
+`site1_elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"site 1 produced %d encrypted scores in %.2f s\n"``,`\
-`            `[`length`](https://rdrr.io/r/base/length.html)`(``site1_out``$``scores``)``, ``elapsed``)``)`
+`            `[`length`](https://rdrr.io/r/base/length.html)`(``site1_out``$``scores``)``, ``site1_elapsed``)``)`
 
     ## site 1 produced 80 encrypted scores in 0.84 s
 
@@ -726,12 +703,12 @@ encrypted score per local patient:
 
 The master broadcasts the encrypted query to every site, collects
 per-site encrypted scores plus the local patient indices in the clear,
-and runs the $`n`$-of-$`n`$ threshold decryption ceremony for each score
+and runs the \\n\\-of-\\n\\ threshold decryption ceremony for each score
 so it can sort them once they are in the clear and return the top-`k`.
 
 The decryption pattern is per-patient: each encrypted score goes through
 one threshold-decrypt round.
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 sends the encrypted score to each site in turn —
 `multiparty_decrypt_lead` at site 1, `multiparty_decrypt_main` at each
 of the rest, every site applying its own share — and fuses the returned
@@ -756,7 +733,7 @@ single encrypted value and amortize the ceremony.
 `  ``rows`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(``)`\
 `  ``for`` ``(``s`` ``in`` ``site_results``)`` ``{`\
 `    ``for`` ``(``i`` ``in`` `[`seq_along`](https://rdrr.io/r/base/seq.html)`(``s``$``scores``)``)`` ``{`\
-`      ``score`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``s``$``scores``[[``i``]``]``, len ``=`` ``1L``)`\
+`      ``score`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``s``$``scores``[[``i``]``]``, len ``=`` ``1L``)`\
 `      ``rows``[[`[`length`](https://rdrr.io/r/base/length.html)`(``rows``)`` ``+`` ``1L``]``]`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
 `        site_id     ``=`` ``s``$``site_id``,`\
 `        local_index ``=`` ``s``$``local_index``[``i``]``,`\
@@ -773,17 +750,13 @@ single encrypted value and amortize the ceremony.
 `top_result`` ``<-`` ``run_similarity_query``(``ct_q``, ``site_fns``, ``master``, top_k ``=`` ``top_k``)`\
 `elapsed`` ``<-`` ``(`[`proc.time`](https://rdrr.io/r/base/proc.time.html)`(``)`` ``-`` ``t0``)``[[``"elapsed"``]``]`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d retrieval over %d sites and %d patients in %.1f s\n"``,`\
-`            ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`
+`            ``top_k``, ``n_sites``, `[`sum`](https://rdrr.io/r/base/sum.html)`(``cohort_sizes``)``, ``elapsed``)``)`\
+[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`\
+[`print`](https://rdrr.io/r/base/print.html)`(``top_result``, row.names ``=`` ``FALSE``)`
 
-    ## Top-5 retrieval over 3 sites and 240 patients in 5.7 s
-
-\
-[`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Query phenotype label: %d\n"``, ``public_query``$``label``)``)`
+    ## Top-5 retrieval over 3 sites and 240 patients in 5.6 s
 
     ## Query phenotype label: 4
-
-\
-[`print`](https://rdrr.io/r/base/print.html)`(``top_result``, row.names ``=`` ``FALSE``)`
 
     ##  site_id local_index label     score
     ##        2          37     4 0.9048070
@@ -797,7 +770,7 @@ single encrypted value and amortize the ceremony.
 The protocol output is meaningful only if the inner products computed
 under encryption agree with the same quantities computed in the clear,
 to within CKKS approximation error. The reference computation runs the
-same $`A_k \cdot q`$ adapter application and inner-product reduction
+same \\A_k \cdot q\\ adapter application and inner-product reduction
 unencrypted on each site’s database:
 
 \
@@ -829,10 +802,7 @@ unencrypted on each site’s database:
 `                 suffixes ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"_enc"``, ``"_plain"``)``)`\
 `score_err`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``compare``$``score_enc`` ``-`` ``compare``$``score_plain``)``)`\
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d encrypted vs cleartext score max error: %.2e\n"``,`\
-`            ``top_k``, ``score_err``)``)`
-
-    ## Top-5 encrypted vs cleartext score max error: 1.82e-11
-
+`            ``top_k``, ``score_err``)``)`\
 \
 `## Whether the encrypted-domain top-k contains the same`\
 `## (site_id, local_index) pairs as the cleartext reference.`\
@@ -841,26 +811,25 @@ unencrypted on each site’s database:
 [`cat`](https://rdrr.io/r/base/cat.html)`(`[`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Top-%d set match: %d of %d\n"``,`\
 `            ``top_k``, `[`length`](https://rdrr.io/r/base/length.html)`(`[`intersect`](https://rdrr.io/r/base/sets.html)`(``enc_set``, ``plain_set``)``)``, ``top_k``)``)`
 
+    ## Top-5 encrypted vs cleartext score max error: 3.42e-11
+
     ## Top-5 set match: 5 of 5
 
 ## What the adapter buys: fidelity, posture, and a sweet spot
 
 The encrypted mechanics work to floating-point precision, as the smoke
-tests and reference comparison above confirm (max error
-$`\sim 10^{-11}`$). The substantive questions are statistical, and
-because the encrypted and unencrypted scores agree to within CKKS
-approximation error we answer them in the clear — fast enough to average
-over many queries and trace stable curves. Three questions:
+tests and reference comparison above confirm (max error \\\sim
+10^{-11}\\). So we now investigate three questions:
 
 1.  **Fidelity.** When the drift is genuinely non-isometric, does a
     near-orthogonal or least-squares adapter recover retrieval that the
-    rigid orthogonal Procrustes endpoint ($`\mu\to\infty`$) cannot?
+    rigid orthogonal Procrustes endpoint (\\\mu\to\infty\\) cannot?
 2.  **Posture.** Where do the two deployments agree — Design 1 (fold the
     adapter into the database offline) and Design 2 (apply it to the
     encrypted query, the matvec) — and where must we prefer one? They
     coincide only when the adapter is orthogonal, so the per-vector
     norms it produces are all one.
-3.  **Sweet spot.** Does an intermediate $`\mu`$ ever beat both
+3.  **Sweet spot.** Does an intermediate \\\mu\\ ever beat both
     endpoints, and when?
 
 The sweeps use a less-forgiving cluster configuration than the
@@ -1030,21 +999,21 @@ drive recall.
     ##   Inf 0.482 0.482
 
 Three readings come out of the sweeps. **Fidelity** (β panel): at
-$`\beta = 0`$ the drift is isometric and Procrustes, the near-orthogonal
+\\\beta = 0\\ the drift is isometric and Procrustes, the near-orthogonal
 map, and least squares all match the no-drift ideal; as the drift bends,
 Procrustes falls away while the relaxed adapters track the ideal — the
 richer map earns its keep exactly when fine-tuning is non-isometric.
-**Posture** (μ panel): Design 1 and Design 2 coincide at
-$`\mu \to \infty`$ (where the adapter is orthogonal and the per-vector
-norms are all one) and separate as $`\mu`$ shrinks, so the raw-database
-matvec is a valid cosine only near the orthogonal endpoint; the
-departure-from- isometry panel quantifies the budget. **Sweet spot**
-(scarce- anchor panel): when the calibration cohort is smaller than the
-embedding dimension, an intermediate $`\mu`$ regularizes the adapter and
-can beat both endpoints — a secondary effect that appears only under
-scarce calibration. The Gram-PSD reference sits near the unaligned
-floor: its rotation invariance loses the public-frame orientation, so it
-is the wrong tool for a public-query retrieval (see the discussion).
+**Posture** (μ panel): Design 1 and Design 2 coincide at \\\mu \to
+\infty\\ (where the adapter is orthogonal and the per-vector norms are
+all one) and separate as \\\mu\\ shrinks, so the raw-database matvec is
+a valid cosine only near the orthogonal endpoint; the departure-from-
+isometry panel quantifies the budget. **Sweet spot** (scarce- anchor
+panel): when the calibration cohort is smaller than the embedding
+dimension, an intermediate \\\mu\\ regularizes the adapter and can beat
+both endpoints — a secondary effect that appears only under scarce
+calibration. The Gram-PSD reference sits near the unaligned floor: its
+rotation invariance loses the public-frame orientation, so it is the
+wrong tool for a public-query retrieval.
 
 \
 `op`` ``<-`` `[`par`](https://rdrr.io/r/graphics/par.html)`(``mfrow ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``2``)``, mar ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``4.2``, ``4.2``, ``2.4``, ``1.0``)``)`\
@@ -1102,108 +1071,93 @@ is the wrong tool for a public-query retrieval (see the discussion).
 ## Discussion
 
 - **Federated retrieval across heterogeneous fine-tuned models.** Each
-  of $`n`$ sites holds its own privately fine-tuned variant of a public
-  foundation model; the protocol returns the top-$`k`$ patients across
+  of \\n\\ sites holds its own privately fine-tuned variant of a public
+  foundation model; the protocol returns the top-\\k\\ patients across
   all sites whose private-model embeddings are most cosine-similar to a
   public-model query.
-- **Site-private compatibility adapter on the $`\mu`$ axis.** Each site
-  fits an adapter $`A_k`$ on a public anchor cohort along the family
-  $`\min_A \lVert Z_{\text{priv}}A - Z_{\text{pub}}\rVert^2
-  + \mu\lVert A^\top A - I\rVert^2`$ — orthogonal Procrustes at
-  $`\mu\to\infty`$, least squares at $`\mu = 0`$. The adapter never
+- **Site-private compatibility adapter on the \\\mu\\ axis.** Each site
+  fits an adapter \\A_k\\ on a public anchor cohort along the family
+  \\\min_A \lVert Z\_{\text{priv}}A - Z\_{\text{pub}}\rVert^2 +
+  \mu\lVert A^\top A - I\rVert^2\\ — orthogonal Procrustes at
+  \\\mu\to\infty\\, least squares at \\\mu = 0\\. The adapter never
   leaves the site and never appears in the clear at the master.
 - **Two deployments, one axis.** The adapter is either applied to the
   encrypted query (Design 2, the matvec) or folded into the database
   offline (Design 1, a plain encrypted inner product). The two coincide
   exactly at the orthogonal endpoint (where every per-vector norm is
-  one) and part company as $`\mu`$ relaxes; Design 1 then gives correct
-  cosines while Design 2 does not. The matvec is thus the large-$`\mu`$
+  one) and part company as \\\mu\\ relaxes; Design 1 then gives correct
+  cosines while Design 2 does not. The matvec is thus the large-\\\mu\\
   branch.
-- **Threshold key generation, $`n`$-of-$`n`$.** The CKKS secret key is
+- **Threshold key generation, \\n\\-of-\\n\\.** The CKKS secret key is
   split across all sites. The master holds no usable secret material.
-  Any subset short of the full $`n`$ cannot decrypt anything along the
+  Any subset short of the full \\n\\ cannot decrypt anything along the
   way.
-- **Diagonal-encoded matvec under threshold CKKS.** A $`p \times p`$
-  matrix–vector multiply on an encrypted vector, implemented as $`p-1`$
-  nontrivial rotations (the $`i = 0`$ diagonal needs none), $`p`$
-  multiplications by unencrypted vectors, and $`p-1`$ encrypted
+- **Diagonal-encoded matvec under threshold CKKS.** A \\p \times p\\
+  matrix–vector multiply on an encrypted vector, implemented as \\p-1\\
+  nontrivial rotations (the \\i = 0\\ diagonal needs none), \\p\\
+  multiplications by unencrypted vectors, and \\p-1\\ encrypted
   additions, all within one level of the precision budget. The joint
   rotation keys for the cyclic-slot rotations come from an
-  $`n`$-of-$`n`$ ceremony that mirrors the encryption-key ceremony.
-- **Inner-product reduction via $`\log p`$ rotation-and-add.** Slot-wise
+  \\n\\-of-\\n\\ ceremony that mirrors the encryption-key ceremony.
+- **Inner-product reduction via \\\log p\\ rotation-and-add.** Slot-wise
   multiply by the site’s own unencrypted database vector followed by a
   halve-and-fold reduction places the cosine similarity in slot 0.
 - **Encrypted scoring, cleartext ranking.** Each site’s scores are
-  encrypted and only the $`n`$-of-$`n`$ ceremony can open them, so no
+  encrypted and only the \\n\\-of-\\n\\ ceremony can open them, so no
   single party — the aggregator included — learns a score on its own.
   Ranking, though, happens after decryption: the aggregator
   threshold-decrypts **every** candidate score and sorts, so what it
   ends up holding is each candidate’s site, local index, label, and
-  score, not a top-$`k`$ release. See the Limitations below, which is
-  where encrypted top-$`k`$ would change this. The encrypted protocol’s
-  scores agree with the same computation run unencrypted to
-  $`\sim 10^{-11}`$.
+  score, not a top-\\k\\ release. See the Limitations below, which is
+  where encrypted top-\\k\\ would change this. The encrypted protocol’s
+  scores agree with the same computation run unencrypted to \\\sim
+  10^{-11}\\.
 - **Fidelity under non-isometric drift.** When fine-tuning is a genuine
   non-isometry, the rigid orthogonal endpoint leaves recall on the table
   while a relaxed (least-squares or near-orthogonal) adapter tracks the
   no-drift ideal. At the isometric special case the two coincide — that
   special case is the orthogonal protocol of the earlier design.
-- **Why not metric learning?** The convex Gram / Mahalanobis fit
-  ($`\min_{M\succeq0}\lVert Z_{\text{priv}}MZ_{\text{priv}}^\top -
-  Z_{\text{pub}}Z_{\text{pub}}^\top\rVert^2`$) is tempting, but its
-  minimizer is exactly $`A_{\text{LS}}A_{\text{LS}}^\top`$ and its
-  symmetric-root deployment carries the adapter’s orthogonal polar
-  factor — an unrecoverable rotation against a public-frame query. Its
-  recall collapses to the unaligned floor in the sweep above. Gram
-  matching is the right tool for private↔︎private retrieval (where the
-  rotation cancels), not for a public query against a private database;
-  pointwise alignment, the $`\mu`$ family, is what pins the frame.
 
 ## Limitations
 
-- **Encrypted top-$`k`$ selection, and what its absence releases.** We
-  sort in the clear after threshold-decrypting the per-patient scores,
-  so the ceremony runs once per candidate and the aggregator ends up
-  holding, for **every** candidate at every site: the site it came from,
-  the local index, the label, and the score. That is more than a
-  top-$`k`$ release, and it is the honest description of what this
-  implementation discloses. Ranking under encryption cannot be avoided
-  by ordering the steps differently — without encrypted comparison,
-  nothing can know the global top-$`k`$ without first learning enough
-  scores to rank them. Encrypted argmax / top-$`k`$ via polynomial sign
-  approximation is feasible in CKKS but adds depth and complexity
-  orthogonal to this vignette’s pedagogical aim. Two cheaper partial
-  measures: have each site select a local candidate set before
-  encryption, which trades recall for a smaller release, or return the
-  scores without the labels, which is the field a reader is most likely
-  to assume was protected.
-- **Normalization, and what the $`\mu`$ knob trades.** The near-isometry
-  of the adapter controls the per-vector norms
-  $`\lVert A_k^\top v\rVert`$. At the orthogonal end they are all one,
-  which buys two things at once: the homomorphic inverse-square-root
-  (the depth-dominating Newton iteration of Qu & Xu 2023 / Prantl et
-  al. *De Bello Homomorphico* 2023) is avoided, *and* every per-site
-  score is a cosine in $`[-1,1]`$ on the same scale across sites, so the
-  raw-database matvec (Design 2) is directly comparable. As $`\mu`$
-  relaxes for better fidelity, those norms spread; the cure is to fold
-  the adapter into the database offline and unit-normalize there (Design
-  1), which restores comparable cosines at the cost of materializing
+- **Encrypted top-\\k\\ selection.** We sort in the clear after
+  threshold-decrypting the per-patient scores, so the ceremony runs once
+  per candidate and the aggregator ends up holding, for *every*
+  candidate at every site: the site it came from, the local index, the
+  label, and the score. That is more than a top-\\k\\ release, and it is
+  the honest description of what this implementation discloses. Ranking
+  under encryption cannot be avoided by ordering the steps differently —
+  without encrypted comparison, nothing can know the global top-\\k\\
+  without first learning enough scores to rank them. Encrypted argmax /
+  top-\\k\\ via polynomial sign approximation is feasible in CKKS but
+  adds depth and complexity orthogonal to this vignette’s pedagogical
+  aim.
+- **Normalization, and what the \\\mu\\-knob trades.** The near-isometry
+  of the adapter controls the per-vector norms \\\lVert A_k^\top
+  v\rVert\\. At the orthogonal end they are all one, which buys two
+  things at once: the homomorphic inverse-square-root (the
+  depth-dominating Newton iteration of Qu and Xu (2023) and Prantl et
+  al. (2024)) is avoided, *and* every per-site score is a cosine in
+  \\\[-1,1\]\\ on the same scale across sites, so the raw-database
+  matvec (Design 2) is directly comparable. As \\\mu\\ relaxes for
+  better fidelity, those norms spread; the cure is to fold the adapter
+  into the database offline and unit-normalize there (Design 1), which
+  restores comparable cosines at the cost of materializing
   public-compatible embeddings and re-folding them on a public-model
-  upgrade. So $`\mu`$ trades fidelity against the raw-database-matvec
+  upgrade. So \\\mu\\ trades fidelity against the raw-database-matvec
   posture, with offline folding as the release valve — not a single
   forced choice.
-- **Slot-tiling for production scale.** The vignette runs at $`p = 32`$
-  with one encrypted value per database vector. Production at
-  $`p = 512`$ would pack many database vectors into the slots of a
-  single encrypted value, amortizing the matvec and inner-product cost
-  across patients within a site.
+- **Slot-tiling for production scale.** The vignette runs at \\p = 32\\
+  with one encrypted value per database vector. Production at \\p =
+  512\\ would pack many database vectors into the slots of a single
+  encrypted value, amortizing the matvec and inner-product cost across
+  patients within a site.
 - **Real-model validation.** The synthetic data above drifts by a
-  parameterized non-isometric $`B_k = Q_k D_k`$, a controllable stand-in
+  parameterized non-isometric \\B_k = Q_k D_k\\, a controllable stand-in
   for free fine-tuning. Real fine-tuned foundation models (BiomedCLIP
   fine-tuned per site, PubMedBERT, etc.) drift in ways no parameterized
-  family captures exactly. The deferred side experiment in
-  `similarity-sideexp.md` examines the alignment question empirically on
-  a real fine-tuned model.
+  family captures exactly. Validating the alignment on a real fine-tuned
+  model is future work.
 - **Adaptive-query leakage.** Repeated adaptive queries by the querier
   (or a coalition with the querier) leak structural information about
   the cohort — the same Hyrum-style observation that applies to any
@@ -1215,29 +1169,44 @@ is the wrong tool for a public-query retrieval (see the discussion).
   computation on the encrypted scores; that is heavy machinery and out
   of scope.
 
-## Where this fits
+## Related work
 
-This vignette extends the threshold-FHE family in `homomorpheR` —
-`cox-threshold` and `cvxr-consensus-admm` — with a third protocol shape.
-Cox-threshold and ADMM use a master/worker fan-in — each worker’s
-encrypted contribution is summed by the master; the similarity protocol
-uses a broadcast-and-aggregate shape: encrypted query in, per-site
-scoring, master-side threshold decryption of the released top-$`k`$. The
-actor surface (`make_threshold_master`, `make_worker`, `encrypt_under`,
-`master_decrypt`) carries over unchanged.
+In `cox-threshold` and `cvxr-cox-lasso-dlbcl` the aggregator sums the
+sites’ encrypted contributions. Here an encrypted query goes to every
+site, each site scores it, and the aggregator threshold-decrypts the
+scores. The actor functions (`make_threshold_master`, `make_worker`,
+`encrypt`, `decrypt`) are the same.
 
-The closest precedents in the literature combine some but not all of the
-ingredients used here: FRAG (Lin et al., arXiv:2410.13272) federates
-encrypted retrieval across distrusting parties but assumes a shared
-embedding model; FedE4RAG (arXiv:2504.19101) federates *training* of RAG
-retrievers under CKKS-on-gradients, with each client running its own
-fine-tuned model, but does the cross-client alignment through knowledge
-distillation rather than a fitted compatibility adapter; the AMPPERE
-three-party setup for PPER (arXiv:2405.18430) uses CKKS for entity
-resolution but assumes homogeneous models and tokenization-based
-alignment. The composition of (a) site-private fine-tuned models, (b) a
-private per-site compatibility adapter on the near-isometry ($`\mu`$)
-family, fit on a public anchor cohort, (c) threshold CKKS with
-$`n`$-of-$`n`$ decryption, and (d) two interchangeable deployments
-(encrypted-query matvec or offline fold) with the adapter held privately
-at each site does not appear to have been studied as a unified pipeline.
+Zhao (2024) federates encrypted vector search across mutually
+distrusting parties. Mao et al. (2025) train retrievers by federated
+learning, with knowledge distillation between the server and client
+models and homomorphic encryption of the model parameters. Yao et al.
+(2024) use homomorphic encryption for entity resolution across
+healthcare databases.
+
+## References
+
+Mao, Qianren, Qili Zhang, Hanwen Hao, et al. 2025. *Privacy-Preserving
+Federated Embedding Learning for Localized Retrieval-Augmented
+Generation*. <https://arxiv.org/abs/2504.19101>.
+
+Prantl, Thomas, Lukas Horn, Simon Engel, et al. 2024. “De Bello
+Homomorphico: Investigation of the Extensibility of the OpenFHE Library
+with Basic Mathematical Functions by Means of Common Approaches Using
+the Example of the CKKS Cryptosystem.” *International Journal of
+Information Security* 23 (2): 1149–69.
+<https://doi.org/10.1007/s10207-023-00781-0>.
+
+Qu, Hongyuan, and Guangwu Xu. 2023. “Improvements of Homomorphic Secure
+Evaluation of Inverse Square Root.” *Information and Communications
+Security (ICICS 2023)*, Lecture notes in computer science, 110–27.
+<https://doi.org/10.1007/978-981-99-7356-9_7>.
+
+Yao, Yixiang, Joseph Cecil, Praveen Angyan, Neil Bahroos, and Srivatsan
+Ravi. 2024. *Feasibility of Privacy-Preserving Entity Resolution on
+Confidential Healthcare Datasets Using Homomorphic Encryption*.
+<https://arxiv.org/abs/2405.18430>.
+
+Zhao, Dongfang. 2024. *FRAG: Toward Federated Vector Database Management
+for Collaborative and Secure Retrieval-Augmented Generation*.
+<https://arxiv.org/abs/2410.13272>.

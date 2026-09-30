@@ -55,7 +55,7 @@ public keys travel between parties, which is exactly what can be sent
 over a wire to an untrusted peer.
 
 Decryption is n-of-n:
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 asks each site for a partial decryption via
 [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
 and fuses the results with `multiparty_decrypt_fusion`. There is no path
@@ -95,4 +95,4 @@ generation, neither of which this package provides.
 
 [`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md),
 [`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md),
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md).
+[actor-encryption](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md).

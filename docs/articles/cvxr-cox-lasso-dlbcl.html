@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Federated Cox-Lasso via Consensus ADMM on DLBCL">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Federated Cox-Lasso via Consensus ADMM on DLBCL">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -79,14 +85,14 @@
 
 
 
-
+<script src="cvxr-cox-lasso-dlbcl_files/kePrint-0.0.1/kePrint.js"></script><link href="cvxr-cox-lasso-dlbcl_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Federated Cox-Lasso via Consensus ADMM on DLBCL</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cvxr-cox-lasso-dlbcl.Rmd" class="external-link"><code>vignettes/cvxr-cox-lasso-dlbcl.Rmd</code></a></small>
       <div class="d-none name"><code>cvxr-cox-lasso-dlbcl.Rmd</code></div>
@@ -97,29 +103,22 @@ Narasimhan</h4>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>The companion vignette <a href="cvxr-consensus-admm.html">Federated
-Consensus ADMM</a> develops the threshold-FHE consensus-ADMM protocol on
-a small simulated L2-regularized logistic problem
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">p = 4</annotation></semantics></math>,
-three sites). This vignette takes the same protocol to a real,
-high-dimensional survival problem: a stratified <strong>Cox
+<p>This vignette runs the threshold-FHE consensus-ADMM protocol on a
+real, high-dimensional survival problem: a stratified <strong>Cox
 lasso</strong> on the diffuse large-B-cell lymphoma (DLBCL)
 gene-expression cohort of <span class="citation"><span class="nocase">Rosenwald et al.</span> (2002)</span>, the dataset <span class="citation">Bayle et al. (2025)</span> use to motivate distributed
 Cox estimation.</p>
-<p>The lesson is the same as in the <code>cox</code> and
-<code>cox-threshold</code> vignettes — <em>function-call</em> optimizers
-such as <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> or <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code>’s Newton-Raphson
-compose with an encrypted master/worker round without the optimizer
-noticing — but it does not extend to arbitrary convex programs. <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> operates on a <em>symbolic</em>
-problem: it canonicalizes once and ships the canonical form to a solver,
-so we cannot hand it a callback that secretly performs FHE. The remedy
-is <strong>federated consensus ADMM</strong> (Boyd, Parikh, Chu, Peleato
-and Eckstein, 2011): split the global problem into per-site subproblems
-each solved by <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> in the clear,
-and use the encrypted channel only for the cross-site <strong>consensus
-average</strong>. Disciplined parametric programming (DPP) keeps the
-per-site solves fast because the <code>Parameter</code> values change
-every iteration but the symbolic structure does not.</p>
+<p>The <code>cox</code> and <code>cox-threshold</code> vignettes give an
+optimizer such as <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> an objective function that runs one
+encrypted round across the sites. That does not work for <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>, which does not call a function we
+supply: it converts a symbolic problem once to a standard form and
+passes that to a solver. Instead we use <strong>federated consensus
+ADMM</strong> (Boyd, Parikh, Chu, Peleato and Eckstein, 2011). The
+global problem is split into per-site subproblems, each solved by <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> in the clear, and only the
+cross-site <strong>consensus average</strong> is encrypted. Disciplined
+parametrized programming (DPP) keeps the per-site solves fast: between
+iterations only the <code>Parameter</code> values change, not the
+problem structure.</p>
 <p>We develop the fit in two passes. First we run the whole thing
 <strong>in the clear</strong> to fix the target: standardize, screen,
 and solve the consensus ADMM with an ordinary unencrypted average,
@@ -135,8 +134,8 @@ this vignette <em>are</em> the pipeline; they are gated
 <code>eval = RECOMPUTE</code> and do not run when the vignette builds
 (the encrypted ADMM takes ~150 iterations of per-site <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solves). The displayed numbers
 come from <code>data(cvxr_consensus)</code>, which was produced by
-extracting these very chunks with <code><a href="https://rdrr.io/pkg/knitr/man/knit.html" class="external-link">knitr::purl()</a></code> and running
-them. To verify the results, do exactly that yourself:</p>
+extracting these chunks with <code><a href="https://rdrr.io/pkg/knitr/man/knit.html" class="external-link">knitr::purl()</a></code> and running
+them. To verify the results, do the same:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vig</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"doc"</span>, <span class="st">"cvxr-cox-lasso-dlbcl.Rmd"</span>,</span>
 <span>                   package <span class="op">=</span> <span class="st">"homomorpheR"</span><span class="op">)</span></span>
@@ -145,68 +144,51 @@ them. To verify the results, do exactly that yourself:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span>                                        <span class="co"># runs the pipeline (minutes)</span></span>
 <span><span class="va">fresh</span> <span class="op">&lt;-</span> <span class="va">cvxr_consensus</span>                            <span class="co"># just recomputed</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">cvxr_consensus</span>, package <span class="op">=</span> <span class="st">"homomorpheR"</span><span class="op">)</span>      <span class="co"># the shipped copy</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fresh</span><span class="op">$</span><span class="va">z_enc</span> <span class="op">-</span> <span class="va">cvxr_consensus</span><span class="op">$</span><span class="va">z_enc</span><span class="op">)</span><span class="op">)</span>       <span class="co"># ~1e-7</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">fresh</span><span class="op">$</span><span class="va">z_enc</span> <span class="op">-</span> <span class="va">cvxr_consensus</span><span class="op">$</span><span class="va">z_enc</span><span class="op">)</span><span class="op">)</span>       <span class="co"># small, not zero</span></span></code></pre></div>
 <p>Threshold key generation is randomized, so a re-run reproduces the
-shipped coefficients up to CKKS approximation noise (~1e-7), not
-bit-for-bit. This <code>purl()</code>-then-<code><a href="https://rdrr.io/r/base/source.html" class="external-link">source()</a></code> is
-exactly what <code>data-raw/cvxr_consensus.R</code> does to build the
-shipped object.</p>
+shipped coefficients up to CKKS approximation noise, not bit-for-bit.
+This <code>purl()</code>-then-<code><a href="https://rdrr.io/r/base/source.html" class="external-link">source()</a></code> is exactly what
+<code>data-raw/cvxr_consensus.R</code> does to build the shipped
+object.</p>
 </blockquote>
 </div>
 <div class="section level2">
 <h2 id="the-global-problem-and-its-consensus-split">The global problem and its consensus split<a class="anchor" aria-label="anchor" href="#the-global-problem-and-its-consensus-split"></a>
 </h2>
 <p>The three molecular subgroups (GCB, ABC, Type III) are our sites:
-they arise from different cells of origin, have systematically different
-prognosis, and are diagnosed at different referral centers, so the
-subgroup is a biologically and operationally realistic site boundary.
-With
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>
-sites, per-site standardized design matrices
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mi>k</mi></msub><mo>∈</mo><msup><mi mathvariant="double-struck">ℝ</mi><mrow><msub><mi>n</mi><mi>k</mi></msub><mo>×</mo><mi>p</mi></mrow></msup></mrow><annotation encoding="application/x-tex">X_k \in \mathbb{R}^{n_k \times p}</annotation></semantics></math>,
-event times
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>t</mi><mi>k</mi></msub><annotation encoding="application/x-tex">t_k</annotation></semantics></math>,
-status
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>δ</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\delta_k</annotation></semantics></math>,
-a shared coefficient
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>∈</mo><msup><mi mathvariant="double-struck">ℝ</mi><mi>p</mi></msup></mrow><annotation encoding="application/x-tex">\beta \in \mathbb{R}^p</annotation></semantics></math>,
-and the per-stratum Cox partial log-likelihood
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ℓ</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\ell_k</annotation></semantics></math>
-in Breslow form, the global problem is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mi mathvariant="normal">min</mi><mrow><mi>β</mi><mo>∈</mo><msup><mi mathvariant="double-struck">ℝ</mi><mi>p</mi></msup></mrow></munder><mspace width="0.278em"></mspace><mo>−</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><msub><mi>ℓ</mi><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>+</mo><mspace width="0.278em"></mspace><mi>λ</mi><msub><mrow><mo stretchy="true" form="prefix">‖</mo><mi>β</mi><mo stretchy="true" form="postfix">‖</mo></mrow><mn>1</mn></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+they arise from different cells of origin and have systematically
+different prognosis. Using them as sites is a choice made for this
+demonstration. With <span class="math inline">\(N\)</span> sites,
+per-site standardized design matrices <span class="math inline">\(X_k
+\in \mathbb{R}^{n_k \times p}\)</span>, event times <span class="math inline">\(t_k\)</span>, status <span class="math inline">\(\delta_k\)</span>, a shared coefficient <span class="math inline">\(\beta \in \mathbb{R}^p\)</span>, and the
+per-stratum Cox partial log-likelihood <span class="math inline">\(\ell_k\)</span> in Breslow form, the global
+problem is</p>
+<p><span class="math display">\[
 \min_{\beta \in \mathbb{R}^p}\;
 -\sum_{k=1}^{N}\ell_k(\beta)\;+\;\lambda\lVert\beta\rVert_1 .
-</annotation></semantics></math></p>
+\]</span></p>
 <p>Because the partial likelihood factorizes additively across strata,
-the consensus split introduces per-site copies
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>k</mi></msub><annotation encoding="application/x-tex">x_k</annotation></semantics></math>
-and a global consensus
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mi mathvariant="normal">min</mi><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>x</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">}</mo><mo>,</mo><mspace width="0.167em"></mspace><mi>z</mi></mrow></munder><mspace width="0.278em"></mspace><munder><mo>∑</mo><mi>k</mi></munder><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mo>−</mo><msub><mi>ℓ</mi><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>+</mo><mi>λ</mi><msub><mrow><mo stretchy="true" form="prefix">‖</mo><mi>z</mi><mo stretchy="true" form="postfix">‖</mo></mrow><mn>1</mn></msub><mspace width="1.0em"></mspace><mtext mathvariant="normal">s.t.</mtext><mspace width="1.0em"></mspace><msub><mi>x</mi><mi>k</mi></msub><mo>=</mo><mi>z</mi><mo>,</mo><mspace width="0.222em"></mspace><mo>∀</mo><mi>k</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
+the consensus split introduces per-site copies <span class="math inline">\(x_k\)</span> and a global consensus <span class="math inline">\(z\)</span>:</p>
+<p><span class="math display">\[
 \min_{\{x_k\},\,z}\;
 \sum_k\bigl(-\ell_k(x_k)\bigr) + \lambda\lVert z\rVert_1
 \quad\text{s.t.}\quad x_k = z,\ \forall k,
-</annotation></semantics></math></p>
+\]</span></p>
 <p>with augmented-Lagrangian iteration</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msubsup><mi>x</mi><mi>k</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><mrow><mi mathvariant="normal">arg</mi><mo>⁡</mo></mrow><munder><mi mathvariant="normal">min</mi><mi>x</mi></munder><mo>−</mo><msub><mi>ℓ</mi><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mstyle displaystyle="false"><mfrac><mi>ρ</mi><mn>2</mn></mfrac></mstyle><msubsup><mrow><mo stretchy="true" form="prefix">‖</mo><mi>x</mi><mo>−</mo><msup><mi>z</mi><mi>t</mi></msup><mo>+</mo><msubsup><mi>u</mi><mi>k</mi><mi>t</mi></msubsup><mo stretchy="true" form="postfix">‖</mo></mrow><mn>2</mn><mn>2</mn></msubsup><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msup><mi>z</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msup></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msub><mi>S</mi><mrow><mi>λ</mi><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mi>ρ</mi><mo stretchy="false" form="postfix">)</mo></mrow></msub><mspace width="-0.167em"></mspace><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mi>N</mi></mfrac></mstyle><munder><mo>∑</mo><mi>k</mi></munder><mo stretchy="false" form="prefix">(</mo><msubsup><mi>x</mi><mi>k</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo>+</mo><msubsup><mi>u</mi><mi>k</mi><mi>t</mi></msubsup><mo stretchy="false" form="postfix">)</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mo>,</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><msubsup><mi>u</mi><mi>k</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mo>=</mo><msubsup><mi>u</mi><mi>k</mi><mi>t</mi></msubsup><mo>+</mo><mo stretchy="false" form="prefix">(</mo><msubsup><mi>x</mi><mi>k</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mo>−</mo><msup><mi>z</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msup><mo stretchy="false" form="postfix">)</mo><mo>,</mo></mtd></mtr></mtable><annotation encoding="application/x-tex">
+<p><span class="math display">\[
 \begin{aligned}
-x_k^{t+1} &amp;= \arg\min_x -\ell_k(x) + \tfrac{\rho}{2}\lVert x - z^t + u_k^t\rVert_2^2,\\
-z^{t+1}   &amp;= S_{\lambda/(N\rho)}\!\Bigl(\tfrac{1}{N}\sum_k (x_k^{t+1}+u_k^t)\Bigr),\\
+x_k^{t+1} &amp;= \arg\min_x -\ell_k(x) + \tfrac{\rho}{2}\lVert x - z^t +
+u_k^t\rVert_2^2,\\
+z^{t+1}   &amp;= S_{\lambda/(N\rho)}\!\Bigl(\tfrac{1}{N}\sum_k
+(x_k^{t+1}+u_k^t)\Bigr),\\
 u_k^{t+1} &amp;= u_k^t + (x_k^{t+1}-z^{t+1}),
 \end{aligned}
-</annotation></semantics></math></p>
-<p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>τ</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>v</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">sign</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>v</mi><mo stretchy="false" form="postfix">)</mo><mrow><mi mathvariant="normal">max</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">|</mo><mi>v</mi><mo stretchy="false" form="prefix">|</mo><mi>−</mi><mi>τ</mi><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S_\tau(v)=\operatorname{sign}(v)\max(|v|-\tau,0)</annotation></semantics></math>
-is soft-thresholding (the proximal map of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><msub><mrow><mo stretchy="true" form="prefix">‖</mo><mi>⋅</mi><mo stretchy="true" form="postfix">‖</mo></mrow><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">\tau\lVert\cdot\rVert_1</annotation></semantics></math>).
-The
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>-update
-is the per-site <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solve; the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>-update
-needs the cross-site average
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>w</mi><mo accent="true">‾</mo></mover><mo>=</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mi>N</mi></mfrac></mstyle><msub><mo>∑</mo><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\bar w=\tfrac1N\sum_k(x_k+u_k)</annotation></semantics></math>
-— that average is the only quantity that traverses the encrypted
-channel; the soft-threshold is closed-form at the aggregator and adds no
+\]</span></p>
+<p>where <span class="math inline">\(S_\tau(v)=\operatorname{sign}(v)\max(|v|-\tau,0)\)</span>
+is soft-thresholding (the proximal map of <span class="math inline">\(\tau\lVert\cdot\rVert_1\)</span>). The <span class="math inline">\(x\)</span>-update is the per-site <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solve; the <span class="math inline">\(z\)</span>-update needs the cross-site average
+<span class="math inline">\(\bar w=\tfrac1N\sum_k(x_k+u_k)\)</span> —
+that average is the only quantity that traverses the encrypted channel;
+the soft-threshold is closed-form at the aggregator and adds no
 cryptographic depth.</p>
 <p>The pipeline needs <code>survival</code> and <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> alongside the encryption
 packages.</p>
@@ -240,17 +222,13 @@ status.</p>
 <span><span class="va">P_raw</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">DLBCL_gex</span><span class="op">)</span></span></code></pre></div>
 <p>We standardize the features so the L1 penalty applies uniformly
 across predictors on different scales. The pooled mean and variance are
-additive over sites: site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-contributes
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>k</mi></msub><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>k</mi></mrow></msub><msub><mi>x</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">S_k=\sum_{i\in k}x_i</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Q</mi><mi>k</mi></msub><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>k</mi></mrow></msub><msubsup><mi>x</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">Q_k=\sum_{i\in k}x_i^2</annotation></semantics></math>,
-from which
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mo>=</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><msub><mi>N</mi><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow></msub></mfrac></mstyle><msub><mo>∑</mo><mi>k</mi></msub><msub><mi>S</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\mu=\tfrac1{N_{\mathrm{tot}}}\sum_k S_k</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><msub><mi>N</mi><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow></msub></mfrac></mstyle><msub><mo>∑</mo><mi>k</mi></msub><msub><mi>Q</mi><mi>k</mi></msub><mo>−</mo><msup><mi>μ</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\sigma^2=\tfrac1{N_{\mathrm{tot}}}\sum_k Q_k-\mu^2</annotation></semantics></math>.
-In the clear this is a pair of <code>colSums</code>.</p>
+additive over sites: site <span class="math inline">\(k\)</span>
+contributes <span class="math inline">\(S_k=\sum_{i\in k}x_i\)</span>
+and <span class="math inline">\(Q_k=\sum_{i\in k}x_i^2\)</span>, from
+which <span class="math inline">\(\mu=\tfrac1{N_{\mathrm{tot}}}\sum_k
+S_k\)</span> and <span class="math inline">\(\sigma^2=\tfrac1{N_{\mathrm{tot}}}\sum_k
+Q_k-\mu^2\)</span>. In the clear this is a pair of
+<code>colSums</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pool_plain</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">sites</span>, <span class="va">n_total</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -264,26 +242,19 @@ In the clear this is a pair of <code>colSums</code>.</p>
 <span>    name <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">name</span>,</span>
 <span>    X    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span>, <span class="fl">2</span>, <span class="va">pool</span><span class="op">$</span><span class="va">mu</span>, <span class="st">"-"</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">pool</span><span class="op">$</span><span class="va">sigma</span>, <span class="st">"/"</span><span class="op">)</span>,</span>
 <span>    time <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">time</span>, status <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">status</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Solving the full Cox-lasso at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>6416</mn></mrow><annotation encoding="application/x-tex">p = 6416</annotation></semantics></math>
-exhausts memory during <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>
-canonicalization, so we pre-screen to the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">K = 100</annotation></semantics></math>
-probes with the strongest univariate association with survival — the
-screen-then-fit pattern <span class="citation">Bayle et al.
-(2025)</span> use on this cohort. For probe
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>
-on stratum
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-in event-time order with risk set
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>R</mi><mi>i</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">R_i^{(k)}</annotation></semantics></math>
-at event
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>U</mi><mi>g</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>k</mi><mo>,</mo><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mrow><mi>i</mi><mo>,</mo><mi>g</mi></mrow></msub><mo>−</mo><msub><mover><mi>X</mi><mo accent="true">¯</mo></mover><mrow><msubsup><mi>R</mi><mi>i</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><mo>,</mo><mi>g</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">U_g^{(k)}=\sum_{i\in k,\delta_i=1}(X_{i,g}-\overline X_{R_i^{(k)},g})</annotation></semantics></math>
-is the score and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>I</mi><mi>g</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup><mo>=</mo><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>k</mi><mo>,</mo><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></msub><msub><mover><mi mathvariant="normal">Var</mi><mo accent="true">̂</mo></mover><msubsup><mi>R</mi><mi>i</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msubsup></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>X</mi><mrow><mo>:</mo><mo>,</mo><mi>g</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">I_g^{(k)}=\sum_{i\in k,\delta_i=1}\widehat{\operatorname{Var}}_{R_i^{(k)}}(X_{:,g})</annotation></semantics></math>
+<p>Solving the full Cox-lasso at <span class="math inline">\(p =
+6416\)</span> exhausts memory during <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> canonicalization, so we pre-screen
+to the <span class="math inline">\(K = 100\)</span> probes with the
+strongest univariate association with survival — the screen-then-fit
+pattern <span class="citation">Bayle et al. (2025)</span> use on this
+cohort. For probe <span class="math inline">\(g\)</span> on stratum
+<span class="math inline">\(k\)</span> in event-time order with risk set
+<span class="math inline">\(R_i^{(k)}\)</span> at event <span class="math inline">\(i\)</span>, <span class="math inline">\(U_g^{(k)}=\sum_{i\in
+k,\delta_i=1}(X_{i,g}-\overline X_{R_i^{(k)},g})\)</span> is the score
+and <span class="math inline">\(I_g^{(k)}=\sum_{i\in
+k,\delta_i=1}\widehat{\operatorname{Var}}_{R_i^{(k)}}(X_{:,g})\)</span>
 the information; both sum across sites, and the screen ranks probes by
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>Z</mi><mi>g</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>=</mo><mo stretchy="false" form="prefix">|</mo><msub><mi>U</mi><mi>g</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>/</mi><msqrt><msub><mi>I</mi><mi>g</mi></msub></msqrt></mrow><annotation encoding="application/x-tex">|Z_g|=|U_g|/\sqrt{I_g}</annotation></semantics></math>.</p>
+<span class="math inline">\(|Z_g|=|U_g|/\sqrt{I_g}\)</span>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">100L</span></span>
 <span></span>
@@ -315,10 +286,9 @@ the information; both sum across sites, and the screen ranks probes by
 <span>    name <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">name</span>, X <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">[</span>, <span class="va">top_idx</span><span class="op">]</span>,</span>
 <span>    time <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">time</span>, status <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">status</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">sigma_K</span>  <span class="op">&lt;-</span> <span class="va">pool</span><span class="op">$</span><span class="va">sigma</span><span class="op">[</span><span class="va">top_idx</span><span class="op">]</span></span></code></pre></div>
-<p><code>sites_KS</code> now holds each stratum on the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">K = 100</annotation></semantics></math>
-screened probes, and <code>sigma_K</code> keeps their pooled SDs for the
-back-transform to the original gene-expression scale.</p>
+<p><code>sites_KS</code> now holds each stratum on the <span class="math inline">\(K = 100\)</span> screened probes, and
+<code>sigma_K</code> keeps their pooled SDs for the back-transform to
+the original gene-expression scale.</p>
 <p>The centralized stratified Cox-lasso fit — our ground truth — is a
 single <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solve summing the
 per-stratum Breslow partial likelihoods plus the L1 penalty.</p>
@@ -348,16 +318,9 @@ per-stratum Breslow partial likelihoods plus the L1 penalty.</p>
 <span><span class="va">agg_beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://www.cvxgrp.org/CVXR/reference/value.html" class="external-link">value</a></span><span class="op">(</span><span class="va">beta_var</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The distributed fit splits this objective into per-site subproblems
 tied by a consensus variable. Each local problem is built so DPP
-applies:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>u</mi><annotation encoding="application/x-tex">u</annotation></semantics></math>
-enter as <code>Parameter</code>s whose values change every ADMM
-iteration while the symbolic structure does not;
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>k</mi></msub><annotation encoding="application/x-tex">X_k</annotation></semantics></math>,
-time, status, and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-are constants.</p>
+applies: <span class="math inline">\(z\)</span> and <span class="math inline">\(u\)</span> enter as <code>Parameter</code>s whose
+values change every ADMM iteration while the symbolic structure does
+not; <span class="math inline">\(X_k\)</span>, time, status, and <span class="math inline">\(\rho\)</span> are constants.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">RHO</span> <span class="op">&lt;-</span> <span class="fl">50</span></span>
 <span></span>
@@ -370,29 +333,20 @@ are constants.</p>
 <span><span class="op">}</span></span>
 <span><span class="va">sites_problem</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sites_KS</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
 <span>    <span class="fu">build_local</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span>, <span class="va">s</span><span class="op">$</span><span class="va">time</span>, <span class="va">s</span><span class="op">$</span><span class="va">status</span>, <span class="va">RHO</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>The ADMM driver below is the whole federated algorithm, and it is
-deliberately agnostic to <em>how</em> the cross-site average is formed:
-the <code>consensus</code> argument is a function of the per-site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>,</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k,u_k)</annotation></semantics></math>
-vectors, and everything else — the local <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solves, the soft-threshold
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>-update,
-the dual update, the stopping rule — is ordinary R. We call it once now
-with an unencrypted average and, unchanged, once more under
-encryption.</p>
-<p>A note on the constants. We fix
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">\rho = 50</annotation></semantics></math>
-and a cap of 200 iterations. The dual residual
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mrow><mo stretchy="true" form="prefix">‖</mo><msup><mi>z</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msup><mo>−</mo><msup><mi>z</mi><mi>t</mi></msup><mo stretchy="true" form="postfix">‖</mo></mrow></mrow><annotation encoding="application/x-tex">\rho\lVert z^{t+1}-z^t\rVert</annotation></semantics></math>
-is the binding term here and decays slowly; with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">\rho = 50</annotation></semantics></math>
-the absolute stopping rule
+<p>The ADMM driver below is the whole federated algorithm. How the
+cross-site average is formed is left to its <code>consensus</code>
+argument, a function of the per-site <span class="math inline">\((x_k,u_k)\)</span> vectors. Everything else (the
+local <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> solves, the
+soft-threshold <span class="math inline">\(z\)</span>-update, the dual
+update, the stopping rule) is ordinary R. We call it now with an
+unencrypted average, and later, unchanged, with an encrypted one.</p>
+<p>A note on the constants. We fix <span class="math inline">\(\rho =
+50\)</span> and a cap of 200 iterations. The dual residual <span class="math inline">\(\rho\lVert z^{t+1}-z^t\rVert\)</span> is the
+binding term here and decays slowly; with <span class="math inline">\(\rho = 50\)</span> the absolute stopping rule
 <code>primal &lt; TOL &amp;&amp; dual &lt; TOL</code> (with
-<code>TOL = 0.005</code>) trips at iteration 147. Smaller
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-reaches the tolerance in fewer iterations but at a looser fit, so we
-keep
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">\rho = 50</annotation></semantics></math>
-for the tightest agreement with the centralized solve.</p>
+<code>TOL = 0.005</code>) trips at iteration 147. Smaller <span class="math inline">\(\rho\)</span> reaches the tolerance in fewer
+iterations but at a looser fit, so we keep <span class="math inline">\(\rho = 50\)</span> for the tightest agreement with
+the centralized solve.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">MAX_ITER</span> <span class="op">&lt;-</span> <span class="fl">200L</span>; <span class="va">TOL</span> <span class="op">&lt;-</span> <span class="fl">5e-3</span></span>
 <span><span class="va">soft_threshold</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">tau</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">-</span> <span class="va">tau</span>, <span class="fl">0</span><span class="op">)</span></span>
@@ -427,10 +381,9 @@ for the tightest agreement with the centralized solve.</p>
 <span><span class="va">ref</span>   <span class="op">&lt;-</span> <span class="fu">run_admm</span><span class="op">(</span><span class="va">sites_problem</span>, <span class="va">plain_consensus</span><span class="op">)</span></span>
 <span><span class="va">z_ref</span> <span class="op">&lt;-</span> <span class="va">ref</span><span class="op">$</span><span class="va">z</span></span></code></pre></div>
 <p>In the clear the consensus is a single line — the average of the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k+u_k)</annotation></semantics></math>
-vectors. The unencrypted ADMM converges in 147 iterations and matches
-the centralized <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> fit to 8.3^{-4}
-in maximum absolute coefficient difference, so <code>agg_beta</code> —
+<span class="math inline">\((x_k+u_k)\)</span> vectors. The unencrypted
+ADMM converges in 147 iterations and matches the centralized <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> fit to 8.3 × 10<sup>-4</sup> in
+maximum absolute coefficient difference, so <code>agg_beta</code> —
 equivalently <code>z_ref</code> — is the target the encrypted protocol
 must reproduce.</p>
 </div>
@@ -438,19 +391,14 @@ must reproduce.</p>
 <h2 id="the-same-fit-under-threshold-fhe">The same fit under threshold FHE<a class="anchor" aria-label="anchor" href="#the-same-fit-under-threshold-fhe"></a>
 </h2>
 <p>Only three quantities ever cross a site boundary: the standardization
-moments
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>S</mi><mi>k</mi></msub><mo>,</mo><msub><mi>Q</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(S_k,Q_k)</annotation></semantics></math>,
-the screening statistics
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msup><mi>U</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo>,</mo><msup><mi>I</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(U^{(k)},I^{(k)})</annotation></semantics></math>,
-and, at each ADMM iteration, the consensus sum
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\sum_k(x_k+u_k)</annotation></semantics></math>.
-Each is a sum over sites, so each becomes one round of the same
-threshold-FHE summation primitive the master/worker fits use: every site
-encrypts its contribution under the joint public key, the aggregator
-adds the encrypted contributions, and the total is recovered by
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>-of-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-partial decryption. The local <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>
-work and <code>run_admm</code> are untouched.</p>
+moments <span class="math inline">\((S_k,Q_k)\)</span>, the screening
+statistics <span class="math inline">\((U^{(k)},I^{(k)})\)</span>, and,
+at each ADMM iteration, the consensus sum <span class="math inline">\(\sum_k(x_k+u_k)\)</span>. Each is a sum over
+sites, so each becomes one round of the same threshold-FHE summation
+primitive the master/worker fits use: every site encrypts its
+contribution under the joint public key, the aggregator adds the
+encrypted contributions, and the total is recovered by <span class="math inline">\(n\)</span>-of-<span class="math inline">\(n\)</span> partial decryption. The local <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> work and <code>run_admm</code> are
+untouched.</p>
 <p>We use the same threshold infrastructure as
 <code>cox-threshold.Rmd</code>: a CKKS context with
 <code>Feature$MULTIPARTY</code> and
@@ -459,9 +407,8 @@ work and <code>run_admm</code> are untouched.</p>
 generates its own share and keeps it; only public keys move along the
 chain, so no party — the aggregator included — ever holds the joint
 secret.</p>
-<p>That means the key-holding parties have to exist before the
-aggregator does. The subgroups are already our sites; here we give each
-one an object to hold its share in.</p>
+<p>So the sites have to exist before the aggregator does. Here we give
+each subgroup a site object to hold its share.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                  multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
@@ -481,43 +428,42 @@ one an object to hold its share in.</p>
 <span><span class="co">## joint public key, and no share of anyone else's. `site_params()`</span></span>
 <span><span class="co">## asks a site what it holds; it involves no aggregator.</span></span>
 <span><span class="va">pub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">key_sites</span>, <span class="va">site_params</span><span class="op">)</span></span></code></pre></div>
-<p>That wiring is the one and only exchange between the aggregator and
-the sites, apart from the encrypted values each round carries. From here
-on each site is autonomous: everything below encrypts with
-<code>pub</code>, which the site already holds, and nothing reaches back
-for the aggregator.</p>
-<p>Printing the bundle shows why handing it out is safe — it is a
-scheme, a public-key fingerprint, and nothing else. There is no property
-in an <code>OpenFHEParams</code> object for a key share to travel
-in.</p>
+<p>Apart from the encrypted values in each round, this setup is the only
+exchange between the aggregator and the sites. Everything below encrypts
+with <code>pub</code>, which each site already holds.</p>
+<p>Each element of <code>pub</code> is an <code>OpenFHEParams</code>
+object. Its class has two properties, the crypto context and the joint
+public key, and none for a key share:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pub</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">homomorpheR</span><span class="fu">::</span><span class="va"><a href="../reference/OpenFHEParams.html">OpenFHEParams</a></span></span></code></pre></div>
+<pre><code><span><span class="co">## &lt;homomorpheR::OpenFHEParams&gt; class</span></span>
+<span><span class="co">## @ parent     : &lt;homomorpheR::PublicParams&gt;</span></span>
+<span><span class="co">## @ constructor: function(cc, pk) {...}</span></span>
+<span><span class="co">## @ validator  : &lt;NULL&gt;</span></span>
+<span><span class="co">## @ properties :</span></span>
+<span><span class="co">##  $ cc: &lt;openfhe.R::CryptoContext&gt;</span></span>
+<span><span class="co">##  $ pk: &lt;openfhe.R::PublicKey&gt;</span></span></code></pre>
 <p>The standardization round is <code>pool_plain</code> with the two
-<code>colSums</code> encrypted: each site encrypts
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>k</mi></msub><annotation encoding="application/x-tex">S_k</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Q</mi><mi>k</mi></msub><annotation encoding="application/x-tex">Q_k</annotation></semantics></math>,
-the aggregator sums under encryption and threshold-decrypts the pooled
-moments. (For brevity we treat
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi></mrow></msub><annotation encoding="application/x-tex">N_{\mathrm{tot}}</annotation></semantics></math>
-as known to the aggregator; hiding the per-site head-counts is one more
-sum of the same kind.)</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code>colSums</code> encrypted: each site encrypts <span class="math inline">\(S_k\)</span> and <span class="math inline">\(Q_k\)</span>, the aggregator sums under encryption
+and threshold-decrypts the pooled moments. (For brevity we treat <span class="math inline">\(N_{\mathrm{tot}}\)</span> as known to the
+aggregator; hiding the per-site head-counts is one more sum of the same
+kind.)</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Site side. Each site forms its own moments and encrypts them under</span></span>
 <span><span class="co">## the joint key; what leaves is encrypted. Encrypting at the</span></span>
 <span><span class="co">## aggregator instead would mean handing it the per-site column sums in</span></span>
 <span><span class="co">## the clear first, which is the disclosure this round exists to avoid.</span></span>
 <span><span class="va">site_moments</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">params</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>sum   <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>         sumsq <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>sum   <span class="op">=</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>         sumsq <span class="op">=</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">params</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## Aggregator side. It reduces encrypted values and decrypts only the total.</span></span>
 <span><span class="va">encrypt_pool</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span>, <span class="va">n_total</span>, <span class="va">p_raw</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co">## Each site encrypts with the parameters it kept from wiring.</span></span>
 <span>    <span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_moments</span>, <span class="va">sites</span>, <span class="va">pub</span><span class="op">)</span></span>
-<span>    <span class="va">pooled_sum</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span></span>
+<span>    <span class="va">pooled_sum</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span></span>
 <span>        <span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">parts</span>, <span class="va">`[[`</span>, <span class="st">"sum"</span><span class="op">)</span><span class="op">)</span>,   len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
-<span>    <span class="va">pooled_sumsq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span></span>
+<span>    <span class="va">pooled_sumsq</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span></span>
 <span>        <span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">parts</span>, <span class="va">`[[`</span>, <span class="st">"sumsq"</span><span class="op">)</span><span class="op">)</span>, len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
 <span>    <span class="va">mu</span>     <span class="op">&lt;-</span> <span class="va">pooled_sum</span> <span class="op">/</span> <span class="va">n_total</span></span>
 <span>    <span class="va">sigma2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="va">pooled_sumsq</span> <span class="op">/</span> <span class="va">n_total</span> <span class="op">-</span> <span class="va">mu</span><span class="op">^</span><span class="fl">2</span>, <span class="va">.Machine</span><span class="op">$</span><span class="va">double.eps</span><span class="op">)</span></span>
@@ -525,66 +471,57 @@ sum of the same kind.)</p>
 <span><span class="op">}</span></span>
 <span><span class="va">fhe_pool</span> <span class="op">&lt;-</span> <span class="fu">encrypt_pool</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites_raw</span>, <span class="va">N_total</span>, <span class="va">P_raw</span><span class="op">)</span></span></code></pre></div>
 <p>The encrypted moments agree with the unencrypted <code>pool</code> to
-4.4^{-16} (mean) and 3.1^{-15} (SD) — essentially machine precision,
-since these are exact sums under CKKS. The screening round is
-structurally identical, the same <code>score_info_at_zero</code>
-summands
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msup><mi>U</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo>,</mo><msup><mi>I</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(U^{(k)},I^{(k)})</annotation></semantics></math>
-encrypted and summed the same way, so we show it compactly and confirm
-it selects the same probes.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+4.1 × 10<sup>-16</sup> (mean) and 3.0 × 10<sup>-15</sup> (SD), the CKKS
+approximation error. The screening round works the same way: the
+<code>score_info_at_zero</code> summands <span class="math inline">\((U^{(k)},I^{(k)})\)</span> are encrypted and
+summed, and we confirm it selects the same probes.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Site side: compute the score and information at beta = 0 on the</span></span>
 <span><span class="co">## site's own rows, and encrypt both before returning them.</span></span>
 <span><span class="va">site_score_info</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">score_info_at_zero</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">X</span>, <span class="va">s</span><span class="op">$</span><span class="va">time</span>, <span class="va">s</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>U <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">z</span><span class="op">$</span><span class="va">U</span><span class="op">)</span>, I <span class="op">=</span> <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">z</span><span class="op">$</span><span class="va">I</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>U <span class="op">=</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">z</span><span class="op">$</span><span class="va">U</span><span class="op">)</span>, I <span class="op">=</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">z</span><span class="op">$</span><span class="va">I</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co">## Aggregator side: sum the encrypted (U, I) and decrypt the totals.</span></span>
 <span><span class="va">encrypt_screen</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites</span>, <span class="va">p_raw</span>, <span class="va">K</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">UI</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_score_info</span>, <span class="va">sites</span>, <span class="va">pub</span><span class="op">)</span></span>
-<span>    <span class="va">U</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"U"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>                          len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
-<span>    <span class="va">I</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"I"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>                          len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
+<span>    <span class="va">U</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"U"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                   len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
+<span>    <span class="va">I</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">UI</span>, <span class="va">`[[`</span>, <span class="st">"I"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                   len <span class="op">=</span> <span class="va">p_raw</span><span class="op">)</span></span>
 <span>    <span class="va">Z</span>   <span class="op">&lt;-</span> <span class="va">U</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="va">I</span>, <span class="va">.Machine</span><span class="op">$</span><span class="va">double.eps</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">Z</span><span class="op">)</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">K</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">fhe_top</span> <span class="op">&lt;-</span> <span class="fu">encrypt_screen</span><span class="op">(</span><span class="va">master</span>, <span class="va">sites_std</span>, <span class="va">P_raw</span>, <span class="va">K</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="va">fhe_top</span>, <span class="va">top_idx</span><span class="op">)</span><span class="op">)</span>   <span class="co"># same probes as the cleartext screen</span></span></code></pre></div>
-<p>With standardization and screening recovering the same design, the
-consensus round is the only piece left to encrypt. It mirrors
-<code>plain_consensus</code>, with the encryption on the site’s side of
-the boundary: each site encrypts its own
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k+u_k)</annotation></semantics></math>,
-the aggregator sums the encrypted values, scales by
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">1/N</annotation></semantics></math>
-under encryption (one multiplication by an unencrypted constant, which
-costs one level of the precision budget), and threshold-decrypts the
-length-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>
-average. Soft-thresholding stays in the clear at the aggregator, on the
-aggregate.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<p>Standardization and screening give the same design as in the clear,
+so the consensus round is the only piece left to encrypt. It mirrors
+<code>plain_consensus</code>. Each site encrypts its own <span class="math inline">\((x_k+u_k)\)</span>. The aggregator sums the
+encrypted values, scales by <span class="math inline">\(1/N\)</span>
+(one multiplication by an unencrypted constant, which uses one level of
+multiplicative depth), and threshold-decrypts the length-<span class="math inline">\(K\)</span> average. Soft-thresholding is applied
+to that average in the clear at the aggregator.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Site side: form x_k + u_k and encrypt it there. The per-site vector</span></span>
 <span><span class="co">## never exists in the clear outside this function.</span></span>
 <span><span class="va">site_consensus_term</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x_k</span>, <span class="va">u_k</span>, <span class="va">params</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/encrypt_under.html">encrypt_under</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">x_k</span> <span class="op">+</span> <span class="va">u_k</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">params</span>, <span class="va">x_k</span> <span class="op">+</span> <span class="va">u_k</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## Aggregator side: add the encrypted values, scale by 1/N, decrypt the</span></span>
 <span><span class="co">## average. It sees no individual (x_k + u_k).</span></span>
 <span><span class="va">encrypted_consensus</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">site_x</span>, <span class="va">site_u</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">cts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">site_consensus_term</span>, <span class="va">site_x</span>, <span class="va">site_u</span>, <span class="va">pub</span><span class="op">)</span></span>
 <span>    <span class="va">ct_avg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="va">cts</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">site_x</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/master_decrypt.html">master_decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="va">ct_avg</span>, len <span class="op">=</span> <span class="va">K</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">master</span>, <span class="va">ct_avg</span>, len <span class="op">=</span> <span class="va">K</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">fhe</span>        <span class="op">&lt;-</span> <span class="fu">run_admm</span><span class="op">(</span><span class="va">sites_problem</span>, <span class="va">encrypted_consensus</span><span class="op">)</span></span>
 <span><span class="va">z_curr</span>     <span class="op">&lt;-</span> <span class="va">fhe</span><span class="op">$</span><span class="va">z</span></span>
 <span><span class="va">trajectory</span> <span class="op">&lt;-</span> <span class="va">fhe</span><span class="op">$</span><span class="va">trajectory</span></span></code></pre></div>
-<p>Passing <code>encrypted_consensus</code> in place of
-<code>plain_consensus</code> is the <em>entire</em> change. The
-encrypted ADMM ran for 147 iterations and lands on the same coefficients
-as the unencrypted run, differing by only 1.4^{-7} — the CKKS
-approximation noise.</p>
+<p>The only change is passing <code>encrypted_consensus</code> in place
+of <code>plain_consensus</code>. The encrypted ADMM ran for 147
+iterations, and its coefficients differ from the unencrypted run by at
+most 2.0 × 10<sup>-7</sup>, the CKKS approximation error.</p>
 </div>
 <div class="section level2">
 <h2 id="comparison-with-the-centralized-fit">Comparison with the centralized fit<a class="anchor" aria-label="anchor" href="#comparison-with-the-centralized-fit"></a>
@@ -592,7 +529,7 @@ approximation noise.</p>
 <p>We compare the threshold-FHE consensus to the centralized <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> fit on both the standardized scale
 (where ADMM lives) and the back-transformed original gene-expression
 scale.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">beta_orig_agg</span> <span class="op">&lt;-</span> <span class="va">agg_beta</span> <span class="op">/</span> <span class="va">sigma_K</span></span>
 <span><span class="va">beta_orig_enc</span> <span class="op">&lt;-</span> <span class="va">z_enc</span>    <span class="op">/</span> <span class="va">sigma_K</span></span>
 <span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -602,30 +539,54 @@ scale.</p>
 <span>                       <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">beta_orig_enc</span> <span class="op">-</span> <span class="va">beta_orig_agg</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    `L1 diff`      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_enc</span> <span class="op">-</span> <span class="va">agg_beta</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                       <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">beta_orig_enc</span> <span class="op">-</span> <span class="va">beta_orig_agg</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">cmp</span>, digits <span class="op">=</span> <span class="fl">4</span>,</span>
+<span><span class="fu">ktab</span><span class="op">(</span><span class="va">cmp</span>, digits <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>             col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Scale"</span>,</span>
+<span>                           <span class="st">"$\\max_j \\lvert \\hat\\beta_j^{\\text{ADMM}} - \\hat\\beta_j^{\\text{centralized}} \\rvert$"</span>,</span>
+<span>                           <span class="st">"$\\lVert \\hat\\beta^{\\text{ADMM}} - \\hat\\beta^{\\text{centralized}} \\rVert_1$"</span><span class="op">)</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Threshold-FHE consensus ADMM vs. centralized Cox-lasso"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Threshold-FHE consensus ADMM vs. centralized
-Cox-lasso</caption>
-<thead><tr class="header">
-<th align="left">Scale</th>
-<th align="right">Max abs diff</th>
-<th align="right">L1 diff</th>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Threshold-FHE consensus ADMM vs. centralized Cox-lasso
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Scale
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\max_j \lvert \hat\beta_j^{\text{ADMM}} -
+\hat\beta_j^{\text{centralized}} \rvert\)</span>
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\lVert \hat\beta^{\text{ADMM}} -
+\hat\beta^{\text{centralized}} \rVert_1\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">standardized</td>
-<td align="right">0.0008</td>
-<td align="right">0.0043</td>
+<tr>
+<td style="text-align:left;">
+standardized
+</td>
+<td style="text-align:right;">
+0.0008
+</td>
+<td style="text-align:right;">
+0.0043
+</td>
 </tr>
-<tr class="even">
-<td align="left">original</td>
-<td align="right">0.0016</td>
-<td align="right">0.0071</td>
+<tr>
+<td style="text-align:left;">
+original
+</td>
+<td style="text-align:right;">
+0.0016
+</td>
+<td style="text-align:right;">
+0.0071
+</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n_agg</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">agg_beta</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1e-7</span><span class="op">)</span></span>
 <span><span class="va">n_enc</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_enc</span><span class="op">)</span>    <span class="op">&gt;</span> <span class="fl">1e-7</span><span class="op">)</span></span>
 <span><span class="va">n_inter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">agg_beta</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1e-7</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_enc</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1e-7</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -633,14 +594,11 @@ Cox-lasso</caption>
 38 in the encrypted ADMM fit; the intersection is 38 — every probe
 selected by the centralized fit is recovered by the encrypted
 distributed protocol.</p>
-<p>The figure below shows the consensus trajectory
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>z</mi><mi>t</mi></msup><annotation encoding="application/x-tex">z^t</annotation></semantics></math>
-for the eight probes with largest
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>z</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|z|</annotation></semantics></math>
-at convergence, with the centralized fit drawn as a horizontal
-reference. The encrypted iterates converge along the path the
-centralized solver would take.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<p>The figure below shows the consensus trajectory <span class="math inline">\(z^t\)</span> for the eight probes with largest
+<span class="math inline">\(|z|\)</span> at convergence, with the
+centralized fit drawn as a horizontal reference. The encrypted iterates
+converge along the path the centralized solver would take.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">top8</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">z_enc</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span></span>
 <span><span class="va">labs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"probe"</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">DLBCL_gex</span><span class="op">)</span><span class="op">[</span><span class="va">top_idx</span><span class="op">]</span><span class="op">[</span><span class="va">top8</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">4</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span>, cex <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span>
@@ -657,83 +615,60 @@ Solid lines are the encrypted ADMM iterates; dashed lines are the
 centralized CVXR fit. Standardized scale.
 </p>
 </div>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="what-the-protocol-hides-and-reveals">What the protocol hides and reveals<a class="anchor" aria-label="anchor" href="#what-the-protocol-hides-and-reveals"></a>
 </h2>
 <p>The aggregator learns the pooled per-probe mean and SD (round 1), a
-per-probe stratified univariate Cox
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi>Z</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|Z|</annotation></semantics></math>
-statistic and the indices of the top-100 screened probes (round 2), and
-the consensus
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>z</mi><mi>t</mi></msup><annotation encoding="application/x-tex">z^t</annotation></semantics></math>
-at every ADMM iteration. Each is an aggregated population-level
-statistic over 235 patients, not patient-level data. None of the
-per-site design matrices
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>k</mi></msub><annotation encoding="application/x-tex">X_k</annotation></semantics></math>,
-the per-site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>μ</mi><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mu,\sigma^2)</annotation></semantics></math>
-contributions, the per-site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>U</mi><mo>,</mo><mi>I</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(U,I)</annotation></semantics></math>
-contributions, or the per-site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k+u_k)</annotation></semantics></math>
-vectors ever appear in cleartext anywhere in the protocol. Decryption at
-every step is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>-of-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-threshold: no single party — the aggregator included — can recover any
-intermediate quantity unilaterally.</p>
-<p>Two things in this document sit outside that sentence, and both are
-artifacts of writing it rather than parts of the protocol. The
-unencrypted reference pass forms exactly the per-site averages just
-ruled out; we can run it, and the centralized solve we check against,
-only because this vignette holds all three sites’ data in one R session.
-The constants inherit the same caveat — as the note above says,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">\rho = 50</annotation></semantics></math>
-was kept for the tightest agreement with that centralized solve, which
-is a comparison no deployment can make.</p>
-<p>This is worth naming, because it is the kind of thing a threat model
-misses: the guarded computation gets audited, while the step that
-<em>chooses its constants</em> looks like setup and does not. It need
-not be exposed. <code><a href="../articles/cvxr-consensus-admm.html">vignette("cvxr-consensus-admm")</a></code> sweeps
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-over the encrypted channel itself — the tuning needs no cryptographic
-machinery beyond what one run already needs, and the crypto is small
-beside the per-iteration <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>
-solves. Where the protocol also carries a privacy budget, as in
+per-probe stratified univariate Cox <span class="math inline">\(|Z|\)</span> statistic and the indices of the
+top-100 screened probes (round 2), and the consensus <span class="math inline">\(z^t\)</span> at every ADMM iteration. Each is an
+aggregated population-level statistic over 235 patients, not
+patient-level data. None of the per-site design matrices <span class="math inline">\(X_k\)</span>, the per-site <span class="math inline">\((\mu,\sigma^2)\)</span> contributions, the
+per-site <span class="math inline">\((U,I)\)</span> contributions, or
+the per-site <span class="math inline">\((x_k+u_k)\)</span> vectors ever
+appear in cleartext anywhere in the protocol. Decryption at every step
+is <span class="math inline">\(n\)</span>-of-<span class="math inline">\(n\)</span> threshold: no single party — the
+aggregator included — can recover any intermediate quantity
+unilaterally.</p>
+<p>Two steps in this vignette would not exist in a real deployment. The
+unencrypted reference pass forms the per-site averages that the protocol
+keeps encrypted, and the centralized solve pools all the data. We can
+run both only because this vignette holds all three sites’ data in one R
+session. The choice <span class="math inline">\(\rho = 50\)</span>
+depends on them too: it was kept because it agreed best with the
+centralized solve, which a deployment cannot compute.</p>
+<p>A deployment can instead choose <span class="math inline">\(\rho\)</span> on a surrogate cohort built from
+public design facts, as <code><a href="../articles/cvxr-consensus-admm-dp.html">vignette("cvxr-consensus-admm-dp")</a></code>
+does. When the protocol also spends a privacy budget, as in
 <code><a href="../articles/cvxr-consensus-admm-dp.html">vignette("cvxr-consensus-admm-dp")</a></code>, encrypting the sweep is
-not enough and the constants have to come from data the protocol may
-read for free.</p>
+not enough, and the constants have to be chosen from data that does not
+count against the budget.</p>
 </div>
 <div class="section level2">
 <h2 id="discussion">Discussion<a class="anchor" aria-label="anchor" href="#discussion"></a>
 </h2>
 <ol style="list-style-type: decimal">
 <li>
-<strong>CVXR symbolic problems compose with threshold FHE.</strong>
-The local Cox-lasso solve runs in the clear at each site; only the
-cross-site consensus update goes through the encrypted channel. The
-reader does not rewrite their <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>
-model for the encrypted setting — the same
-<code>Problem(Minimize(...))</code> is used verbatim, and
+<strong>CVXR problems work unchanged.</strong> Each site solves its
+local Cox-lasso problem in the clear. Only the consensus update is
+encrypted. The <a href="https://cvxr.rbind.io" class="external-link">CVXR</a>
+<code>Problem(Minimize(...))</code> is the same as in the clear, and
 <code>run_admm</code> is called with <code>encrypted_consensus</code>
 instead of <code>plain_consensus</code>.</li>
 <li>
-<strong>The encrypted layer is lossless to working
-precision.</strong> The encrypted fit reproduces the unencrypted ADMM to
-1.4^{-7} and recovers the identical active set; the residual gap to the
-one-shot centralized solve (8.3^{-4}) is the ADMM iteration budget, not
-the cryptography.</li>
+<strong>Encryption does not change the fit.</strong> The encrypted
+fit matches the unencrypted ADMM to 2.0 × 10<sup>-7</sup> and has the
+same active set. The remaining gap to the centralized solve
+(8.3 × 10<sup>-4</sup>) comes from stopping ADMM at a finite tolerance,
+not from the encryption.</li>
 <li>
 <strong>No single party holds the secret key.</strong> Each site
-generated its own share during the key-generation chain and kept it; the
-aggregator holds only the joint public key. Encrypted intermediates are
-undecryptable by any one party, and each round’s result appears only
-after
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>-of-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
-partial-decryption fusion, which the aggregator can only obtain by
-asking every site.</li>
+generated its own share during key generation and kept it. The
+aggregator holds only the joint public key. No single party can decrypt
+an intermediate value, and each round’s result is decrypted only when
+every site contributes a partial decryption.</li>
 <li>
 <strong>DPP keeps the inner loop fast.</strong> Each site’s <a href="https://cvxr.rbind.io" class="external-link">CVXR</a> problem is built once at setup;
 ADMM iterations only update the <code>Parameter</code> values.</li>
@@ -745,21 +680,17 @@ ADMM iterations only update the <code>Parameter</code> values.</li>
 <ul>
 <li>
 <strong>Honest-but-curious trust.</strong> A site that misreports
-its local
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>+</mo><msub><mi>u</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x_k+u_k)</annotation></semantics></math>
-can corrupt the consensus; detecting this needs commitments /
-zero-knowledge proofs not implemented here.</li>
+its local <span class="math inline">\((x_k+u_k)\)</span> can corrupt the
+consensus; detecting this needs commitments / zero-knowledge proofs not
+implemented here.</li>
 <li>
-<strong>The aggregator sees the trajectory
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msup><mi>z</mi><mi>t</mi></msup><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{z^t\}</annotation></semantics></math>.</strong>
-Per-iteration consensus values are revealed in the clear (after fusion)
-so the loop can decide convergence.</li>
+<strong>The aggregator sees the trajectory <span class="math inline">\(\{z^t\}\)</span>.</strong> Per-iteration consensus
+values are revealed in the clear (after fusion) so the loop can decide
+convergence.</li>
 <li>
-<strong>No output privacy.</strong> The released
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>β</mi><mo accent="true">̂</mo></mover><mo>=</mo><msup><mi>z</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">\hat\beta = z^\star</annotation></semantics></math>
-is the same coefficient vector as the centralized fit; output-level
-protection is out of scope here and is demonstrated in the companion DP
-vignette.</li>
+<strong>No output privacy.</strong> The released <span class="math inline">\(\hat\beta = z^\star\)</span> is the same
+coefficient vector as the centralized fit; output-level protection is
+out of scope here and is demonstrated in the companion DP vignette.</li>
 </ul>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-BayleFanLou2025" class="csl-entry">

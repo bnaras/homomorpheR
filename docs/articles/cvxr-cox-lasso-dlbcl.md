@@ -2,31 +2,24 @@
 
 ## Introduction
 
-The companion vignette [Federated Consensus
-ADMM](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md)
-develops the threshold-FHE consensus-ADMM protocol on a small simulated
-L2-regularized logistic problem ($`p = 4`$, three sites). This vignette
-takes the same protocol to a real, high-dimensional survival problem: a
-stratified **Cox lasso** on the diffuse large-B-cell lymphoma (DLBCL)
-gene-expression cohort of Rosenwald et al. (2002), the dataset Bayle et
-al. (2025) use to motivate distributed Cox estimation.
+This vignette runs the threshold-FHE consensus-ADMM protocol on a real,
+high-dimensional survival problem: a stratified **Cox lasso** on the
+diffuse large-B-cell lymphoma (DLBCL) gene-expression cohort of
+Rosenwald et al. (2002), the dataset Bayle et al. (2025) use to motivate
+distributed Cox estimation.
 
-The lesson is the same as in the `cox` and `cox-threshold` vignettes —
-*function-call* optimizers such as
-[`mle()`](https://rdrr.io/r/stats4/mle.html) or
-[`coxph()`](https://rdrr.io/pkg/survival/man/coxph.html)’s
-Newton-Raphson compose with an encrypted master/worker round without the
-optimizer noticing — but it does not extend to arbitrary convex
-programs. [CVXR](https://cvxr.rbind.io) operates on a *symbolic*
-problem: it canonicalizes once and ships the canonical form to a solver,
-so we cannot hand it a callback that secretly performs FHE. The remedy
-is **federated consensus ADMM** (Boyd, Parikh, Chu, Peleato and
-Eckstein, 2011): split the global problem into per-site subproblems each
-solved by [CVXR](https://cvxr.rbind.io) in the clear, and use the
-encrypted channel only for the cross-site **consensus average**.
-Disciplined parametric programming (DPP) keeps the per-site solves fast
-because the `Parameter` values change every iteration but the symbolic
-structure does not.
+The `cox` and `cox-threshold` vignettes give an optimizer such as
+[`mle()`](https://rdrr.io/r/stats4/mle.html) an objective function that
+runs one encrypted round across the sites. That does not work for
+[CVXR](https://cvxr.rbind.io), which does not call a function we supply:
+it converts a symbolic problem once to a standard form and passes that
+to a solver. Instead we use **federated consensus ADMM** (Boyd, Parikh,
+Chu, Peleato and Eckstein, 2011). The global problem is split into
+per-site subproblems, each solved by [CVXR](https://cvxr.rbind.io) in
+the clear, and only the cross-site **consensus average** is encrypted.
+Disciplined parametrized programming (DPP) keeps the per-site solves
+fast: between iterations only the `Parameter` values change, not the
+problem structure.
 
 We develop the fit in two passes. First we run the whole thing **in the
 clear** to fix the target: standardize, screen, and solve the consensus
@@ -42,9 +35,9 @@ confirm the encrypted fit reproduces the in-the-clear reference.
 > when the vignette builds (the encrypted ADMM takes ~150 iterations of
 > per-site [CVXR](https://cvxr.rbind.io) solves). The displayed numbers
 > come from `data(cvxr_consensus)`, which was produced by extracting
-> these very chunks with
+> these chunks with
 > [`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) and running
-> them. To verify the results, do exactly that yourself:
+> them. To verify the results, do the same:
 >
 > \
 > `vig`` ``<-`` `[`system.file`](https://rdrr.io/r/base/system.file.html)`(``"doc"``, ``"cvxr-cox-lasso-dlbcl.Rmd"``,`\
@@ -54,59 +47,49 @@ confirm the encrypted fit reproduces the in-the-clear reference.
 > [`source`](https://rdrr.io/r/base/source.html)`(``src``)``                                        ``# runs the pipeline (minutes)`\
 > `fresh`` ``<-`` ``cvxr_consensus``                            ``# just recomputed`\
 > [`data`](https://rdrr.io/r/utils/data.html)`(``cvxr_consensus``, package ``=`` ``"homomorpheR"``)``      ``# the shipped copy`\
-> [`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fresh``$``z_enc`` ``-`` ``cvxr_consensus``$``z_enc``)``)``       ``# ~1e-7`
+> [`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``fresh``$``z_enc`` ``-`` ``cvxr_consensus``$``z_enc``)``)``       ``# small, not zero`
 >
 > Threshold key generation is randomized, so a re-run reproduces the
-> shipped coefficients up to CKKS approximation noise (~1e-7), not
-> bit-for-bit. This
-> `purl()`-then-[`source()`](https://rdrr.io/r/base/source.html) is
+> shipped coefficients up to CKKS approximation noise, not bit-for-bit.
+> This `purl()`-then-[`source()`](https://rdrr.io/r/base/source.html) is
 > exactly what `data-raw/cvxr_consensus.R` does to build the shipped
 > object.
 
 ## The global problem and its consensus split
 
 The three molecular subgroups (GCB, ABC, Type III) are our sites: they
-arise from different cells of origin, have systematically different
-prognosis, and are diagnosed at different referral centers, so the
-subgroup is a biologically and operationally realistic site boundary.
-With $`N`$ sites, per-site standardized design matrices
-$`X_k \in \mathbb{R}^{n_k \times p}`$, event times $`t_k`$, status
-$`\delta_k`$, a shared coefficient $`\beta \in \mathbb{R}^p`$, and the
-per-stratum Cox partial log-likelihood $`\ell_k`$ in Breslow form, the
-global problem is
+arise from different cells of origin and have systematically different
+prognosis. Using them as sites is a choice made for this demonstration.
+With \\N\\ sites, per-site standardized design matrices \\X_k \in
+\mathbb{R}^{n_k \times p}\\, event times \\t_k\\, status \\\delta_k\\, a
+shared coefficient \\\beta \in \mathbb{R}^p\\, and the per-stratum Cox
+partial log-likelihood \\\ell_k\\ in Breslow form, the global problem is
 
-``` math
-\min_{\beta \in \mathbb{R}^p}\;
--\sum_{k=1}^{N}\ell_k(\beta)\;+\;\lambda\lVert\beta\rVert_1 .
-```
+\\ \min\_{\beta \in \mathbb{R}^p}\\
+-\sum\_{k=1}^{N}\ell_k(\beta)\\+\\\lambda\lVert\beta\rVert_1 . \\
 
 Because the partial likelihood factorizes additively across strata, the
-consensus split introduces per-site copies $`x_k`$ and a global
-consensus $`z`$:
+consensus split introduces per-site copies \\x_k\\ and a global
+consensus \\z\\:
 
-``` math
-\min_{\{x_k\},\,z}\;
-\sum_k\bigl(-\ell_k(x_k)\bigr) + \lambda\lVert z\rVert_1
-\quad\text{s.t.}\quad x_k = z,\ \forall k,
-```
+\\ \min\_{\\x_k\\,\\z}\\ \sum_k\bigl(-\ell_k(x_k)\bigr) + \lambda\lVert
+z\rVert_1 \quad\text{s.t.}\quad x_k = z,\\ \forall k, \\
 
 with augmented-Lagrangian iteration
 
-``` math
-\begin{aligned}
-x_k^{t+1} &= \arg\min_x -\ell_k(x) + \tfrac{\rho}{2}\lVert x - z^t + u_k^t\rVert_2^2,\\
-z^{t+1}   &= S_{\lambda/(N\rho)}\!\Bigl(\tfrac{1}{N}\sum_k (x_k^{t+1}+u_k^t)\Bigr),\\
-u_k^{t+1} &= u_k^t + (x_k^{t+1}-z^{t+1}),
-\end{aligned}
-```
+\\ \begin{aligned} x_k^{t+1} &= \arg\min_x -\ell_k(x) +
+\tfrac{\rho}{2}\lVert x - z^t + u_k^t\rVert_2^2,\\ z^{t+1} &=
+S\_{\lambda/(N\rho)}\\\Bigl(\tfrac{1}{N}\sum_k
+(x_k^{t+1}+u_k^t)\Bigr),\\ u_k^{t+1} &= u_k^t + (x_k^{t+1}-z^{t+1}),
+\end{aligned} \\
 
-where $`S_\tau(v)=\operatorname{sign}(v)\max(|v|-\tau,0)`$ is
-soft-thresholding (the proximal map of $`\tau\lVert\cdot\rVert_1`$). The
-$`x`$-update is the per-site [CVXR](https://cvxr.rbind.io) solve; the
-$`z`$-update needs the cross-site average
-$`\bar w=\tfrac1N\sum_k(x_k+u_k)`$ — that average is the only quantity
-that traverses the encrypted channel; the soft-threshold is closed-form
-at the aggregator and adds no cryptographic depth.
+where \\S\_\tau(v)=\operatorname{sign}(v)\max(\|v\|-\tau,0)\\ is
+soft-thresholding (the proximal map of \\\tau\lVert\cdot\rVert_1\\). The
+\\x\\-update is the per-site [CVXR](https://cvxr.rbind.io) solve; the
+\\z\\-update needs the cross-site average \\\bar
+w=\tfrac1N\sum_k(x_k+u_k)\\ — that average is the only quantity that
+traverses the encrypted channel; the soft-threshold is closed-form at
+the aggregator and adds no cryptographic depth.
 
 The pipeline needs `survival` and [CVXR](https://cvxr.rbind.io)
 alongside the encryption packages.
@@ -142,10 +125,10 @@ status.
 
 We standardize the features so the L1 penalty applies uniformly across
 predictors on different scales. The pooled mean and variance are
-additive over sites: site $`k`$ contributes $`S_k=\sum_{i\in k}x_i`$ and
-$`Q_k=\sum_{i\in k}x_i^2`$, from which
-$`\mu=\tfrac1{N_{\mathrm{tot}}}\sum_k S_k`$ and
-$`\sigma^2=\tfrac1{N_{\mathrm{tot}}}\sum_k Q_k-\mu^2`$. In the clear
+additive over sites: site \\k\\ contributes \\S_k=\sum\_{i\in k}x_i\\
+and \\Q_k=\sum\_{i\in k}x_i^2\\, from which
+\\\mu=\tfrac1{N\_{\mathrm{tot}}}\sum_k S_k\\ and
+\\\sigma^2=\tfrac1{N\_{\mathrm{tot}}}\sum_k Q_k-\mu^2\\. In the clear
 this is a pair of `colSums`.
 
 \
@@ -162,17 +145,17 @@ this is a pair of `colSums`.
 `    X    ``=`` `[`sweep`](https://rdrr.io/r/base/sweep.html)`(`[`sweep`](https://rdrr.io/r/base/sweep.html)`(``s``$``X``, ``2``, ``pool``$``mu``, ``"-"``)``, ``2``, ``pool``$``sigma``, ``"/"``)``,`\
 `    time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`
 
-Solving the full Cox-lasso at $`p = 6416`$ exhausts memory during
+Solving the full Cox-lasso at \\p = 6416\\ exhausts memory during
 [CVXR](https://cvxr.rbind.io) canonicalization, so we pre-screen to the
-$`K = 100`$ probes with the strongest univariate association with
+\\K = 100\\ probes with the strongest univariate association with
 survival — the screen-then-fit pattern Bayle et al. (2025) use on this
-cohort. For probe $`g`$ on stratum $`k`$ in event-time order with risk
-set $`R_i^{(k)}`$ at event $`i`$,
-$`U_g^{(k)}=\sum_{i\in k,\delta_i=1}(X_{i,g}-\overline X_{R_i^{(k)},g})`$
-is the score and
-$`I_g^{(k)}=\sum_{i\in k,\delta_i=1}\widehat{\operatorname{Var}}_{R_i^{(k)}}(X_{:,g})`$
-the information; both sum across sites, and the screen ranks probes by
-$`|Z_g|=|U_g|/\sqrt{I_g}`$.
+cohort. For probe \\g\\ on stratum \\k\\ in event-time order with risk
+set \\R_i^{(k)}\\ at event \\i\\, \\U_g^{(k)}=\sum\_{i\in
+k,\delta_i=1}(X\_{i,g}-\overline X\_{R_i^{(k)},g})\\ is the score and
+\\I_g^{(k)}=\sum\_{i\in
+k,\delta_i=1}\widehat{\operatorname{Var}}\_{R_i^{(k)}}(X\_{:,g})\\ the
+information; both sum across sites, and the screen ranks probes by
+\\\|Z_g\|=\|U_g\|/\sqrt{I_g}\\.
 
 \
 `K`` ``<-`` ``100L`\
@@ -206,7 +189,7 @@ $`|Z_g|=|U_g|/\sqrt{I_g}`$.
 `    time ``=`` ``s``$``time``, status ``=`` ``s``$``status``)``)`\
 `sigma_K``  ``<-`` ``pool``$``sigma``[``top_idx``]`
 
-`sites_KS` now holds each stratum on the $`K = 100`$ screened probes,
+`sites_KS` now holds each stratum on the \\K = 100\\ screened probes,
 and `sigma_K` keeps their pooled SDs for the back-transform to the
 original gene-expression scale.
 
@@ -241,9 +224,9 @@ Breslow partial likelihoods plus the L1 penalty.
 
 The distributed fit splits this objective into per-site subproblems tied
 by a consensus variable. Each local problem is built so DPP applies:
-$`z`$ and $`u`$ enter as `Parameter`s whose values change every ADMM
-iteration while the symbolic structure does not; $`X_k`$, time, status,
-and $`\rho`$ are constants.
+\\z\\ and \\u\\ enter as `Parameter`s whose values change every ADMM
+iteration while the symbolic structure does not; \\X_k\\, time, status,
+and \\\rho\\ are constants.
 
 \
 `RHO`` ``<-`` ``50`\
@@ -258,20 +241,20 @@ and $`\rho`$ are constants.
 `sites_problem`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``sites_KS``, ``function``(``s``)`\
 `    ``build_local``(``s``$``X``, ``s``$``time``, ``s``$``status``, ``RHO``)``)`
 
-The ADMM driver below is the whole federated algorithm, and it is
-deliberately agnostic to *how* the cross-site average is formed: the
-`consensus` argument is a function of the per-site $`(x_k,u_k)`$
-vectors, and everything else — the local [CVXR](https://cvxr.rbind.io)
-solves, the soft-threshold $`z`$-update, the dual update, the stopping
-rule — is ordinary R. We call it once now with an unencrypted average
-and, unchanged, once more under encryption.
+The ADMM driver below is the whole federated algorithm. How the
+cross-site average is formed is left to its `consensus` argument, a
+function of the per-site \\(x_k,u_k)\\ vectors. Everything else (the
+local [CVXR](https://cvxr.rbind.io) solves, the soft-threshold
+\\z\\-update, the dual update, the stopping rule) is ordinary R. We call
+it now with an unencrypted average, and later, unchanged, with an
+encrypted one.
 
-A note on the constants. We fix $`\rho = 50`$ and a cap of 200
-iterations. The dual residual $`\rho\lVert z^{t+1}-z^t\rVert`$ is the
-binding term here and decays slowly; with $`\rho = 50`$ the absolute
+A note on the constants. We fix \\\rho = 50\\ and a cap of 200
+iterations. The dual residual \\\rho\lVert z^{t+1}-z^t\rVert\\ is the
+binding term here and decays slowly; with \\\rho = 50\\ the absolute
 stopping rule `primal < TOL && dual < TOL` (with `TOL = 0.005`) trips at
-iteration 147. Smaller $`\rho`$ reaches the tolerance in fewer
-iterations but at a looser fit, so we keep $`\rho = 50`$ for the
+iteration 147. Smaller \\\rho\\ reaches the tolerance in fewer
+iterations but at a looser fit, so we keep \\\rho = 50\\ for the
 tightest agreement with the centralized solve.
 
 \
@@ -309,21 +292,21 @@ tightest agreement with the centralized solve.
 `z_ref`` ``<-`` ``ref``$``z`
 
 In the clear the consensus is a single line — the average of the
-$`(x_k+u_k)`$ vectors. The unencrypted ADMM converges in 147 iterations
+\\(x_k+u_k)\\ vectors. The unencrypted ADMM converges in 147 iterations
 and matches the centralized [CVXR](https://cvxr.rbind.io) fit to
-8.3^{-4} in maximum absolute coefficient difference, so `agg_beta` —
+8.3 × 10⁻⁴ in maximum absolute coefficient difference, so `agg_beta` —
 equivalently `z_ref` — is the target the encrypted protocol must
 reproduce.
 
 ## The same fit under threshold FHE
 
 Only three quantities ever cross a site boundary: the standardization
-moments $`(S_k,Q_k)`$, the screening statistics $`(U^{(k)},I^{(k)})`$,
-and, at each ADMM iteration, the consensus sum $`\sum_k(x_k+u_k)`$. Each
+moments \\(S_k,Q_k)\\, the screening statistics \\(U^{(k)},I^{(k)})\\,
+and, at each ADMM iteration, the consensus sum \\\sum_k(x_k+u_k)\\. Each
 is a sum over sites, so each becomes one round of the same threshold-FHE
 summation primitive the master/worker fits use: every site encrypts its
 contribution under the joint public key, the aggregator adds the
-encrypted contributions, and the total is recovered by $`n`$-of-$`n`$
+encrypted contributions, and the total is recovered by \\n\\-of-\\n\\
 partial decryption. The local [CVXR](https://cvxr.rbind.io) work and
 `run_admm` are untouched.
 
@@ -336,9 +319,8 @@ chain across the sites. Each site generates its own share and keeps it;
 only public keys move along the chain, so no party — the aggregator
 included — ever holds the joint secret.
 
-That means the key-holding parties have to exist before the aggregator
-does. The subgroups are already our sites; here we give each one an
-object to hold its share in.
+So the sites have to exist before the aggregator does. Here we give each
+subgroup a site object to hold its share.
 
 \
 `cc`` ``<-`` `[`fhe_context`](https://openfheorg.github.io/openfhe.R/reference/fhe_context.html)`(``"CKKS"``,`\
@@ -360,22 +342,29 @@ object to hold its share in.
 `## asks a site what it holds; it involves no aggregator.`\
 `pub`` ``<-`` `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``key_sites``, ``site_params``)`
 
-That wiring is the one and only exchange between the aggregator and the
-sites, apart from the encrypted values each round carries. From here on
-each site is autonomous: everything below encrypts with `pub`, which the
-site already holds, and nothing reaches back for the aggregator.
+Apart from the encrypted values in each round, this setup is the only
+exchange between the aggregator and the sites. Everything below encrypts
+with `pub`, which each site already holds.
 
-Printing the bundle shows why handing it out is safe — it is a scheme, a
-public-key fingerprint, and nothing else. There is no property in an
-`OpenFHEParams` object for a key share to travel in.
+Each element of `pub` is an `OpenFHEParams` object. Its class has two
+properties, the crypto context and the joint public key, and none for a
+key share:
 
 \
-`pub``[[``1``]``]`
+`homomorpheR``::`[`OpenFHEParams`](https://bnaras.github.io/homomorpheR/reference/OpenFHEParams.md)
+
+    ## <homomorpheR::OpenFHEParams> class
+    ## @ parent     : <homomorpheR::PublicParams>
+    ## @ constructor: function(cc, pk) {...}
+    ## @ validator  : <NULL>
+    ## @ properties :
+    ##  $ cc: <openfhe.R::CryptoContext>
+    ##  $ pk: <openfhe.R::PublicKey>
 
 The standardization round is `pool_plain` with the two `colSums`
-encrypted: each site encrypts $`S_k`$ and $`Q_k`$, the aggregator sums
+encrypted: each site encrypts \\S_k\\ and \\Q_k\\, the aggregator sums
 under encryption and threshold-decrypts the pooled moments. (For brevity
-we treat $`N_{\mathrm{tot}}`$ as known to the aggregator; hiding the
+we treat \\N\_{\mathrm{tot}}\\ as known to the aggregator; hiding the
 per-site head-counts is one more sum of the same kind.)
 
 \
@@ -384,16 +373,16 @@ per-site head-counts is one more sum of the same kind.)
 `## aggregator instead would mean handing it the per-site column sums in`\
 `## the clear first, which is the disclosure this round exists to avoid.`\
 `site_moments`` ``<-`` ``function``(``s``, ``params``)`\
-`    `[`list`](https://rdrr.io/r/base/list.html)`(``sum   ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``,`\
-`         sumsq ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``sum   ``=`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``)``)``,`\
+`         sumsq ``=`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``params``, `[`colSums`](https://rdrr.io/r/base/colSums.html)`(``s``$``X``^``2``)``)``)`\
 \
 `## Aggregator side. It reduces encrypted values and decrypts only the total.`\
 `encrypt_pool`` ``<-`` ``function``(``master``, ``sites``, ``n_total``, ``p_raw``)`` ``{`\
 `    ``## Each site encrypts with the parameters it kept from wiring.`\
 `    ``parts`` ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_moments``, ``sites``, ``pub``)`\
-`    ``pooled_sum``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
+`    ``pooled_sum``   ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(`\
 `        ``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``parts``, ``` `[[` ```, ``"sum"``)``)``,   len ``=`` ``p_raw``)`\
-`    ``pooled_sumsq`` ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(`\
+`    ``pooled_sumsq`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(`\
 `        ``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``parts``, ``` `[[` ```, ``"sumsq"``)``)``, len ``=`` ``p_raw``)`\
 `    ``mu``     ``<-`` ``pooled_sum`` ``/`` ``n_total`\
 `    ``sigma2`` ``<-`` `[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``pooled_sumsq`` ``/`` ``n_total`` ``-`` ``mu``^``2``, ``.Machine``$``double.eps``)`\
@@ -401,65 +390,63 @@ per-site head-counts is one more sum of the same kind.)
 `}`\
 `fhe_pool`` ``<-`` ``encrypt_pool``(``master``, ``sites_raw``, ``N_total``, ``P_raw``)`
 
-The encrypted moments agree with the unencrypted `pool` to 4.4^{-16}
-(mean) and 3.1^{-15} (SD) — essentially machine precision, since these
-are exact sums under CKKS. The screening round is structurally
-identical, the same `score_info_at_zero` summands $`(U^{(k)},I^{(k)})`$
-encrypted and summed the same way, so we show it compactly and confirm
-it selects the same probes.
+The encrypted moments agree with the unencrypted `pool` to 4.1 × 10⁻¹⁶
+(mean) and 3.0 × 10⁻¹⁵ (SD), the CKKS approximation error. The screening
+round works the same way: the `score_info_at_zero` summands
+\\(U^{(k)},I^{(k)})\\ are encrypted and summed, and we confirm it
+selects the same probes.
 
 \
 `## Site side: compute the score and information at beta = 0 on the`\
 `## site's own rows, and encrypt both before returning them.`\
 `site_score_info`` ``<-`` ``function``(``s``, ``params``)`` ``{`\
 `    ``z`` ``<-`` ``score_info_at_zero``(``s``$``X``, ``s``$``time``, ``s``$``status``)`\
-`    `[`list`](https://rdrr.io/r/base/list.html)`(``U ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``z``$``U``)``, I ``=`` `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``z``$``I``)``)`\
+`    `[`list`](https://rdrr.io/r/base/list.html)`(``U ``=`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``params``, ``z``$``U``)``, I ``=`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``params``, ``z``$``I``)``)`\
 `}`\
 \
 `## Aggregator side: sum the encrypted (U, I) and decrypt the totals.`\
 `encrypt_screen`` ``<-`` ``function``(``master``, ``sites``, ``p_raw``, ``K``)`` ``{`\
 `    ``UI``  ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_score_info``, ``sites``, ``pub``)`\
-`    ``U``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)``,`\
-`                          len ``=`` ``p_raw``)`\
-`    ``I``   ``<-`` `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)``,`\
-`                          len ``=`` ``p_raw``)`\
+`    ``U``   ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"U"``)``)``,`\
+`                   len ``=`` ``p_raw``)`\
+`    ``I``   ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, `[`lapply`](https://rdrr.io/r/base/lapply.html)`(``UI``, ``` `[[` ```, ``"I"``)``)``,`\
+`                   len ``=`` ``p_raw``)`\
 `    ``Z``   ``<-`` ``U`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(`[`pmax`](https://rdrr.io/r/base/Extremes.html)`(``I``, ``.Machine``$``double.eps``)``)`\
 `    `[`order`](https://rdrr.io/r/base/order.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``Z``)``, decreasing ``=`` ``TRUE``)``[`[`seq_len`](https://rdrr.io/r/base/seq.html)`(``K``)``]`\
 `}`\
 `fhe_top`` ``<-`` ``encrypt_screen``(``master``, ``sites_std``, ``P_raw``, ``K``)`\
 [`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`setequal`](https://rdrr.io/r/base/sets.html)`(``fhe_top``, ``top_idx``)``)``   ``# same probes as the cleartext screen`
 
-With standardization and screening recovering the same design, the
-consensus round is the only piece left to encrypt. It mirrors
-`plain_consensus`, with the encryption on the site’s side of the
-boundary: each site encrypts its own $`(x_k+u_k)`$, the aggregator sums
-the encrypted values, scales by $`1/N`$ under encryption (one
-multiplication by an unencrypted constant, which costs one level of the
-precision budget), and threshold-decrypts the length-$`K`$ average.
-Soft-thresholding stays in the clear at the aggregator, on the
-aggregate.
+Standardization and screening give the same design as in the clear, so
+the consensus round is the only piece left to encrypt. It mirrors
+`plain_consensus`. Each site encrypts its own \\(x_k+u_k)\\. The
+aggregator sums the encrypted values, scales by \\1/N\\ (one
+multiplication by an unencrypted constant, which uses one level of
+multiplicative depth), and threshold-decrypts the length-\\K\\ average.
+Soft-thresholding is applied to that average in the clear at the
+aggregator.
 
 \
 `## Site side: form x_k + u_k and encrypt it there. The per-site vector`\
 `## never exists in the clear outside this function.`\
 `site_consensus_term`` ``<-`` ``function``(``x_k``, ``u_k``, ``params``)`\
-`    `[`encrypt_under`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)`(``params``, ``x_k`` ``+`` ``u_k``)`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``params``, ``x_k`` ``+`` ``u_k``)`\
 \
 `## Aggregator side: add the encrypted values, scale by 1/N, decrypt the`\
 `## average. It sees no individual (x_k + u_k).`\
 `encrypted_consensus`` ``<-`` ``function``(``site_x``, ``site_u``)`` ``{`\
 `    ``cts``    ``<-`` `[`Map`](https://rdrr.io/r/base/funprog.html)`(``site_consensus_term``, ``site_x``, ``site_u``, ``pub``)`\
 `    ``ct_avg`` ``<-`` `[`Reduce`](https://rdrr.io/r/base/funprog.html)`(``` `+` ```, ``cts``)`` ``*`` ``(``1`` ``/`` `[`length`](https://rdrr.io/r/base/length.html)`(``site_x``)``)`\
-`    `[`master_decrypt`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)`(``master``, ``ct_avg``, len ``=`` ``K``)`\
+`    `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``master``, ``ct_avg``, len ``=`` ``K``)`\
 `}`\
 `fhe``        ``<-`` ``run_admm``(``sites_problem``, ``encrypted_consensus``)`\
 `z_curr``     ``<-`` ``fhe``$``z`\
 `trajectory`` ``<-`` ``fhe``$``trajectory`
 
-Passing `encrypted_consensus` in place of `plain_consensus` is the
-*entire* change. The encrypted ADMM ran for 147 iterations and lands on
-the same coefficients as the unencrypted run, differing by only 1.4^{-7}
-— the CKKS approximation noise.
+The only change is passing `encrypted_consensus` in place of
+`plain_consensus`. The encrypted ADMM ran for 147 iterations, and its
+coefficients differ from the unencrypted run by at most 2.0 × 10⁻⁷, the
+CKKS approximation error.
 
 ## Comparison with the centralized fit
 
@@ -477,15 +464,20 @@ ADMM lives) and the back-transformed original gene-expression scale.
 `                       `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``,`\
 ``     `L1 diff`       ```=`` `[`c`](https://rdrr.io/r/base/c.html)`(`[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``z_enc`` ``-`` ``agg_beta``)``)``,`\
 `                       `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``beta_orig_enc`` ``-`` ``beta_orig_agg``)``)``)``)`\
-`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``cmp``, digits ``=`` ``4``,`\
+`ktab``(``cmp``, digits ``=`` ``4``,`\
+`             col.names ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Scale"``,`\
+`                           ``"$\\max_j \\lvert \\hat\\beta_j^{\\text{ADMM}} - \\hat\\beta_j^{\\text{centralized}} \\rvert$"``,`\
+`                           ``"$\\lVert \\hat\\beta^{\\text{ADMM}} - \\hat\\beta^{\\text{centralized}} \\rVert_1$"``)``,`\
 `             caption ``=`` ``"Threshold-FHE consensus ADMM vs. centralized Cox-lasso"``)`
 
-| Scale        | Max abs diff | L1 diff |
-|:-------------|-------------:|--------:|
-| standardized |       0.0008 |  0.0043 |
-| original     |       0.0016 |  0.0071 |
+| Scale | \\\max_j \lvert \hat\beta_j^{\text{ADMM}} - \hat\beta_j^{\text{centralized}} \rvert\\ | \\\lVert \hat\beta^{\text{ADMM}} - \hat\beta^{\text{centralized}} \rVert_1\\ |
+|:---|---:|---:|
+| standardized | 0.0008 | 0.0043 |
+| original | 0.0016 | 0.0071 |
 
-Threshold-FHE consensus ADMM vs. centralized Cox-lasso {.table}
+Threshold-FHE consensus ADMM vs. centralized Cox-lasso {.table .table
+.table-striped .table-condensed
+style="margin-left: auto; margin-right: auto;"}
 
 \
 `n_agg``   ``<-`` `[`sum`](https://rdrr.io/r/base/sum.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``agg_beta``)`` ``>`` ``1e-7``)`\
@@ -497,8 +489,8 @@ in the encrypted ADMM fit; the intersection is 38 — every probe selected
 by the centralized fit is recovered by the encrypted distributed
 protocol.
 
-The figure below shows the consensus trajectory $`z^t`$ for the eight
-probes with largest $`|z|`$ at convergence, with the centralized fit
+The figure below shows the consensus trajectory \\z^t\\ for the eight
+probes with largest \\\|z\|\\ at convergence, with the centralized fit
 drawn as a horizontal reference. The encrypted iterates converge along
 the path the centralized solver would take.
 
@@ -528,58 +520,48 @@ centralized CVXR fit. Standardized scale.
 ## What the protocol hides and reveals
 
 The aggregator learns the pooled per-probe mean and SD (round 1), a
-per-probe stratified univariate Cox $`|Z|`$ statistic and the indices of
-the top-100 screened probes (round 2), and the consensus $`z^t`$ at
+per-probe stratified univariate Cox \\\|Z\|\\ statistic and the indices
+of the top-100 screened probes (round 2), and the consensus \\z^t\\ at
 every ADMM iteration. Each is an aggregated population-level statistic
 over 235 patients, not patient-level data. None of the per-site design
-matrices $`X_k`$, the per-site $`(\mu,\sigma^2)`$ contributions, the
-per-site $`(U,I)`$ contributions, or the per-site $`(x_k+u_k)`$ vectors
+matrices \\X_k\\, the per-site \\(\mu,\sigma^2)\\ contributions, the
+per-site \\(U,I)\\ contributions, or the per-site \\(x_k+u_k)\\ vectors
 ever appear in cleartext anywhere in the protocol. Decryption at every
-step is $`n`$-of-$`n`$ threshold: no single party — the aggregator
+step is \\n\\-of-\\n\\ threshold: no single party — the aggregator
 included — can recover any intermediate quantity unilaterally.
 
-Two things in this document sit outside that sentence, and both are
-artifacts of writing it rather than parts of the protocol. The
-unencrypted reference pass forms exactly the per-site averages just
-ruled out; we can run it, and the centralized solve we check against,
-only because this vignette holds all three sites’ data in one R session.
-The constants inherit the same caveat — as the note above says,
-$`\rho = 50`$ was kept for the tightest agreement with that centralized
-solve, which is a comparison no deployment can make.
+Two steps in this vignette would not exist in a real deployment. The
+unencrypted reference pass forms the per-site averages that the protocol
+keeps encrypted, and the centralized solve pools all the data. We can
+run both only because this vignette holds all three sites’ data in one R
+session. The choice \\\rho = 50\\ depends on them too: it was kept
+because it agreed best with the centralized solve, which a deployment
+cannot compute.
 
-This is worth naming, because it is the kind of thing a threat model
-misses: the guarded computation gets audited, while the step that
-*chooses its constants* looks like setup and does not. It need not be
-exposed.
-[`vignette("cvxr-consensus-admm")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md)
-sweeps $`\rho`$ over the encrypted channel itself — the tuning needs no
-cryptographic machinery beyond what one run already needs, and the
-crypto is small beside the per-iteration [CVXR](https://cvxr.rbind.io)
-solves. Where the protocol also carries a privacy budget, as in
+A deployment can instead choose \\\rho\\ on a surrogate cohort built
+from public design facts, as
+[`vignette("cvxr-consensus-admm-dp")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm-dp.md)
+does. When the protocol also spends a privacy budget, as in
 [`vignette("cvxr-consensus-admm-dp")`](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm-dp.md),
-encrypting the sweep is not enough and the constants have to come from
-data the protocol may read for free.
+encrypting the sweep is not enough, and the constants have to be chosen
+from data that does not count against the budget.
 
 ## Discussion
 
-1.  **CVXR symbolic problems compose with threshold FHE.** The local
-    Cox-lasso solve runs in the clear at each site; only the cross-site
-    consensus update goes through the encrypted channel. The reader does
-    not rewrite their [CVXR](https://cvxr.rbind.io) model for the
-    encrypted setting — the same `Problem(Minimize(...))` is used
-    verbatim, and `run_admm` is called with `encrypted_consensus`
-    instead of `plain_consensus`.
-2.  **The encrypted layer is lossless to working precision.** The
-    encrypted fit reproduces the unencrypted ADMM to 1.4^{-7} and
-    recovers the identical active set; the residual gap to the one-shot
-    centralized solve (8.3^{-4}) is the ADMM iteration budget, not the
-    cryptography.
+1.  **CVXR problems work unchanged.** Each site solves its local
+    Cox-lasso problem in the clear. Only the consensus update is
+    encrypted. The [CVXR](https://cvxr.rbind.io)
+    `Problem(Minimize(...))` is the same as in the clear, and `run_admm`
+    is called with `encrypted_consensus` instead of `plain_consensus`.
+2.  **Encryption does not change the fit.** The encrypted fit matches
+    the unencrypted ADMM to 2.0 × 10⁻⁷ and has the same active set. The
+    remaining gap to the centralized solve (8.3 × 10⁻⁴) comes from
+    stopping ADMM at a finite tolerance, not from the encryption.
 3.  **No single party holds the secret key.** Each site generated its
-    own share during the key-generation chain and kept it; the
-    aggregator holds only the joint public key. Encrypted intermediates
-    are undecryptable by any one party, and each round’s result appears
-    only after $`n`$-of-$`n`$ partial-decryption fusion, which the
-    aggregator can only obtain by asking every site.
+    own share during key generation and kept it. The aggregator holds
+    only the joint public key. No single party can decrypt an
+    intermediate value, and each round’s result is decrypted only when
+    every site contributes a partial decryption.
 4.  **DPP keeps the inner loop fast.** Each site’s
     [CVXR](https://cvxr.rbind.io) problem is built once at setup; ADMM
     iterations only update the `Parameter` values.
@@ -587,12 +569,12 @@ data the protocol may read for free.
 ## Limitations
 
 - **Honest-but-curious trust.** A site that misreports its local
-  $`(x_k+u_k)`$ can corrupt the consensus; detecting this needs
+  \\(x_k+u_k)\\ can corrupt the consensus; detecting this needs
   commitments / zero-knowledge proofs not implemented here.
-- **The aggregator sees the trajectory $`\{z^t\}`$.** Per-iteration
+- **The aggregator sees the trajectory \\\\z^t\\\\.** Per-iteration
   consensus values are revealed in the clear (after fusion) so the loop
   can decide convergence.
-- **No output privacy.** The released $`\hat\beta = z^\star`$ is the
+- **No output privacy.** The released \\\hat\beta = z^\star\\ is the
   same coefficient vector as the centralized fit; output-level
   protection is out of scope here and is demonstrated in the companion
   DP vignette.

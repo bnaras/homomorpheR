@@ -21,8 +21,6 @@
   Regression](https://bnaras.github.io/homomorpheR/articles/cox.md):
 - [Distributed Cox Regression with Threshold Key
   Generation](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md):
-- [Federated Consensus ADMM with
-  CVXR](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md):
 - [Federated Cox-Lasso via Consensus ADMM on
   DLBCL](https://bnaras.github.io/homomorpheR/articles/cvxr-cox-lasso-dlbcl.md):
 

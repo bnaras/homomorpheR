@@ -8,11 +8,9 @@ Multiple research sites each hold patient data and want to know the
 per-site counts to anyone, including the aggregator running the
 aggregation.
 
-This is the same pattern the Paillier vignette `vignette("QueryNCP")`
-demonstrates with non-cooperating parties. Here we use OpenFHE’s **BFV**
-scheme via the `openfhe.R` package. BFV operates on *integer vectors*
-with both addition and multiplication — well-suited to counting and
-other exact integer-valued aggregates.
+Here we use OpenFHE’s **BFV** scheme via the `openfhe.R` package. BFV
+operates on *integer vectors* with both addition and multiplication —
+well-suited to counting and other exact integer-valued aggregates.
 
 This is the BFV companion to the CKKS-based real-valued master/worker
 vignettes
@@ -60,7 +58,7 @@ locally.
 `                 ``site_df``$``sex`` ``==`` ``"F"`` ``&`\
 `                 ``site_df``$``biomarker`` ``<`` ``0.2``)`\
 `    ``pt``    ``<-`` `[`make_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html)`(``cc``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``count``)``)`\
-`    `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``pk``, ``pt``, cc ``=`` ``cc``)`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``pk``, ``pt``, cc ``=`` ``cc``)`\
 `}`\
 \
 `ct_site1`` ``<-`` ``site_encrypt``(``site_data``[[``1``]``]``, ``cc``, ``pk``)`\
@@ -77,7 +75,7 @@ about any individual site’s count.
 `ct_total`` ``<-`` ``ct_site1`` ``+`` ``ct_site2`` ``+`` ``ct_site3`\
 \
 `## Only the aggregator holds the secret key.`\
-`result``      ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_total``, ``sk``, cc ``=`` ``cc``)`\
+`result``      ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``ct_total``, ``sk``, cc ``=`` ``cc``)`\
 `total_count`` ``<-`` `[`get_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html)`(``result``)``[``1``]`\
 `total_count`
 
@@ -101,7 +99,7 @@ an *exact* scheme over the integers: unlike the real-valued arithmetic
 used elsewhere in this package, it introduces no approximation error at
 all.
 
-## What just happened
+## The details of what happened
 
 1.  The aggregator created an encryption context and distributed the
     **public key** to all sites.
@@ -128,35 +126,13 @@ key. `openfhe.R` provides serialization:
 `cc_remote`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"context.bin"``)``, ``"CryptoContext"``)`\
 `pk_remote`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"pubkey.bin"``)``, ``"PublicKey"``)`\
 \
-`ct`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``pk_remote``,`\
+`ct`` ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``pk_remote``,`\
 `              `[`make_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html)`(``cc_remote``, ``42L``)``,`\
 `              cc ``=`` ``cc_remote``)`\
 \
 [`fhe_serialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html)`(``ct``, `[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"site_count.bin"``)``)`\
 `ct_received`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"site_count.bin"``)``, ``"Ciphertext"``)`\
-`result``      ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_received``, ``sk``, cc ``=`` ``cc``)`\
+`result``      ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``ct_received``, ``sk``, cc ``=`` ``cc``)`\
 [`get_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html)`(``result``)``[``1``]`
 
     ## [1] 42
-
-## Comparison with the Paillier vignettes
-
-The legacy Paillier vignettes (`vignette("QueryNCP")` in particular)
-achieve the same kind of count aggregation using Paillier encryption,
-which supports only additive homomorphism. With `openfhe.R`’s BFV:
-
-- **Multiplication** is available — encrypted products, variances, more
-  complex integer-valued aggregates.
-- **Performance** — OpenFHE’s optimized C++ backend is orders of
-  magnitude faster than pure-R Paillier on
-  [`gmp::bigz`](https://rdrr.io/pkg/gmp/man/biginteger.html).
-- **Packing** — BFV encrypts whole integer vectors, and one arithmetic
-  operation acts on every position at once. Several per-site counts can
-  therefore ride in the slots of a single encrypted value and be
-  aggregated together.
-- **Threshold FHE** —
-  [`multiparty_key_gen()`](https://openfheorg.github.io/openfhe.R/reference/multiparty_key_gen.html)
-  lets the secret key be split across parties so no single party can
-  decrypt unilaterally. (See
-  [`vignette("cox-threshold")`](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md)
-  for the master/worker analogue under CKKS.)

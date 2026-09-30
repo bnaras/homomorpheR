@@ -30,11 +30,9 @@ from the `openfhe.R` package.
 
 The lab’s model computes a weighted score:
 
-``` math
-\text{score} = w_1 x_1 + w_2 x_2 + w_3 x_3 + w_4 x_4 + b
-```
+\\\text{score} = w_1 x_1 + w_2 x_2 + w_3 x_3 + w_4 x_4 + b\\
 
-where $`x_i`$ are biomarker values and $`w_i, b`$ are proprietary
+where \\x_i\\ are biomarker values and \\w_i, b\\ are proprietary
 coefficients.
 
 ## Setup: hospital’s context and patient data
@@ -56,10 +54,10 @@ coefficients.
 `biomarker3`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``2.0``, ``1.5``, ``2.3``, ``1.0``, ``1.8``, ``2.1``, ``1.6``, ``2.5``)`\
 `biomarker4`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0.1``, ``0.4``, ``0.2``, ``0.6``, ``0.3``, ``0.1``, ``0.5``, ``0.2``)`\
 \
-`ct1`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker1``)``, cc ``=`` ``cc``)`\
-`ct2`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker2``)``, cc ``=`` ``cc``)`\
-`ct3`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker3``)``, cc ``=`` ``cc``)`\
-`ct4`` ``<-`` `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker4``)``, cc ``=`` ``cc``)`
+`ct1`` ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker1``)``, cc ``=`` ``cc``)`\
+`ct2`` ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker2``)``, cc ``=`` ``cc``)`\
+`ct3`` ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker3``)``, cc ``=`` ``cc``)`\
+`ct4`` ``<-`` `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``biomarker4``)``, cc ``=`` ``cc``)`
 
 ## Lab side: apply the model to encrypted data
 
@@ -77,7 +75,7 @@ model — without ever seeing patient values.
 ## Hospital side: decrypt the results
 
 \
-`result`` ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_score``, ``keys``@``secret``, cc ``=`` ``cc``)`\
+`result`` ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``ct_score``, ``keys``@``secret``, cc ``=`` ``cc``)`\
 [`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``result``, ``8L``)`\
 `scores`` ``<-`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``result``)``[``1``:``8``]`\
 \
@@ -105,7 +103,7 @@ model — without ever seeing patient values.
 `max_error`` ``<-`` `[`max`](https://rdrr.io/r/base/Extremes.html)`(`[`abs`](https://rdrr.io/r/base/MathFun.html)`(``scores`` ``-`` ``cleartext_scores``)``)`\
 [`sprintf`](https://rdrr.io/r/base/sprintf.html)`(``"Maximum error vs cleartext: %.2e"``, ``max_error``)`
 
-    ## [1] "Maximum error vs cleartext: 9.37e-14"
+    ## [1] "Maximum error vs cleartext: 8.04e-14"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.
@@ -117,12 +115,12 @@ The pipeline above delivers two concrete protections:
 1.  **Biomarker values never appear in cleartext outside the hospital.**
     The lab’s view of the protocol consists of the encrypted values it
     received and the encrypted score it returned.
-2.  **The lab’s coefficients $`w`$ and $`b`$ are never sent to the
+2.  **The lab’s coefficients \\w\\ and \\b\\ are never sent to the
     hospital in cleartext.** They are used only to construct the
     returned encrypted score inside the lab’s R session.
 
 | Party | Cleartext view |
-|----|----|
+|:---|:---|
 | Hospital | Patient biomarkers (local), decrypted scores |
 | Lab | Encrypted values only — no cleartext biomarker values, no cleartext scores |
 
@@ -138,15 +136,15 @@ values the hospital encrypts. For a linear model with four biomarkers
 and a bias, the hospital can recover every coefficient with five queries
 by submitting the standard basis:
 
-- $`\mathbf{e}_0 = (0,0,0,0)\ \Rightarrow\ \text{score} = b`$
-- $`\mathbf{e}_1 = (1,0,0,0)\ \Rightarrow\ \text{score} = w_1 + b`$
-- $`\mathbf{e}_2 = (0,1,0,0)\ \Rightarrow\ \text{score} = w_2 + b`$
-- $`\mathbf{e}_3 = (0,0,1,0)\ \Rightarrow\ \text{score} = w_3 + b`$
-- $`\mathbf{e}_4 = (0,0,0,1)\ \Rightarrow\ \text{score} = w_4 + b`$
+- \\\mathbf{e}\_0 = (0,0,0,0)\\ \Rightarrow\\ \text{score} = b\\
+- \\\mathbf{e}\_1 = (1,0,0,0)\\ \Rightarrow\\ \text{score} = w_1 + b\\
+- \\\mathbf{e}\_2 = (0,1,0,0)\\ \Rightarrow\\ \text{score} = w_2 + b\\
+- \\\mathbf{e}\_3 = (0,0,1,0)\\ \Rightarrow\\ \text{score} = w_3 + b\\
+- \\\mathbf{e}\_4 = (0,0,0,1)\\ \Rightarrow\\ \text{score} = w_4 + b\\
 
 Subtracting the first score from each of the others recovers the four
 weights exactly. We can run this attack in the same R session: wrap the
-lab’s scoring pipeline as a function that closes over $`w`$ and $`b`$
+lab’s scoring pipeline as a function that closes over \\w\\ and \\b\\
 without revealing them, then pack the five probes across slots 1–5 of
 the four encrypted biomarker vectors.
 
@@ -167,14 +165,14 @@ the four encrypted biomarker vectors.
 `probe_bio4`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``0``, ``0``, ``0``, ``0``, ``1``, ``0``, ``0``, ``0``)`\
 \
 `ct_probe`` ``<-`` `[`list`](https://rdrr.io/r/base/list.html)`(`\
-`    `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio1``)``, cc ``=`` ``cc``)``,`\
-`    `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio2``)``, cc ``=`` ``cc``)``,`\
-`    `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio3``)``, cc ``=`` ``cc``)``,`\
-`    `[`encrypt`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio4``)``, cc ``=`` ``cc``)`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio1``)``, cc ``=`` ``cc``)``,`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio2``)``, cc ``=`` ``cc``)``,`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio3``)``, cc ``=`` ``cc``)``,`\
+`    `[`encrypt`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)`(``keys``@``public``, `[`make_ckks_packed_plaintext`](https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html)`(``cc``, ``probe_bio4``)``, cc ``=`` ``cc``)`\
 `)`\
 \
 `ct_probe_score`` ``<-`` ``lab_score``(``ct_probe``)`\
-`probe_result``   ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_probe_score``, ``keys``@``secret``, cc ``=`` ``cc``)`\
+`probe_result``   ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``ct_probe_score``, ``keys``@``secret``, cc ``=`` ``cc``)`\
 [`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``probe_result``, ``5L``)`\
 `probe_scores`` ``<-`` `[`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``probe_result``)``[``1``:``5``]`\
 \
@@ -195,16 +193,16 @@ the four encrypted biomarker vectors.
 The recovered coefficients match the lab’s true coefficients to CKKS
 precision. Five queries — one bias probe plus one per biomarker — are
 enough because the scoring function is linear in the biomarkers; a
-linear function of $`k`$ inputs is fully specified by any $`k + 1`$
+linear function of \\k\\ inputs is fully specified by any \\k + 1\\
 affinely independent point evaluations. FHE does not impede this
 extraction: the hospital is the party that decrypts, the scoring
 function is the thing being released, and the standard basis is a legal
 query vector.
 
-## What this means for deployment
+## Layered defenses
 
 A deployment that needs the scoring function to stay proprietary has to
-layer defences *on top of* the FHE transport:
+layer defenses *on top of* the FHE transport:
 
 - **Output perturbation.** Adding calibrated noise to the decrypted
   score — a differential-privacy mechanism — turns each query into a
@@ -232,7 +230,7 @@ The vignette above shows the transport mechanics end-to-end. It is a
 *toy illustration* in that the linear scorer plus hospital-held secret
 key is exactly the configuration where the five-query attack works; a
 production model-as-a-service deployment is the transport layer plus at
-least one of the defences above.
+least one of the defenses above.
 
 ## Network protocol: serialization
 
@@ -257,7 +255,7 @@ serialize for network transport:
 \
 `## Hospital receives, deserializes, decrypts`\
 `ct_recv`` ``<-`` `[`fhe_deserialize`](https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html)`(`[`file.path`](https://rdrr.io/r/base/file.path.html)`(``tdir``, ``"weighted.bin"``)``, ``"Ciphertext"``)`\
-`result``  ``<-`` `[`decrypt`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)`(``ct_recv``, ``keys``@``secret``, cc ``=`` ``cc``)`\
+`result``  ``<-`` `[`decrypt`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)`(``ct_recv``, ``keys``@``secret``, cc ``=`` ``cc``)`\
 [`set_length`](https://openfheorg.github.io/openfhe.R/reference/set_length.html)`(``result``, ``8L``)`\
 [`get_real_packed_value`](https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html)`(``result``)``[``1``:``8``]`
 

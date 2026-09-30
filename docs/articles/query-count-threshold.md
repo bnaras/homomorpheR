@@ -54,58 +54,32 @@ number is the ground truth the encrypted protocol must reproduce.
 
 The additive structure of the problem — the grand total is the sum of
 the per-site counts — is exactly what an *additively homomorphic*
-encryption scheme computes. Let $`c_i`$ be site $`i`$’s local count and
-$`E(\cdot)`$ the encryption function. Given $`E(c_1), E(c_2), E(c_3)`$,
-the scheme lets anyone compute
-$`E(c_1) + E(c_2) + E(c_3) = E(c_1 + c_2 +
-c_3)`$ without decrypting the parts.
+encryption scheme computes. Let \\c_i\\ be site \\i\\’s local count and
+\\E(\cdot)\\ the encryption function. Given \\E(c_1), E(c_2), E(c_3)\\,
+the scheme lets anyone compute \\E(c_1) + E(c_2) + E(c_3) = E(c_1 +
+c_2 + c_3)\\ without decrypting the parts.
 
 The historical difficulty was not the arithmetic but the *trust model*.
-The Paillier cryptosystem (Paillier 1999), which `homomorpheR`
-originally used for exactly this kind of aggregation, has a **single
-private key**. Whoever holds it can decrypt anything — including a lone
-$`E(c_i)`$. So if the aggregator holds the key, it can read each site’s
+Whoever holds the private key can decrypt anything — including a lone
+\\E(c_i)\\. So if the aggregator holds the key, it can read each site’s
 count individually, defeating the purpose.
 
 The workaround was two **non-cooperating parties**, NCP1 and NCP2, who
-do not collude. Each site draws a fresh random $`r_i`$ and sends the two
-additive shares
-
-``` math
-E(c_i - r_i) \;\longrightarrow\; \text{NCP1},
-\qquad
-E(c_i + r_i) \;\longrightarrow\; \text{NCP2}.
-```
-
-NCP1 sums its shares to get $`E\!\left(\sum_i (c_i - r_i)\right)`$ and
-NCP2 gets $`E\!\left(\sum_i (c_i + r_i)\right)`$; neither total means
-anything on its own because of the random masks. The aggregator adds the
-two encrypted totals, the masks cancel, and it decrypts
-
-``` math
-\textstyle\sum_i (c_i - r_i) + \sum_i (c_i + r_i)
-  \;=\; \sum_i 2c_i \;=\; 2c,
-```
-
-recovering the grand total $`c`$ after halving. No party ever sees an
-individual $`c_i`$. This works, but it is machinery erected to
-compensate for a single-key scheme: two extra parties, a non-collusion
-assumption between them, and a masking dance. The full Paillier
-implementation is preserved in the package’s archived `QueryNCP`
-vignette.
+do not collude. The full details are in the `QueryNCP` vignette,
+archived in the `paillier-archive/` directory of the source repository.
 
 ## Threshold encryption removes the need for masking
 
 `openfhe.R` supports **threshold** (multiparty) encryption, and it
 changes the trust model at the root. There is no single private key. Key
 generation is chained across the sites: each site holds only a secret
-*share* $`sk_i`$, and the joint public key $`pk_{1..n}`$ is built by
+*share* \\sk_i\\, and the joint public key \\pk\_{1..n}\\ is built by
 passing the running public key from one site to the next. Everything is
-encrypted under $`pk_{1..n}`$, but **decryption requires every site to
+encrypted under \\pk\_{1..n}\\, but **decryption requires every site to
 contribute a partial decryption** — no one, aggregator included, can
 decrypt anything alone.
 
-Under this model a lone $`E(c_i)`$ is simply not decryptable by any
+Under this model a lone \\E(c_i)\\ is simply not decryptable by any
 single party, so the random masks and the two non-cooperating parties
 are no longer needed. The aggregator sums the encrypted per-site counts
 and asks the sites to jointly decrypt only the total. Individual counts
@@ -178,15 +152,17 @@ secret-share holders.
 `comparison`` ``<-`` `[`data.frame`](https://rdrr.io/r/base/data.frame.html)`(`\
 `    method ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"pooled cleartext"``, ``"threshold-BFV distributed"``)``,`\
 `    count  ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``cleartext_count``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``)``)`\
-`knitr``::`[`kable`](https://rdrr.io/pkg/knitr/man/kable.html)`(``comparison``,`\
+`ktab``(``comparison``, col.names ``=`` `[`c`](https://rdrr.io/r/base/c.html)`(``"Method"``, ``"Count"``)``,`\
 `             caption ``=`` ``"Distributed encrypted query count vs. the pooled answer"``)`
 
-| method                    | count |
+| Method                    | Count |
 |:--------------------------|------:|
 | pooled cleartext          |    11 |
 | threshold-BFV distributed |    11 |
 
-Distributed encrypted query count vs. the pooled answer {.table}
+Distributed encrypted query count vs. the pooled answer {.table .table
+.table-striped .table-condensed
+style="margin-left: auto; margin-right: auto;"}
 
 The threshold-BFV protocol returns 11, identical to the pooled answer of
 11. Because BFV is exact integer arithmetic, the two agree with no
@@ -195,49 +171,29 @@ tolerance to argue about — the equality is bit-for-bit, not approximate.
 \
 [`stopifnot`](https://rdrr.io/r/base/stopifnot.html)`(`[`identical`](https://rdrr.io/r/base/identical.html)`(`[`as.integer`](https://rdrr.io/r/base/integer.html)`(``encrypted_count``)``, `[`as.integer`](https://rdrr.io/r/base/integer.html)`(``cleartext_count``)``)``)`
 
-## Discussion
+## Summary
 
-- **The trust improvement is structural.** No single party holds a
-  decryption key, so no single party — aggregator or site — can decrypt
-  an individual site’s count. This is a stronger guarantee than the
-  Paillier scheme’s, and it is achieved without the two non-cooperating
-  parties, the non-collusion assumption, or the random masking the
-  single-key scheme required.
+- No single party holds a decryption key, so no single party —
+  aggregator or site — can decrypt an individual site’s count.
 
-- **Only the aggregate is ever revealed.** The sites jointly decrypt the
-  total and nothing else. Individual counts are never decrypted by
-  anyone, because doing so would require all the secret shares to be
-  brought together for that specific encrypted value — which the
-  protocol never does.
+- Only the aggregate is ever revealed. The sites jointly decrypt the
+  total and nothing else.
 
-- **BFV gives exact counts.** For integer-valued aggregates — counts,
-  sums, contingency-table cells — BFV decrypts to the exact integer. The
-  exactness that the original Paillier demonstration offered is
-  retained; the trust model is what improved.
+- BFV gives exact counts. For integer-valued aggregates — counts, sums,
+  contingency-table cells — BFV decrypts to the exact integer.
 
-- **Exact within the plaintext modulus, and only there.** BFV arithmetic
-  is modular. A site that tries to contribute something the scheme
-  cannot carry — a non-integer, a non-finite value, or one at or beyond
-  `plaintext_modulus / 2` — is refused by
+- BFV arithmetic is modular. A site that tries to contribute something
+  the scheme cannot carry — a non-integer, a non-finite value, or one at
+  or beyond `plaintext_modulus / 2` — is refused by
   [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
   rather than having its value rounded or wrapped silently. What no
   party can check is the *total*: a sum that exceeds the modulus wraps,
   and the wrapped value decrypts as an ordinary integer with nothing to
-  mark it as wrong. Choose `plaintext_modulus` for the largest total the
-  protocol can produce, not for the largest single contribution. For
-  counts over a cohort of 100 the modulus used here, 65537, has enormous
-  margin; for summed dollar amounts or squared deviations it would not.
+  mark it as wrong. The remedy is to choose `plaintext_modulus` for the
+  largest total the protocol can produce, not for the largest single
+  contribution.
 
-- **Honest-but-curious parties.** As with the other distributed
-  protocols in this package, sites are assumed to follow the protocol. A
-  malicious site could submit a wrong count or a corrupted partial
-  decryption; detecting that requires verifiable decryption, which is
-  beyond this demonstration.
-
-## References
-
-Paillier, Pascal. 1999. “Public-Key Cryptosystems Based on Composite
-Degree Residuosity Classes.” *Advances in Cryptology - EUROCRYPT ’99,
-International Conference on the Theory and Application of Cryptographic
-Techniques, Prague, Czech Republic, May 2-6, 1999, Proceeding*, 223–38.
-<https://doi.org/10.1007/3-540-48910-X_16>.
+- As with the other distributed protocols in this package, sites are
+  assumed to follow the protocol. A malicious site could submit a wrong
+  count or a corrupted partial decryption; detecting that requires
+  verifiable decryption, which is beyond this demonstration.

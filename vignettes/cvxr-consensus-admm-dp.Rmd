@@ -15,6 +15,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -31,6 +49,53 @@ knitr::opts_chunk$set(
 if (!exists("RECOMPUTE"))
     RECOMPUTE <- isTRUE(as.logical(Sys.getenv("HOMOMORPHER_RECOMPUTE", "FALSE")))
 data(cvxr_admm_dp_results, package = "homomorpheR")
+## Inline numbers in scientific notation as HTML.
+sci <- function(x, digits = 2) {
+  e <- floor(log10(abs(x)))
+  if (x == 0 || e >= -2) return(formatC(x, format = "fg", digits = digits))
+  sprintf("%s&nbsp;&times;&nbsp;10<sup>%d</sup>",
+          formatC(x / 10^e, format = "f", digits = digits - 1), e)
+}
+```
+
+```{r echo=FALSE}
+## Table display in mathematical notation. The stored tables keep
+## their plain column names; only what is printed changes.
+tex_pow10 <- function(x)
+    ifelse(is.na(x), "centralized",
+    ifelse(x == 0, "$0$",
+    ifelse(x == 1, "$1$", sprintf("$10^{%d}$", as.integer(round(log10(x)))))))
+tex_sci <- function(x, digits = 4) {
+    e <- floor(log10(abs(x)))
+    ifelse(x == 0, "$0$",
+    ifelse(e >= -2 & e < 4,
+           sprintf("$%s$", trimws(formatC(x, format = "fg", digits = digits))),
+           sprintf("$%s \\times 10^{%d}$",
+                   trimws(formatC(x / 10^e, format = "fg", digits = digits)),
+                   as.integer(e))))
+}
+show_rho_sweep <- function(tab)
+    ktab(tab, row.names = FALSE,
+                 col.names = c("$\\rho$", "Iterations", "Converged"),
+                 caption = "Consensus-ADMM convergence on the surrogate cohort")
+show_summary <- function(tab) {
+    tab$sigma   <- tex_pow10(tab$sigma)
+    tab$max_dev <- tex_sci(tab$max_dev)
+    ktab(tab, digits = 6, row.names = FALSE, align = "lrrrrr",
+                 col.names = c("$\\sigma$", "intercept", "age", "bmi", "sex",
+                               "$\\max_j \\lvert \\hat z_j - \\hat\\beta_j^{\\text{centralized}} \\rvert$"),
+                 caption = "DP-ADMM coefficients vs the centralized CVXR fit")
+}
+show_budget <- function(tab, T_iter) {
+    tab$sigma <- tex_pow10(tab$sigma)
+    for (v in c("rho_total", "epsilon_at_delta_1e_minus_5"))
+        tab[[v]] <- tex_sci(tab[[v]])
+    ktab(tab, row.names = FALSE, align = "lrr",
+                 col.names = c("$\\sigma$",
+                               sprintf("$\\rho_{\\text{total}} = %d\\,\\rho$", T_iter),
+                               "$\\varepsilon$ at $\\delta = 10^{-5}$"),
+                 caption = "zCDP composition; sensitivity $\\Delta = 1$, target $\\delta = 10^{-5}$")
+}
 ```
 
 ## Introduction
@@ -80,21 +145,18 @@ $u$-update is local again. Only the $z$-update needs cryptography.
 ## Adding noise
 
 Here we ask what happens if each site also adds noise, so that the
-released iterates satisfy **output differential privacy**. Adding
+released iterates satisfy *output differential privacy*. Adding
 the noise takes one extra `rnorm()` call per site per iteration.
 With this optimizer, the fits are poor at any noise level that
 gives a small $\varepsilon$. The vignette runs the fits and reports
 the numbers.
 
-Threshold FHE without noise remains the package's main path. This
-vignette shows what adding output DP on top costs.
-
 ## A brief output-DP primer
 
-Given a query $f: \mathcal{D} \to \mathbb{R}^p$, the **Gaussian
-mechanism** releases $\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2 I)$.
+Given a query $f: \mathcal{D} \to \mathbb{R}^p$, the *Gaussian
+mechanism* releases $\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2 I)$.
 Sensitivity-driven $\sigma$ gives single-query
-$(\varepsilon, \delta)$ DP. Multi-query composition uses **zCDP**
+$(\varepsilon, \delta)$ DP. Multi-query composition uses *zCDP*
 [@BunSteinke2016]: each release is $(\Delta/\sigma)^2/2$-zCDP;
 $T$ releases compose linearly to $T \cdot \rho$; convert back to
 $(\varepsilon, \delta)$ via $\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}$.
@@ -102,22 +164,18 @@ $(\varepsilon, \delta)$ via $\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}$.
 ## The protocol modification
 
 Without noise, site $i$ encrypts $x_i + u_i$ and the aggregator
-decrypts only their average $z$. The change here is **noise
-injection at each site**: at every ADMM
-iteration site $i$ adds an independent draw
+decrypts only their average $z$. The change here is that at every
+ADMM iteration site $i$ adds an independent draw
 $\eta_i \sim \mathcal{N}(0, \sigma^2 N \cdot I)$ to $x_i + u_i$
 *before* encrypting. The encrypted noise terms sum under the joint
 key, the $1/N$ scaling contracts the variance back to $\sigma^2$
 per coordinate, and the recovered $z$ has noise
 $\mathcal{N}(0, \sigma^2 I)$.
 
-Each site adds its own noise, rather than the aggregator adding it.
-So:
-
-1. Only site $i$ sees its noiseless $x_i + u_i$. The aggregator
-   sees encrypted noisy contributions and, after decryption, their
-   noisy average.
-2. As in `cox-threshold-dp`, each site draws its own noise.
+As in `cox-threshold-dp`, each site draws its own noise, so only
+site $i$ sees its noiseless $x_i + u_i$. The aggregator sees
+encrypted noisy contributions and, after decryption, their noisy
+average.
 
 In the code below, `site_contribution_dp()` adds the noise and
 encrypts inside the site, so `encrypted_consensus_dp()` receives
@@ -127,18 +185,11 @@ site's noiseless $x_i + u_i$.
 
 ## The stopping rule changes
 
-Residual-based convergence checks are not meaningful under noise:
-the residuals never shrink below the per-iteration noise floor.
-So $T$ is **fixed in advance** rather than discovered.
-
-There is a second reason. Even without noise, stopping on the
-residuals makes $T$ depend on the data, and $T$ multiplies the
-privacy budget below. Choosing $T$ from the cohort would be a
-release the budget does not count. The next section picks $\rho$
-and $T$ without using the cohort.
-
-The $\sigma = 0$ row of the table below checks that, with no
-noise, the protocol reaches the centralized fit in that fixed $T$.
+Under noise the residuals do not shrink below the per-iteration
+noise, so the number of iterations $T$ is *fixed in advance*.
+Stopping on the residuals would also make $T$ depend on the data,
+and $T$ multiplies the privacy budget below. The next section picks
+$\rho$ and $T$ without using the cohort.
 
 ## Setup
 
@@ -220,33 +271,14 @@ site_data <- lapply(n_per_site, make_site_data)
 
 ## Choosing $\rho$ and $T$ without touching the cohort
 
-Without noise, one could tune $\rho$ by running candidate values
-through the encrypted channel on the real data. Under output
-DP that sweep is itself a release. It solves at every site, for
-every candidate, at every iteration, and its outputs (the chosen
-$\rho$ and especially $T$) depend on the records. The budget below
-counts $T$ Gaussian releases. If $T$ were chosen from the
-data, that choice would not be counted.
-
-There are two ways to handle this. One is to pay for the selection
-with a DP selection mechanism, such as report-noisy-max or the
-exponential mechanism over the grid, with negative iteration count
-as the utility. That needs a sensitivity bound for iterations to
-convergence under a one-record change, and we do not have one.
-
-The other is to choose without the data, which is what we do. The
-sweep runs on a **surrogate cohort** built only from facts the
-protocol already treats as public: the number of sites, their
-approximate sizes, and the covariate schema. The effect sizes are
-nominal values fixed in the analysis plan. No record from any site
-enters it.
-
-This has two consequences. First, the sweep needs no encryption,
-because it uses no private data. Second, the cost is in accuracy rather than privacy. A
-surrogate that misjudges the curvature gives a $\rho$ the cohort
-would not have picked, and possibly a $T$ that is too short. We
-cannot check this against the cohort without spending budget. Since
-the budget grows linearly in $T$, a generous $T$ is not free either.
+Tuning $\rho$ on the real data would itself be a release: the
+chosen $\rho$ and $T$ depend on the records, and the budget below
+counts only the $T$ Gaussian releases. So the sweep runs on a
+*surrogate cohort* built only from facts the protocol already
+treats as public: the number of sites, their approximate sizes, and
+the covariate schema. The effect sizes are nominal values fixed in
+the analysis plan. No record from any site enters it, so the sweep
+needs no encryption.
 
 ```{r eval=RECOMPUTE}
 tol      <- 1e-3
@@ -295,8 +327,7 @@ rho_grid  <- c(10, 20, 50, 100, 500)
 rho_sweep <- do.call(rbind,
                      lapply(rho_grid,
                             function(r) sweep_one_rho(surrogate_data, r)))
-knitr::kable(rho_sweep,
-             caption = "Consensus-ADMM convergence on the surrogate cohort")
+show_rho_sweep(rho_sweep)
 
 converged_rows <- rho_sweep[rho_sweep$converged, ]
 if (nrow(converged_rows) == 0L)
@@ -304,22 +335,19 @@ if (nrow(converged_rows) == 0L)
 
 rho_chosen <- converged_rows$rho[which.min(converged_rows$iters)]
 T_fixed    <- converged_rows$iters[converged_rows$rho == rho_chosen]
-cat(sprintf("Pre-committed rho = %g, T = %d (surrogate cohort).\n",
-            rho_chosen, T_fixed))
 ```
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
 tol        <- cvxr_admm_dp_results$tol
 rho_chosen <- cvxr_admm_dp_results$rho_chosen
 T_fixed    <- cvxr_admm_dp_results$T_fixed
-knitr::kable(cvxr_admm_dp_results$rho_sweep,
-             caption = "Consensus-ADMM convergence on the surrogate cohort")
-cat(sprintf("Pre-committed rho = %g, T = %d (surrogate cohort).\n",
-            rho_chosen, T_fixed))
+show_rho_sweep(cvxr_admm_dp_results$rho_sweep)
 ```
 
-These two values are now fixed. The DP-ADMM loop below runs
-exactly $T = `r T_fixed`$ iterations, whatever the residuals do.
+The value of $\rho$ with the fewest iterations to convergence is
+$\rho = `r rho_chosen`$, with $T = `r T_fixed`$. Both are now fixed.
+The DP-ADMM loop below runs exactly $T = `r T_fixed`$ iterations,
+whatever the residuals do.
 
 ## Threshold-FHE setup
 
@@ -391,9 +419,8 @@ run_dp_admm <- function(sigma, T_iter = T_fixed, seed = NULL) {
 
 This fit pools the raw data, so it is not part of the protocol. We
 use it only to measure how far the noise moves the answer, in the
-`max_dev` column below. It is not released, so it is not charged
-to the budget. A real deployment has no such reference, which is
-why $\rho$ and $T$ were fixed in advance.
+last column of the table below. It is not released, so it is not
+charged to the budget.
 
 ```{r}
 X_pooled  <- do.call(rbind, lapply(site_data, `[[`, "X"))
@@ -423,23 +450,16 @@ for (j in seq_along(sigma_grid)) {
 names(sweep_results) <- sprintf("sigma=%.0e", sigma_grid)
 ```
 
-## $\sigma = 0$ sanity check
-
 ```{r eval=RECOMPUTE}
 clean_dev <- max(abs(sweep_results[[1]]$z - beta_central))
 agree_tol <- 10 * tol
 if (clean_dev > agree_tol)
     stop("DP-ADMM at sigma = 0 disagrees with the centralized fit.")
-cat(sprintf("Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n",
-            clean_dev, agree_tol))
 ```
 
-## Summary table
-
-```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
-cat(sprintf("Sigma = 0 max coefficient deviation: %.2e (tol %.0e)\n",
-            cvxr_admm_dp_results$clean_dev, 10 * tol))
-```
+At $\sigma = 0$ the largest coefficient deviation from the
+centralized fit is `r sci(if (RECOMPUTE) clean_dev else cvxr_admm_dp_results$clean_dev, 3)`,
+within $10 \times$ the ADMM tolerance of `r tol`.
 
 ```{r eval=RECOMPUTE}
 summary_df <- do.call(rbind, lapply(seq_along(sigma_grid), function(j) {
@@ -456,8 +476,7 @@ central_row <- data.frame(sigma = NA, intercept = beta_central[1],
                          sex = beta_central[4], max_dev = 0)
 summary_table <- rbind(summary_df, central_row)
 rownames(summary_table) <- c(sprintf("sigma=%g", sigma_grid), "centralized")
-knitr::kable(summary_table, digits = 6,
-             caption = "DP-ADMM coefficients vs centralized CVXR")
+show_summary(summary_table)
 ```
 
 ```{r eval=RECOMPUTE, echo=FALSE}
@@ -472,22 +491,10 @@ cvxr_admm_dp_results <- list(tol           = tol,
 
 ```{r echo=FALSE, purl=FALSE, eval=!RECOMPUTE}
 sigma_grid <- cvxr_admm_dp_results$sigma_grid
-knitr::kable(cvxr_admm_dp_results$summary_table, digits = 6,
-             caption = "DP-ADMM coefficients vs centralized CVXR")
+show_summary(cvxr_admm_dp_results$summary_table)
 ```
 
-```{r echo=FALSE, purl=FALSE}
-dev_at <- function(s) with(cvxr_admm_dp_results$summary_table,
-                           formatC(max_dev[which(sigma == s)],
-                                   format = "fg", digits = 2))
-```
-
-The deviation grows with $\sigma$: it is `r dev_at(1e-4)` at
-$\sigma = 10^{-4}$, `r dev_at(0.01)` at $\sigma = 0.01$, and
-`r dev_at(0.1)` at $\sigma = 0.1$. At $\sigma = 1$ it is
-`r dev_at(1)`, and the coefficients are far from the centralized
-fit. The algorithm is the same at every $\sigma$; the
-loss comes from the noise, not from the encryption.
+Fidelity decays monotonically as expected.
 
 ## Privacy budget
 
@@ -499,8 +506,8 @@ only the average, so one iteration is a single Gaussian release with
 $\rho_{\text{iter}} = (\Delta/\sigma)^2/2$. Over $T = `r T_fixed`$
 iterations the total is $\rho = T \cdot (\Delta/\sigma)^2/2$,
 whatever the number of sites. This is the same accounting as
-`cox-threshold-dp`. Convert to $(\varepsilon, \delta)$ via the
-standard formula.
+`cox-threshold-dp`. With sensitivity $\Delta = 1$ (placeholder) and
+target $\delta = 10^{-5}$, zCDP composition gives:
 
 ```{r}
 zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
@@ -508,61 +515,16 @@ zcdp_to_eps <- function(rho, delta = 1e-5) rho + 2 * sqrt(rho * log(1 / delta))
 budget <- data.frame(sigma = sigma_grid[sigma_grid > 0])
 budget$rho_total                  <- T_fixed * (1 / budget$sigma)^2 / 2
 budget$epsilon_at_delta_1e_minus_5 <- zcdp_to_eps(budget$rho_total)
-knitr::kable(budget, digits = 4,
-             caption = "zCDP composition; sensitivity Delta = 1, delta = 1e-5")
+show_budget(budget, T_fixed)
 ```
-
-Because $\rho$ and $T$ were chosen on the surrogate, this total
-covers everything the procedure releases about the data. The one
-assumption is the sensitivity $\Delta = 1$, a placeholder noted in
-the limitations below.
 
 The smallest $\varepsilon$, at $\sigma = 1$ where the fit is
 already poor, is
 `r signif(min(budget$epsilon_at_delta_1e_minus_5), 2)`. Whether
 that is acceptable depends on the application.
 
-## Summary
-
-1. At $\sigma = 0$ the protocol matches the centralized fit.
-   Adding DP takes one `rnorm()` call per site per iteration and
-   nothing new in homomorpheR.
-2. The vignette runs six values of $\sigma$, each for the fixed
-   $T$, and tabulates the coefficients and their deviation from
-   the centralized fit.
-3. At noise levels where the fit is still close, $\varepsilon$ is
-   large, because zCDP composition runs over $T$ Gaussian
-   releases. Reducing it would need fewer iterations, a tighter
-   sensitivity bound, or subsampling amplification, all outside
-   this demonstration.
-4. Choosing $\rho$ and $T$ counts against privacy too. It looks
-   like setup, but it sets $T$, the multiplier on the budget.
-   Choosing them without the data keeps the budget complete, at a
-   cost in accuracy. Encryption hides the intermediate values, not
-   these choices.
-
-## Limitations
-- **Tight sensitivity bounds** for the consensus update. $\Delta = 1$
-  is a placeholder.
-- **Paying for the selection instead of avoiding it.** Report-noisy-max
-  or the exponential mechanism over the $\rho$ grid would let the
-  cohort inform the choice for a declared cost. That needs a
-  sensitivity bound on iterations-to-convergence under a one-record
-  change, which we do not have.
-- **Surrogate quality.** A surrogate that misjudges the cohort's
-  curvature costs accuracy — a worse $\rho$, or a $T$ too short to
-  converge — and there is no way to detect that from inside the
-  protocol without spending budget.
-- **Adaptive noise** schedules across iterations.
-- **Subsampling amplification** of the DP accountant.
-- **Decentralized averaging.** Replacing the aggregator with gossip
-  averaging among the sites can amplify privacy
-  [@CyffersEvenBelletMassoulie2022]. This protocol keeps a central
-  aggregator.
-- **Malicious-site protection.** A hostile site can corrupt either
-  its $(x_i + u_i)$ or its noise draw; out of scope.
-
-For consensus ADMM without noise, on real data, see
-`vignette("cvxr-cox-lasso-dlbcl")`.
+One could also explore a tighter sensitivity bound $\Delta$, or pay
+for the choice of $\rho$ and $T$ with a DP selection mechanism, etc.
+We don't do that here.
 
 ## References

@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Introduction to homomorpheR">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Introduction to homomorpheR">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -86,7 +92,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/introduction.Rmd" class="external-link"><code>vignettes/introduction.Rmd</code></a></small>
       <div class="d-none name"><code>introduction.Rmd</code></div>
@@ -99,15 +105,15 @@ Narasimhan</h4>
 </h2>
 <p>A recurring situation in biomedical research: several sites hold
 patient records that cannot leave the institutions that collected them,
-and you would like to fit a single model to the pooled data.</p>
-<p>For a large class of models this is less hopeless than it sounds. The
-log-likelihood, the score, and the information matrix are all <em>sums
-over observations</em>, so they are also sums over sites. An optimizer
-fitting such a model never needs an individual record — it needs the
-total of the per-site contributions at whatever parameter value it is
-currently considering. If the sites can compute that total without
-revealing their individual contributions, the fit proceeds exactly as it
-would on pooled data.</p>
+and one would like to fit a single model to the pooled data.</p>
+<p>It is well known that for many models fit to row-partitioned data
+this is easy to do. The log-likelihood, the score, and the information
+matrix are all <em>sums over observations</em>, so they are also sums
+over sites. An optimizer fitting such a model never needs an individual
+record — it needs the total of the per-site contributions at whatever
+parameter value it is currently considering. If the sites can compute
+that total without revealing their individual contributions, the fit
+proceeds exactly as it would on pooled data.</p>
 <p>Homomorphic encryption is what makes the total computable. It is a
 form of encryption under which certain arithmetic still works: you can
 add two encrypted numbers and get an encryption of their sum, without
@@ -200,7 +206,7 @@ protocols using only these terms.</p>
 <div class="section level2">
 <h2 id="how-the-pieces-fit-together">How the pieces fit together<a class="anchor" aria-label="anchor" href="#how-the-pieces-fit-together"></a>
 </h2>
-<p>Three objects carry the protocol.</p>
+<p>Three objects are the building blocks for the protocol.</p>
 <p>A <strong>site</strong> is built with <code><a href="../reference/make_worker.html">make_worker()</a></code>. It
 holds the site’s data and a function
 <code>contribution_fn(data, theta)</code> returning that site’s summary
@@ -232,18 +238,15 @@ client. The extension is small:</p>
 <span>    <span class="co">## so the wire carries encrypted values -- never a bare number.</span></span>
 <span>    <span class="fu">fetch_encrypted_contribution</span><span class="op">(</span><span class="va">site</span><span class="op">@</span><span class="va">url</span>, <span class="va">theta</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Read <code><a href="../reference/RemoteSite.html">?RemoteSite</a></code> before writing one. The contract has a
-few sharp edges, the sharpest being that <strong><code>NA</code> and
-“unreachable” are different events</strong>. <code>NA</code> means
-<em>this</em> <code>theta</code> broke the site’s solver, and the
-optimizer responds sensibly by trying a different parameter. A network
+<p>See <code><a href="../reference/RemoteSite.html">?RemoteSite</a></code> and note in particular how
+<code>NA</code> and runtime errors have to be handled differently. In
+our examples, <code>NA</code> means <em>this</em> <code>theta</code>
+broke the site’s solver, and because our examples involve optimization,
+everything works: the optimizer responds sensibly to a function
+evaluating to <code>NA</code> by trying a different parameter. A network
 or timeout failure is not that, and backing off to another
 <code>theta</code> does nothing about it — signal
-<code><a href="../reference/site_unavailable.html">site_unavailable()</a></code> instead, which aborts the round.
-Returning <code>NA</code> for an offline host, or quietly dropping the
-site, changes the set of sites being summed over between iterations and
-the fit converges to something that is not the estimand, with no error
-raised anywhere.</p>
+<code><a href="../reference/site_unavailable.html">site_unavailable()</a></code> instead, which aborts the round.</p>
 <p>An <strong>aggregator</strong> is built with either
 <code><a href="../reference/make_ckks_master.html">make_ckks_master()</a></code> or <code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code>.
 The two differ in exactly one respect, and it is the respect that
@@ -273,7 +276,9 @@ site computes its local summary and encrypts it; the aggregator adds the
 encrypted summaries together and decrypts only the total. An optimizer
 calls this once per iteration, and the fit proceeds.</p>
 <p>The topology is a flat fan-out and fan-in, which is how federated
-analysis frameworks such as <code>distcomp</code> and DataSHIELD are
+analysis frameworks such as <code>distcomp</code> <span class="citation">(Narasimhan, Rubin, et al. 2017; Narasimhan, Bendersky,
+et al. 2017)</span> and DataSHIELD <span class="citation">(Wolfson et
+al. 2010; <span class="nocase">Gaye et al.</span> 2014)</span> are
 actually deployed.</p>
 <div class="section level3">
 <h3 id="sites-that-are-not-in-this-r-session">Sites that are not in this R session<a class="anchor" aria-label="anchor" href="#sites-that-are-not-in-this-r-session"></a>
@@ -303,19 +308,6 @@ encrypted</strong>.</li>
 <p>The ordering in the second one is the whole point: the summary is
 encrypted before it leaves the site, so no individual contribution ever
 exists in the clear outside the site that produced it.</p>
-<p>The package refuses to fake either step for you. The base
-<code>RemoteSite</code> has no <code><a href="../reference/set_public_params.html">set_public_params()</a></code> method,
-so wiring a subclass that has not implemented one fails immediately
-rather than leaving a proxy that looks configured while the endpoint was
-never told anything. <code><a href="../reference/keygen_round.html">keygen_round()</a></code> and
-<code><a href="../reference/partial_decrypt.html">partial_decrypt()</a></code> refuse in the same way, since performing
-a remote party’s secret-key operation in this process is precisely what
-threshold keys exist to prevent. And <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code>
-checks that what came back is an encrypted value under this protocol’s
-key before adding it to a total — a site that replied with a plain
-number would otherwise have its answer summed in silently, and the round
-would report the correct result having been handed the one quantity the
-protocol hides.</p>
 <p>What the package does not supply is everything else a deployment
 needs: transport, authentication, key storage at the endpoint, retry and
 timeout policy, and any defense against a party that actively deviates
@@ -326,12 +318,10 @@ contract.</p>
 <div class="section level2">
 <h2 id="what-the-right-answer-means">What “the right answer” means<a class="anchor" aria-label="anchor" href="#what-the-right-answer-means"></a>
 </h2>
-<p><em>Precision</em> is the companion to this page. It sets out what an
-encrypted result being correct actually means — exact for integer
-counting, approximate within a measurable bound for real-valued
-arithmetic, and merely statistical when an optimizer is involved — and
-which comparisons are not meaningful at all. Worth reading before
-interpreting any number in the vignettes below.</p>
+<p><em>Precision</em> is the companion to this page. It sets out what it
+means for an encrypted result to be correct: exact for integer counting,
+and approximate within a measurable bound for real-valued arithmetic.
+Read it before interpreting any number in the vignettes below.</p>
 </div>
 <div class="section level2">
 <h2 id="which-vignette-to-read">Which vignette to read<a class="anchor" aria-label="anchor" href="#which-vignette-to-read"></a>
@@ -339,7 +329,9 @@ interpreting any number in the vignettes below.</p>
 <p><strong>Queries and aggregation.</strong> Counting across sites
 without revealing who contributed what. These are the simplest complete
 protocols in the package and the best place to begin: the statistical
-content is a sum, so nothing distracts from the mechanics.</p>
+content is a sum, so nothing distracts from the mechanics. The
+Observational Health Data Sciences and Informatics (OHDSI) network <span class="citation">(<span class="nocase">Hripcsak et al.</span>
+2015)</span> would be a platform for such queries.</p>
 <ul>
 <li>
 <em>Privacy-Preserving Count Aggregation</em> — a single encrypted
@@ -350,7 +342,9 @@ count with no single party able to decrypt.</li>
 </ul>
 <p><strong>Fitting models across sites.</strong> Fitting a model to data
 you cannot pool. Each of these wraps an ordinary R fitting routine that
-is used unmodified.</p>
+is used unmodified. The DataSHIELD network <span class="citation">(Wolfson et al. 2010; <span class="nocase">Gaye et
+al.</span> 2014)</span> and the <code>distcomp</code> package <span class="citation">(Narasimhan, Rubin, et al. 2017; Narasimhan, Bendersky,
+et al. 2017)</span> may be platforms for such model fitting.</p>
 <ul>
 <li>
 <em>Distributed Maximum Likelihood Estimation</em> — the smallest
@@ -362,11 +356,9 @@ across sites, using <code>survival</code> unchanged.</li>
 <em>Distributed Cox Regression with Threshold Key Generation</em> —
 the same fit with no single party able to decrypt.</li>
 <li>
-<em>Federated Consensus ADMM with CVXR</em> — convex optimization
-across sites, using <code>CVXR</code> unchanged.</li>
-<li>
-<em>Federated Cox-Lasso via Consensus ADMM on DLBCL</em> — the above
-at realistic scale on gene expression data.</li>
+<em>Federated Cox-Lasso via Consensus ADMM on DLBCL</em> — convex
+optimization across sites, using <code>CVXR</code> unchanged, on DLBCL
+gene expression data.</li>
 </ul>
 <p><strong>Prediction and retrieval.</strong> Two parties, one holding a
 model and one holding data, neither willing to reveal theirs.</p>
@@ -397,8 +389,46 @@ its own vignettes.</p>
 cryptosystem natively in R. That code is frozen: it remains exported for
 the packages that depend on it, but it is not extended, and the
 protocols documented here use the schemes provided through
-<code>openfhe.R</code> instead. The Paillier vignettes are retained
-separately for reference.</p>
+<code>openfhe.R</code> instead. The Paillier vignettes are archived in
+the <code>paillier-archive/</code> directory of the source
+repository.</p>
+</div>
+<div class="section level2 unnumbered">
+<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-GayeDataSHIELD2014" class="csl-entry">
+<span class="nocase">Gaye, Amadou, Yannick Marcon, Julia Isaeva, et
+al.</span> 2014. <span>“<span>DataSHIELD</span>: Taking the Analysis to
+the Data, Not the Data to the Analysis.”</span> <em>International
+Journal of Epidemiology</em> 43 (6): 1929–44. <a href="https://doi.org/10.1093/ije/dyu188" class="external-link">https://doi.org/10.1093/ije/dyu188</a>.
+</div>
+<div id="ref-HripcsakOHDSI2015" class="csl-entry">
+<span class="nocase">Hripcsak, George, Jon D. Duke, Nigam H. Shah, et
+al.</span> 2015. <span>“Observational Health Data Sciences and
+Informatics (<span>OHDSI</span>): Opportunities for Observational
+Researchers.”</span> <em>Studies in Health Technology and
+Informatics</em> 216: 574–78. <a href="https://doi.org/10.3233/978-1-61499-564-7-574" class="external-link">https://doi.org/10.3233/978-1-61499-564-7-574</a>.
+</div>
+<div id="ref-distcomp" class="csl-entry">
+Narasimhan, Balasubramanian, Marina Bendersky, and Samuel M. Gross.
+2017. <em><span class="nocase">distcomp</span>: Computations over
+Distributed Data Without Aggregation</em>. <a href="https://CRAN.R-project.org/package=distcomp" class="external-link">https://CRAN.R-project.org/package=distcomp</a>.
+</div>
+<div id="ref-NarasimhanRubinGrossBenderskyLavori2017" class="csl-entry">
+Narasimhan, Balasubramanian, Daniel L. Rubin, Samuel M. Gross, Marina
+Bendersky, and Philip W. Lavori. 2017. <span>“Software for Distributed
+Computation on Medical Databases: A Demonstration Project.”</span>
+<em>Journal of Statistical Software</em> 77 (13): 1–22. <a href="https://doi.org/10.18637/jss.v077.i13" class="external-link">https://doi.org/10.18637/jss.v077.i13</a>.
+</div>
+<div id="ref-WolfsonDataSHIELD2010" class="csl-entry">
+Wolfson, Michael, Susan E. Wallace, Nicki Masca, et al. 2010.
+<span>“<span>DataSHIELD</span>: Resolving a Conflict in Contemporary
+Bioscience – Performing a Pooled Analysis of Individual-Level Data
+Without Sharing the Data.”</span> <em>International Journal of
+Epidemiology</em> 39 (5): 1372–82. <a href="https://doi.org/10.1093/ije/dyq111" class="external-link">https://doi.org/10.1093/ije/dyq111</a>.
+</div>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

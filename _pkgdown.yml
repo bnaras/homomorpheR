@@ -1,6 +1,9 @@
 url: https://bnaras.github.io/homomorpheR
 template:
   bootstrap: 5
+  # MathJax, not pandoc's MathML: the vignette tables are raw HTML from
+  # kableExtra, and pandoc does not convert math inside raw HTML.
+  math-rendering: mathjax
 
 authors:
 

@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Distributed Query Count with Threshold Keys">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Distributed Query Count with Threshold Keys">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -79,14 +85,14 @@
 
 
 
-
+<script src="query-count-threshold_files/kePrint-0.0.1/kePrint.js"></script><link href="query-count-threshold_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Distributed Query Count with Threshold Keys</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/query-count-threshold.Rmd" class="external-link"><code>vignettes/query-count-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>query-count-threshold.Rmd</code></div>
@@ -147,53 +153,21 @@ number is the ground truth the encrypted protocol must reproduce.</p>
 </h2>
 <p>The additive structure of the problem — the grand total is the sum of
 the per-site counts — is exactly what an <em>additively homomorphic</em>
-encryption scheme computes. Let
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>i</mi></msub><annotation encoding="application/x-tex">c_i</annotation></semantics></math>
-be site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>’s
-local count and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><mi>⋅</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(\cdot)</annotation></semantics></math>
-the encryption function. Given
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>2</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>3</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(c_1), E(c_2), E(c_3)</annotation></semantics></math>,
-the scheme lets anyone compute
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>2</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>3</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mn>1</mn></msub><mo>+</mo><msub><mi>c</mi><mn>2</mn></msub><mo>+</mo><msub><mi>c</mi><mn>3</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(c_1) + E(c_2) + E(c_3) = E(c_1 + c_2 +
-c_3)</annotation></semantics></math> without decrypting the parts.</p>
+encryption scheme computes. Let <span class="math inline">\(c_i\)</span>
+be site <span class="math inline">\(i\)</span>’s local count and <span class="math inline">\(E(\cdot)\)</span> the encryption function. Given
+<span class="math inline">\(E(c_1), E(c_2), E(c_3)\)</span>, the scheme
+lets anyone compute <span class="math inline">\(E(c_1) + E(c_2) + E(c_3)
+= E(c_1 + c_2 +
+c_3)\)</span> without decrypting the parts.</p>
 <p>The historical difficulty was not the arithmetic but the <em>trust
-model</em>. The Paillier cryptosystem <span class="citation">(Paillier
-1999)</span>, which <code>homomorpheR</code> originally used for exactly
-this kind of aggregation, has a <strong>single private key</strong>.
-Whoever holds it can decrypt anything — including a lone
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(c_i)</annotation></semantics></math>.
-So if the aggregator holds the key, it can read each site’s count
-individually, defeating the purpose.</p>
+model</em>. Whoever holds the private key can decrypt anything —
+including a lone <span class="math inline">\(E(c_i)\)</span>. So if the
+aggregator holds the key, it can read each site’s count individually,
+defeating the purpose.</p>
 <p>The workaround was two <strong>non-cooperating parties</strong>, NCP1
-and NCP2, who do not collude. Each site draws a fresh random
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_i</annotation></semantics></math>
-and sends the two additive shares</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>−</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>→</mo><mspace width="0.278em"></mspace><mtext mathvariant="normal">NCP1</mtext><mo>,</mo><mspace width="2.0em"></mspace><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>+</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>→</mo><mspace width="0.278em"></mspace><mtext mathvariant="normal">NCP2</mtext><mi>.</mi></mrow><annotation encoding="application/x-tex">
-E(c_i - r_i) \;\longrightarrow\; \text{NCP1},
-\qquad
-E(c_i + r_i) \;\longrightarrow\; \text{NCP2}.
-</annotation></semantics></math></p>
-<p>NCP1 sums its shares to get
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msub><mo>∑</mo><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>−</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">E\!\left(\sum_i (c_i - r_i)\right)</annotation></semantics></math>
-and NCP2 gets
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msub><mo>∑</mo><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>+</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">E\!\left(\sum_i (c_i + r_i)\right)</annotation></semantics></math>;
-neither total means anything on its own because of the random masks. The
-aggregator adds the two encrypted totals, the masks cancel, and it
-decrypts</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>−</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>+</mo><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><munder><mo>∑</mo><mi>i</mi></munder><mn>2</mn><msub><mi>c</mi><mi>i</mi></msub><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><mn>2</mn><mi>c</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
-\textstyle\sum_i (c_i - r_i) + \sum_i (c_i + r_i)
-  \;=\; \sum_i 2c_i \;=\; 2c,
-</annotation></semantics></math></p>
-<p>recovering the grand total
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
-after halving. No party ever sees an individual
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>i</mi></msub><annotation encoding="application/x-tex">c_i</annotation></semantics></math>.
-This works, but it is machinery erected to compensate for a single-key
-scheme: two extra parties, a non-collusion assumption between them, and
-a masking dance. The full Paillier implementation is preserved in the
-package’s archived <code>QueryNCP</code> vignette.</p>
+and NCP2, who do not collude. The full details are in the
+<code>QueryNCP</code> vignette, archived in the
+<code>paillier-archive/</code> directory of the source repository.</p>
 </div>
 <div class="section level2">
 <h2 id="threshold-encryption-removes-the-need-for-masking">Threshold encryption removes the need for masking<a class="anchor" aria-label="anchor" href="#threshold-encryption-removes-the-need-for-masking"></a>
@@ -201,18 +175,12 @@ package’s archived <code>QueryNCP</code> vignette.</p>
 <p><code>openfhe.R</code> supports <strong>threshold</strong>
 (multiparty) encryption, and it changes the trust model at the root.
 There is no single private key. Key generation is chained across the
-sites: each site holds only a secret <em>share</em>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><msub><mi>k</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">sk_i</annotation></semantics></math>,
-and the joint public key
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><msub><mi>k</mi><mrow><mn>1</mn><mi>.</mi><mi>.</mi><mi>n</mi></mrow></msub></mrow><annotation encoding="application/x-tex">pk_{1..n}</annotation></semantics></math>
-is built by passing the running public key from one site to the next.
-Everything is encrypted under
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><msub><mi>k</mi><mrow><mn>1</mn><mi>.</mi><mi>.</mi><mi>n</mi></mrow></msub></mrow><annotation encoding="application/x-tex">pk_{1..n}</annotation></semantics></math>,
-but <strong>decryption requires every site to contribute a partial
-decryption</strong> — no one, aggregator included, can decrypt anything
-alone.</p>
-<p>Under this model a lone
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E(c_i)</annotation></semantics></math>
+sites: each site holds only a secret <em>share</em> <span class="math inline">\(sk_i\)</span>, and the joint public key <span class="math inline">\(pk_{1..n}\)</span> is built by passing the running
+public key from one site to the next. Everything is encrypted under
+<span class="math inline">\(pk_{1..n}\)</span>, but <strong>decryption
+requires every site to contribute a partial decryption</strong> — no
+one, aggregator included, can decrypt anything alone.</p>
+<p>Under this model a lone <span class="math inline">\(E(c_i)\)</span>
 is simply not decryptable by any single party, so the random masks and
 the two non-cooperating parties are no longer needed. The aggregator
 sums the encrypted per-site counts and asks the sites to jointly decrypt
@@ -279,23 +247,36 @@ secret-share holders.</p>
 <code class="sourceCode R"><span><span class="va">comparison</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pooled cleartext"</span>, <span class="st">"threshold-BFV distributed"</span><span class="op">)</span>,</span>
 <span>    count  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cleartext_count</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">encrypted_count</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">comparison</span>,</span>
+<span><span class="fu">ktab</span><span class="op">(</span><span class="va">comparison</span>, col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Method"</span>, <span class="st">"Count"</span><span class="op">)</span>,</span>
 <span>             caption <span class="op">=</span> <span class="st">"Distributed encrypted query count vs. the pooled answer"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Distributed encrypted query count vs. the pooled
-answer</caption>
-<thead><tr class="header">
-<th align="left">method</th>
-<th align="right">count</th>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Distributed encrypted query count vs. the pooled answer
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Method
+</th>
+<th style="text-align:right;">
+Count
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">pooled cleartext</td>
-<td align="right">11</td>
+<tr>
+<td style="text-align:left;">
+pooled cleartext
+</td>
+<td style="text-align:right;">
+11
+</td>
 </tr>
-<tr class="even">
-<td align="left">threshold-BFV distributed</td>
-<td align="right">11</td>
+<tr>
+<td style="text-align:left;">
+threshold-BFV distributed
+</td>
+<td style="text-align:right;">
+11
+</td>
 </tr>
 </tbody>
 </table>
@@ -307,55 +288,30 @@ approximate.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">encrypted_count</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">cleartext_count</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="discussion">Discussion<a class="anchor" aria-label="anchor" href="#discussion"></a>
+<h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
 </h2>
 <ul>
-<li><p><strong>The trust improvement is structural.</strong> No single
-party holds a decryption key, so no single party — aggregator or site —
-can decrypt an individual site’s count. This is a stronger guarantee
-than the Paillier scheme’s, and it is achieved without the two
-non-cooperating parties, the non-collusion assumption, or the random
-masking the single-key scheme required.</p></li>
-<li><p><strong>Only the aggregate is ever revealed.</strong> The sites
-jointly decrypt the total and nothing else. Individual counts are never
-decrypted by anyone, because doing so would require all the secret
-shares to be brought together for that specific encrypted value — which
-the protocol never does.</p></li>
-<li><p><strong>BFV gives exact counts.</strong> For integer-valued
-aggregates — counts, sums, contingency-table cells — BFV decrypts to the
-exact integer. The exactness that the original Paillier demonstration
-offered is retained; the trust model is what improved.</p></li>
-<li><p><strong>Exact within the plaintext modulus, and only
-there.</strong> BFV arithmetic is modular. A site that tries to
-contribute something the scheme cannot carry — a non-integer, a
-non-finite value, or one at or beyond <code>plaintext_modulus / 2</code>
-— is refused by <code><a href="../reference/contribute.html">contribute()</a></code> rather than having its value
-rounded or wrapped silently. What no party can check is the
-<em>total</em>: a sum that exceeds the modulus wraps, and the wrapped
-value decrypts as an ordinary integer with nothing to mark it as wrong.
-Choose <code>plaintext_modulus</code> for the largest total the protocol
-can produce, not for the largest single contribution. For counts over a
-cohort of 100 the modulus used here, 65537, has enormous margin; for
-summed dollar amounts or squared deviations it would not.</p></li>
-<li><p><strong>Honest-but-curious parties.</strong> As with the other
-distributed protocols in this package, sites are assumed to follow the
-protocol. A malicious site could submit a wrong count or a corrupted
-partial decryption; detecting that requires verifiable decryption, which
-is beyond this demonstration.</p></li>
+<li><p>No single party holds a decryption key, so no single party —
+aggregator or site — can decrypt an individual site’s count.</p></li>
+<li><p>Only the aggregate is ever revealed. The sites jointly decrypt
+the total and nothing else.</p></li>
+<li><p>BFV gives exact counts. For integer-valued aggregates — counts,
+sums, contingency-table cells — BFV decrypts to the exact
+integer.</p></li>
+<li><p>BFV arithmetic is modular. A site that tries to contribute
+something the scheme cannot carry — a non-integer, a non-finite value,
+or one at or beyond <code>plaintext_modulus / 2</code> — is refused by
+<code><a href="../reference/contribute.html">contribute()</a></code> rather than having its value rounded or
+wrapped silently. What no party can check is the <em>total</em>: a sum
+that exceeds the modulus wraps, and the wrapped value decrypts as an
+ordinary integer with nothing to mark it as wrong. The remedy is to
+choose <code>plaintext_modulus</code> for the largest total the protocol
+can produce, not for the largest single contribution.</p></li>
+<li><p>As with the other distributed protocols in this package, sites
+are assumed to follow the protocol. A malicious site could submit a
+wrong count or a corrupted partial decryption; detecting that requires
+verifiable decryption, which is beyond this demonstration.</p></li>
 </ul>
-</div>
-<div class="section level2 unnumbered">
-<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<div id="refs" class="references csl-bib-body hanging-indent">
-<div id="ref-Paillier99" class="csl-entry">
-Paillier, Pascal. 1999. <span>“Public-Key Cryptosystems Based on
-Composite Degree Residuosity Classes.”</span> <em>Advances in Cryptology
-- <span>EUROCRYPT</span> ’99, International Conference on the Theory and
-Application of Cryptographic Techniques, Prague, Czech Republic, May
-2-6, 1999, Proceeding</em>, 223–38. <a href="https://doi.org/10.1007/3-540-48910-X_16" class="external-link">https://doi.org/10.1007/3-540-48910-X_16</a>.
-</div>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

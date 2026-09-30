@@ -14,9 +14,9 @@ objects so that R's arithmetic operators dispatch to the homomorphism.
 Use
 [`paillier_keypair()`](https://bnaras.github.io/homomorpheR/reference/paillier_keypair.md)
 to generate keys,
-[`encrypt()`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)
+[`encrypt()`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html)
 to encrypt, and
-[`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 to recover the result.
 
 For a quick overview, see the package vignettes.

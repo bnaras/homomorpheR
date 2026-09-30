@@ -15,6 +15,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -182,7 +200,7 @@ tex_sci <- function(x, digits = 4) {
 }
 show_clean <- function(tab) {
     tab$abs_diff <- tex_sci(tab$abs_diff)
-    knitr::kable(tab, digits = 9, col.names = clean_cols, caption = clean_caption,
+    ktab(tab, digits = 9, col.names = clean_cols, caption = clean_caption,
                  align = "lrrr")
 }
 clean_cols  <- c("Coefficient", "$\\hat\\beta$, `coxph()`",
@@ -197,7 +215,7 @@ budget_cols <- c("Optimizer", "$\\sigma$", "Queries $k$", "$\\rho$ per query",
 budget_caption <- "zCDP composition; sensitivity $\\Delta = 1$, target $\\delta = 10^{-5}$"
 show_sweep <- function(tab, optimizer) {
     tab$sigma <- tex_pow10(tab$sigma)
-    knitr::kable(tab, digits = 6, row.names = FALSE, col.names = sweep_cols,
+    ktab(tab, digits = 6, row.names = FALSE, col.names = sweep_cols,
                  caption = sprintf("%s over the threshold-DP nLL at %d values of $\\sigma$",
                                    optimizer, nrow(tab)))
 }
@@ -205,7 +223,7 @@ show_budget <- function(tab) {
     tab$sigma <- tex_pow10(tab$sigma)
     for (v in c("rho_per_query", "rho_total", "epsilon_at_delta_1e_minus_5"))
         tab[[v]] <- tex_sci(tab[[v]])
-    knitr::kable(tab, row.names = FALSE, col.names = budget_cols,
+    ktab(tab, row.names = FALSE, col.names = budget_cols,
                  caption = budget_caption, align = "lrrrrr")
 }
 ```

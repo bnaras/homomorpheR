@@ -3,17 +3,17 @@
 ## The problem this package addresses
 
 A recurring situation in biomedical research: several sites hold patient
-records that cannot leave the institutions that collected them, and you
+records that cannot leave the institutions that collected them, and one
 would like to fit a single model to the pooled data.
 
-For a large class of models this is less hopeless than it sounds. The
-log-likelihood, the score, and the information matrix are all *sums over
-observations*, so they are also sums over sites. An optimizer fitting
-such a model never needs an individual record — it needs the total of
-the per-site contributions at whatever parameter value it is currently
-considering. If the sites can compute that total without revealing their
-individual contributions, the fit proceeds exactly as it would on pooled
-data.
+It is well known that for many models fit to row-partitioned data this
+is easy to do. The log-likelihood, the score, and the information matrix
+are all *sums over observations*, so they are also sums over sites. An
+optimizer fitting such a model never needs an individual record — it
+needs the total of the per-site contributions at whatever parameter
+value it is currently considering. If the sites can compute that total
+without revealing their individual contributions, the fit proceeds
+exactly as it would on pooled data.
 
 Homomorphic encryption is what makes the total computable. It is a form
 of encryption under which certain arithmetic still works: you can add
@@ -110,7 +110,7 @@ protocols using only these terms.
 
 ## How the pieces fit together
 
-Three objects carry the protocol.
+Three objects are the building blocks for the protocol.
 
 A **site** is built with
 [`make_worker()`](https://bnaras.github.io/homomorpheR/reference/make_worker.md).
@@ -148,19 +148,16 @@ HTTP client. The extension is small:
 `    ``fetch_encrypted_contribution``(``site``@``url``, ``theta``)`\
 `}`
 
-Read
+See
 [`?RemoteSite`](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
-before writing one. The contract has a few sharp edges, the sharpest
-being that **`NA` and “unreachable” are different events**. `NA` means
-*this* `theta` broke the site’s solver, and the optimizer responds
-sensibly by trying a different parameter. A network or timeout failure
-is not that, and backing off to another `theta` does nothing about it —
-signal
+and note in particular how `NA` and runtime errors have to be handled
+differently. In our examples, `NA` means *this* `theta` broke the site’s
+solver, and because our examples involve optimization, everything works:
+the optimizer responds sensibly to a function evaluating to `NA` by
+trying a different parameter. A network or timeout failure is not that,
+and backing off to another `theta` does nothing about it — signal
 [`site_unavailable()`](https://bnaras.github.io/homomorpheR/reference/site_unavailable.md)
-instead, which aborts the round. Returning `NA` for an offline host, or
-quietly dropping the site, changes the set of sites being summed over
-between iterations and the fit converges to something that is not the
-estimand, with no error raised anywhere.
+instead, which aborts the round.
 
 An **aggregator** is built with either
 [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
@@ -195,8 +192,9 @@ decrypts only the total. An optimizer calls this once per iteration, and
 the fit proceeds.
 
 The topology is a flat fan-out and fan-in, which is how federated
-analysis frameworks such as `distcomp` and DataSHIELD are actually
-deployed.
+analysis frameworks such as `distcomp` (Narasimhan, Rubin, et al. 2017;
+Narasimhan, Bendersky, et al. 2017) and DataSHIELD (Wolfson et al. 2010;
+Gaye et al. 2014) are actually deployed.
 
 ### Sites that are not in this R session
 
@@ -225,25 +223,6 @@ The ordering in the second one is the whole point: the summary is
 encrypted before it leaves the site, so no individual contribution ever
 exists in the clear outside the site that produced it.
 
-The package refuses to fake either step for you. The base `RemoteSite`
-has no
-[`set_public_params()`](https://bnaras.github.io/homomorpheR/reference/set_public_params.md)
-method, so wiring a subclass that has not implemented one fails
-immediately rather than leaving a proxy that looks configured while the
-endpoint was never told anything.
-[`keygen_round()`](https://bnaras.github.io/homomorpheR/reference/keygen_round.md)
-and
-[`partial_decrypt()`](https://bnaras.github.io/homomorpheR/reference/partial_decrypt.md)
-refuse in the same way, since performing a remote party’s secret-key
-operation in this process is precisely what threshold keys exist to
-prevent. And
-[`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
-checks that what came back is an encrypted value under this protocol’s
-key before adding it to a total — a site that replied with a plain
-number would otherwise have its answer summed in silently, and the round
-would report the correct result having been handed the one quantity the
-protocol hides.
-
 What the package does not supply is everything else a deployment needs:
 transport, authentication, key storage at the endpoint, retry and
 timeout policy, and any defense against a party that actively deviates
@@ -253,19 +232,19 @@ states the full contract.
 
 ## What “the right answer” means
 
-*Precision* is the companion to this page. It sets out what an encrypted
-result being correct actually means — exact for integer counting,
-approximate within a measurable bound for real-valued arithmetic, and
-merely statistical when an optimizer is involved — and which comparisons
-are not meaningful at all. Worth reading before interpreting any number
-in the vignettes below.
+*Precision* is the companion to this page. It sets out what it means for
+an encrypted result to be correct: exact for integer counting, and
+approximate within a measurable bound for real-valued arithmetic. Read
+it before interpreting any number in the vignettes below.
 
 ## Which vignette to read
 
 **Queries and aggregation.** Counting across sites without revealing who
 contributed what. These are the simplest complete protocols in the
 package and the best place to begin: the statistical content is a sum,
-so nothing distracts from the mechanics.
+so nothing distracts from the mechanics. The Observational Health Data
+Sciences and Informatics (OHDSI) network (Hripcsak et al. 2015) would be
+a platform for such queries.
 
 - *Privacy-Preserving Count Aggregation* — a single encrypted total,
   with one party holding the secret key.
@@ -274,7 +253,10 @@ so nothing distracts from the mechanics.
 
 **Fitting models across sites.** Fitting a model to data you cannot
 pool. Each of these wraps an ordinary R fitting routine that is used
-unmodified.
+unmodified. The DataSHIELD network (Wolfson et al. 2010; Gaye et al.
+2014) and the `distcomp` package (Narasimhan, Rubin, et al. 2017;
+Narasimhan, Bendersky, et al. 2017) may be platforms for such model
+fitting.
 
 - *Distributed Maximum Likelihood Estimation* — the smallest complete
   model fit, and the place to start in this group.
@@ -282,10 +264,9 @@ unmodified.
   sites, using `survival` unchanged.
 - *Distributed Cox Regression with Threshold Key Generation* — the same
   fit with no single party able to decrypt.
-- *Federated Consensus ADMM with CVXR* — convex optimization across
-  sites, using `CVXR` unchanged.
-- *Federated Cox-Lasso via Consensus ADMM on DLBCL* — the above at
-  realistic scale on gene expression data.
+- *Federated Cox-Lasso via Consensus ADMM on DLBCL* — convex
+  optimization across sites, using `CVXR` unchanged, on DLBCL gene
+  expression data.
 
 **Prediction and retrieval.** Two parties, one holding a model and one
 holding data, neither willing to reveal theirs.
@@ -311,4 +292,34 @@ Earlier versions of this package implemented the Paillier cryptosystem
 natively in R. That code is frozen: it remains exported for the packages
 that depend on it, but it is not extended, and the protocols documented
 here use the schemes provided through `openfhe.R` instead. The Paillier
-vignettes are retained separately for reference.
+vignettes are archived in the `paillier-archive/` directory of the
+source repository.
+
+## References
+
+Gaye, Amadou, Yannick Marcon, Julia Isaeva, et al. 2014. “DataSHIELD:
+Taking the Analysis to the Data, Not the Data to the Analysis.”
+*International Journal of Epidemiology* 43 (6): 1929–44.
+<https://doi.org/10.1093/ije/dyu188>.
+
+Hripcsak, George, Jon D. Duke, Nigam H. Shah, et al. 2015.
+“Observational Health Data Sciences and Informatics (OHDSI):
+Opportunities for Observational Researchers.” *Studies in Health
+Technology and Informatics* 216: 574–78.
+<https://doi.org/10.3233/978-1-61499-564-7-574>.
+
+Narasimhan, Balasubramanian, Marina Bendersky, and Samuel M. Gross.
+2017. *distcomp: Computations over Distributed Data Without
+Aggregation*. <https://CRAN.R-project.org/package=distcomp>.
+
+Narasimhan, Balasubramanian, Daniel L. Rubin, Samuel M. Gross, Marina
+Bendersky, and Philip W. Lavori. 2017. “Software for Distributed
+Computation on Medical Databases: A Demonstration Project.” *Journal of
+Statistical Software* 77 (13): 1–22.
+<https://doi.org/10.18637/jss.v077.i13>.
+
+Wolfson, Michael, Susan E. Wallace, Nicki Masca, et al. 2010.
+“DataSHIELD: Resolving a Conflict in Contemporary Bioscience –
+Performing a Pooled Analysis of Individual-Level Data Without Sharing
+the Data.” *International Journal of Epidemiology* 39 (5): 1372–82.
+<https://doi.org/10.1093/ije/dyq111>.

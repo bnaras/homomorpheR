@@ -15,6 +15,24 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r ktab, echo=FALSE}
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+```
+
 ```{r echo=F, purl=FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -251,14 +269,20 @@ fit_plain <- mle(plain_nLL,
 mle_coefs   <- cox_results$coef[, "Estimate"]
 plain_coefs <- coef(fit_plain)[names(mle_coefs)]
 enc_diff    <- abs(mle_coefs - plain_coefs)
+tex_sci <- function(x) {
+    e <- floor(log10(abs(x)))
+    sprintf("$%.2f \\times 10^{%d}$", x / 10^e, as.integer(e))
+}
 comparison <- data.frame(
-    check.names           = FALSE,
-    Coefficient           = names(mle_coefs),
-    `mle(), encrypted`    = unname(mle_coefs),
-    `mle(), cleartext`    = unname(plain_coefs),
-    `Absolute Difference` = formatC(unname(enc_diff), format = "e", digits = 2)
+    Coefficient = names(mle_coefs),
+    encrypted   = unname(mle_coefs),
+    cleartext   = unname(plain_coefs),
+    abs_diff    = tex_sci(unname(enc_diff))
 )
-knitr::kable(comparison, digits = 7,
+ktab(comparison, digits = 7, row.names = FALSE, align = "lrrr",
+             col.names = c("Coefficient", "$\\hat\\beta$, `mle()` encrypted",
+                           "$\\hat\\beta$, `mle()` cleartext",
+                           "$\\lvert \\text{difference} \\rvert$"),
              caption = "Single-decrypter CKKS DLBCL Cox against the same objective evaluated in the clear.")
 ```
 

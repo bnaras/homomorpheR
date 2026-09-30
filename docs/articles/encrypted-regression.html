@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Encrypted Logistic Regression Prediction">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Encrypted Logistic Regression Prediction">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -86,7 +92,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/encrypted-regression.Rmd" class="external-link"><code>vignettes/encrypted-regression.Rmd</code></a></small>
       <div class="d-none name"><code>encrypted-regression.Rmd</code></div>
@@ -97,16 +103,15 @@ Narasimhan</h4>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The <code>secure-inference</code> vignette showed a <em>linear</em>
-model evaluated on encrypted patient data. This vignette goes one step
-further: the prediction needs the logistic sigmoid</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo stretchy="false" form="prefix">(</mo><mi>η</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>+</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>η</mi></mrow></msup></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">\sigma(\eta) = \frac{1}{1 + e^{-\eta}},</annotation></semantics></math></p>
-<p>a non-polynomial function that on its face cannot be evaluated under
-encryption — both BFV/BGV and CKKS only support polynomial arithmetic.
-Using a Chebyshev polynomial approximation of the sigmoid, however, we
-can evaluate the entire logistic prediction (linear predictor
-<em>and</em> sigmoid) under encryption with only addition and
-multiplication.</p>
+<p>The <code>secure-inference</code> vignette evaluated a linear model
+on encrypted patient data. Here the prediction also needs the logistic
+sigmoid</p>
+<p><span class="math display">\[\sigma(\eta) = \frac{1}{1 +
+e^{-\eta}}.\]</span></p>
+<p>The sigmoid is not a polynomial, and BFV/BGV and CKKS support only
+addition and multiplication. We replace it with a Chebyshev polynomial
+approximation, so the whole prediction (linear predictor and sigmoid) is
+computed on encrypted values.</p>
 </div>
 <div class="section level2">
 <h2 id="the-setting">The setting<a class="anchor" aria-label="anchor" href="#the-setting"></a>
@@ -114,8 +119,8 @@ multiplication.</p>
 <p>A hospital holds patient data. A researcher holds a trained
 logistic-regression model. The researcher wants to score patients
 without seeing their data; the hospital wants predictions without seeing
-the model coefficients. The same two-party shape as
-<code>secure-inference</code>, with a non-linear scorer.</p>
+the model coefficients. This is the two-party setting of
+<code>secure-inference</code> with a nonlinear model.</p>
 </div>
 <div class="section level2">
 <h2 id="step-1-train-in-the-clear">Step 1: train in the clear<a class="anchor" aria-label="anchor" href="#step-1-train-in-the-clear"></a>
@@ -136,9 +141,9 @@ the model coefficients. The same two-party shape as
 <div class="section level2">
 <h2 id="step-2-encrypt-patient-data">Step 2: encrypt patient data<a class="anchor" aria-label="anchor" href="#step-2-encrypt-patient-data"></a>
 </h2>
-<p>CKKS needs enough precision budget for the Chebyshev polynomial. We
-use depth 8 and enable <code>Feature$ADVANCEDSHE</code> for the
-polynomial-evaluation primitives.</p>
+<p>The Chebyshev polynomial needs enough multiplicative depth. We use
+depth 8 and enable <code>Feature$ADVANCEDSHE</code>, which provides the
+polynomial-evaluation functions.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/" class="external-link">openfhe.R</a></span><span class="op">)</span></span>
 <span></span>
@@ -154,14 +159,15 @@ polynomial-evaluation primitives.</p>
 <span><span class="va">new_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span>,  <span class="fl">0.3</span>, <span class="fl">1.2</span>, <span class="op">-</span><span class="fl">1.0</span>, <span class="fl">0.8</span>, <span class="fl">0.1</span>, <span class="op">-</span><span class="fl">0.3</span>, <span class="fl">1.5</span>,</span>
 <span>             <span class="op">-</span><span class="fl">0.8</span>,  <span class="fl">0.6</span>, <span class="fl">0.9</span>, <span class="op">-</span><span class="fl">0.4</span>, <span class="fl">1.1</span>, <span class="fl">0.0</span>,  <span class="fl">0.7</span>, <span class="op">-</span><span class="fl">1.2</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ct_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_age</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="va">ct_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_bm</span><span class="op">)</span>,  cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">ct_age</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_age</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">ct_bm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">new_bm</span><span class="op">)</span>,  cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-3-evaluate-the-linear-predictor-encrypted">Step 3: evaluate the linear predictor (encrypted)<a class="anchor" aria-label="anchor" href="#step-3-evaluate-the-linear-predictor-encrypted"></a>
 </h2>
-<p><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>η</mi><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><mspace width="0.167em"></mspace><mtext mathvariant="normal">age</mtext><mo>+</mo><msub><mi>β</mi><mn>2</mn></msub><mspace width="0.167em"></mspace><mtext mathvariant="normal">biomarker</mtext></mrow><annotation encoding="application/x-tex">\eta = \beta_0 + \beta_1\, \text{age} + \beta_2\, \text{biomarker}</annotation></semantics></math>,
-all arithmetic on encrypted data:</p>
+<p><span class="math inline">\(\eta = \beta_0 + \beta_1\, \text{age} +
+\beta_2\, \text{biomarker}\)</span>, all arithmetic on encrypted
+data:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ct_eta</span> <span class="op">&lt;-</span> <span class="va">ct_age</span> <span class="op">*</span> <span class="va">beta</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span><span class="va">ct_eta</span> <span class="op">&lt;-</span> <span class="va">ct_eta</span> <span class="op">+</span> <span class="va">ct_bm</span> <span class="op">*</span> <span class="va">beta</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span></span>
@@ -172,11 +178,10 @@ all arithmetic on encrypted data:</p>
 </h2>
 <p><code>openfhe.R</code> exposes Chebyshev approximations of common
 transcendental functions, including the logistic sigmoid. The interval
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[a, b]</annotation></semantics></math>
-must cover the realizable range of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>;
-degree 16 gives good precision with depth modest enough to fit the
-budget we declared above.</p>
+<span class="math inline">\([a, b]\)</span> must cover the range of
+<span class="math inline">\(\eta\)</span> for these patients. A
+degree-16 approximation fits within the depth set above; its error is
+measured in Step 5.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ct_prob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/eval_logistic.html" class="external-link">eval_logistic</a></span><span class="op">(</span><span class="va">ct_eta</span>, a <span class="op">=</span> <span class="op">-</span><span class="fl">4</span>, b <span class="op">=</span> <span class="fl">4</span>, degree <span class="op">=</span> <span class="fl">16</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -184,7 +189,7 @@ budget we declared above.</p>
 <h2 id="step-5-decrypt-predictions">Step 5: decrypt predictions<a class="anchor" aria-label="anchor" href="#step-5-decrypt-predictions"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_prob</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_prob</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">result</span>, <span class="fl">16L</span><span class="op">)</span></span>
 <span><span class="va">encrypted_probs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">16</span><span class="op">]</span></span>
 <span></span>
@@ -194,70 +199,42 @@ budget we declared above.</p>
 <pre><code><span><span class="co">## Max absolute error vs cleartext sigmoid: 5.79e-06</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="what-this-demonstrates">What this demonstrates<a class="anchor" aria-label="anchor" href="#what-this-demonstrates"></a>
+<h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
 </h2>
 <ol style="list-style-type: decimal">
-<li>
-<strong>Model coefficients applied to encrypted data.</strong> The
-hospital never sees the model; the researcher never sees the patient
-data. Same transport guarantee as <code>secure-inference</code>.</li>
-<li>
-<strong>The sigmoid evaluated entirely under encryption.</strong> No
-intermediate decryption, no protocol back-and-forth — the whole logistic
-prediction completes while the data stays encrypted.</li>
-<li>
-<strong>CKKS precision is more than enough for medical
-prediction.</strong> The maximum absolute error against the cleartext
-sigmoid is 5.8^{-6}, well below any threshold that would matter for a
-clinical decision.</li>
+<li>Model coefficients are applied to encrypted data. The researcher
+never sees the patient data. The hospital decrypts the predictions but
+is not sent the coefficients, as in <code>secure-inference</code>; see
+the threat-model caveat below.</li>
+<li>The sigmoid is evaluated on encrypted values. There is no
+intermediate decryption and no exchange between the parties during the
+computation.</li>
+<li>The CKKS error is small. The maximum absolute error against the
+cleartext sigmoid is 5.8 × 10<sup>-6</sup>.</li>
 </ol>
-</div>
-<div class="section level2">
-<h2 id="connection-to-homomorphers-paillier-vignettes">Connection to homomorpheR’s Paillier vignettes<a class="anchor" aria-label="anchor" href="#connection-to-homomorphers-paillier-vignettes"></a>
-</h2>
-<p>The Paillier vignettes (<code>vignette("homomorphing")</code>,
-<code>vignette("DHCox")</code>, <code>vignette("DHCoxNCP")</code>)
-demonstrate distributed Cox regression and MLE under additive Paillier
-encryption. That approach requires:</p>
-<ul>
-<li>sending encrypted <em>sufficient statistics</em> (sums) between
-sites rather than evaluating the full likelihood under encryption,</li>
-<li>iterative protocols where the master site decrypts intermediate
-aggregates,</li>
-<li>careful real-number encoding via integer / fractional split.</li>
-</ul>
-<p>With CKKS via <code>openfhe.R</code>:</p>
-<ul>
-<li>real numbers are encrypted directly — no manual scaling,</li>
-<li>multiplication works — enabling polynomial and sigmoid evaluation
-directly under encryption,</li>
-<li>the full computation can happen in the encrypted domain.</li>
-</ul>
 </div>
 <div class="section level2">
 <h2 id="limitations">Limitations<a class="anchor" aria-label="anchor" href="#limitations"></a>
 </h2>
 <ul>
 <li>
-<strong>Precision budget</strong>: each multiplication consumes one
-level of the encrypted value’s budget. Deeper computations require
-larger parameters and more memory.</li>
+<strong>Multiplicative depth</strong>: each multiplication uses one
+level of the depth set in the context. Deeper computations need larger
+parameters and more memory.</li>
 <li>
 <strong>Approximation error</strong>: CKKS is approximate. For
-deployment, validate that the precision is sufficient for your use
-case.</li>
+deployment, precision would need to be validated for the use case.</li>
 <li>
 <strong>Performance</strong>: encrypted computation is orders of
 magnitude slower than cleartext.</li>
 <li>
-<strong>Threat model</strong>: this transport-layer demonstration
-shares the model-extraction caveat from
-<code><a href="../articles/secure-inference.html">vignette("secure-inference")</a></code>. The hospital holding the
-secret key can in principle recover the coefficients by issuing
-carefully chosen queries. The Chebyshev sigmoid makes the recovery
-somewhat less trivial than the linear case, but does not eliminate the
-issue. Real deployments still need defences (output DP, query budgets,
-threshold FHE) on top of the FHE transport.</li>
+<strong>Threat model</strong>: the model-extraction caveat of
+<code><a href="../articles/secure-inference.html">vignette("secure-inference")</a></code> applies here. The hospital
+holds the secret key and could recover the coefficients from predictions
+on chosen inputs. The sigmoid makes this harder than in the linear case
+but does not prevent it. A deployment would need further protection,
+such as output differential privacy, query limits, or threshold
+FHE.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

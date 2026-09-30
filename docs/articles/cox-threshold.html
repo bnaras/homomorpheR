@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Distributed Cox Regression with Threshold Key Generation">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Distributed Cox Regression with Threshold Key Generation">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -79,14 +85,14 @@
 
 
 
-
+<script src="cox-threshold_files/kePrint-0.0.1/kePrint.js"></script><link href="cox-threshold_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Distributed Cox Regression with Threshold Key Generation</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold.Rmd" class="external-link"><code>vignettes/cox-threshold.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold.Rmd</code></div>
@@ -97,28 +103,18 @@ Narasimhan</h4>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>The companion <code>cox</code> vignette fits a stratified Cox model
-across three sites under CKKS via master/worker. The master holds the
-secret key and decrypts the encrypted partial likelihood at every
-iteration of the optimizer. This is <em>operationally</em> convenient —
-one party owns decryption — but it leaves a meaningful piece of the
-threat model unaddressed: the master is trusted not to decrypt anything
-it shouldn’t.</p>
-<p>The end of the <code>cox</code> vignette flagged this:</p>
-<blockquote>
-<p><strong>Threshold key generation</strong>: in a real deployment, the
-secret key would be split across the sites (n-of-n threshold) so that no
-single party — not even the master — can decrypt intermediate values
-unilaterally.</p>
-</blockquote>
-<p>This vignette implements exactly that. Three sites jointly generate a
-CKKS key pair so that no single party holds the joint secret key. The
-master’s role is reduced to an aggregator: it sums encrypted
-contributions and orchestrates partial-decryption fan-in, but it cannot
+<p>The <code>cox</code> vignette fits a stratified Cox model across
+three sites under CKKS. There the master holds the secret key and
+decrypts the encrypted sum at every iteration of the optimizer, so the
+master must be trusted not to decrypt anything else, such as a single
+site’s contribution.</p>
+<p>In this vignette the three sites generate the CKKS key pair jointly,
+and each keeps its own share of the secret key. No single party holds
+the whole key. The master becomes an aggregator: it adds the encrypted
+contributions and collects the sites’ partial decryptions, but it cannot
 decrypt anything by itself.</p>
-<p>The mathematical content is identical to <code><a href="../articles/cox.html">vignette("cox")</a></code>
-— same data, same fit, same coefficients to floating-point precision.
-Only the trust model changes.</p>
+<p>The data and the model are the same as in
+<code><a href="../articles/cox.html">vignette("cox")</a></code>. Only who can decrypt changes.</p>
 </div>
 <div class="section level2">
 <h2 id="threat-model">Threat model<a class="anchor" aria-label="anchor" href="#threat-model"></a>
@@ -126,36 +122,31 @@ Only the trust model changes.</p>
 <p>Three sites and one untrusted aggregator:</p>
 <ul>
 <li>
-<strong>Sites
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">1, 2, 3</annotation></semantics></math></strong>
-each hold private patient data and a secret key share
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mi>i</mi></msub><annotation encoding="application/x-tex">\mathit{sk}_i</annotation></semantics></math>.
-They are honest-but-curious among themselves and toward the
-aggregator.</li>
+<strong>Sites <span class="math inline">\(1, 2, 3\)</span></strong>
+each hold private patient data and a secret key share <span class="math inline">\(\mathit{sk}_i\)</span>. They are
+honest-but-curious among themselves and toward the aggregator.</li>
 <li>
 <strong>Aggregator</strong> holds no secret-key material. It
-receives encrypted contributions, sums them homomorphically, and
-broadcasts the sum back for partial decryption. It is <em>fully
-untrusted</em>: a curious or compromised aggregator gains no information
-from the encrypted values it processes.</li>
+receives the encrypted contributions, adds them, and sends the sum back
+to the sites for partial decryption. The encrypted values it handles
+tell it nothing on their own.</li>
 </ul>
-<p>What the aggregator sees, by stage: 1. Encrypted local contributions
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mi>i</mi></msub><mo>=</mo><msub><mi>E</mi><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mrow><mn>1</mn><mi>.</mi><mi>.</mi><mi>n</mi></mrow></msub></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>ℓ</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathit{ct}_i = E_{\mathit{pk}_{1..n}}(\ell_i)</annotation></semantics></math>.
-None decryptable alone. 2. The encrypted sum
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mtext mathvariant="normal">sum</mtext></msub><mo>=</mo><msub><mo>⊞</mo><mi>i</mi></msub><msub><mrow><mi mathvariant="italic">𝑐</mi><mi mathvariant="italic">𝑡</mi></mrow><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\mathit{ct}_{\text{sum}} = \boxplus_i \mathit{ct}_i</annotation></semantics></math>.
-Not decryptable alone. 3. Partial decryptions
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ρ</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\rho_i</annotation></semantics></math>
-contributed by each site. Not decryptable individually. 4. After fusion,
-the <em>sum in the clear</em>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>ℓ</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\ell(\beta) = \sum_i \ell_i</annotation></semantics></math>.
-This appears at the aggregator only after step 4.</p>
-<p>Step 4 reveals
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>
-to the aggregator — the same thing the master saw in
-<code><a href="../articles/cox.html">vignette("cox")</a></code>. The strict improvement is that <em>nobody
-else</em> can decrypt anything along the way: a captured log of
-encrypted values or partial decryptions is useless without the joint
-fusion.</p>
+<p>What the aggregator sees, by stage:</p>
+<ol style="list-style-type: decimal">
+<li>Encrypted local contributions <span class="math inline">\(\mathit{ct}_i =
+E_{\mathit{pk}_{1..n}}(\ell_i)\)</span>. None decryptable alone.</li>
+<li>The encrypted sum <span class="math inline">\(\mathit{ct}_{\text{sum}} = \boxplus_i
+\mathit{ct}_i\)</span>. Not decryptable alone.</li>
+<li>Partial decryptions <span class="math inline">\(\rho_i\)</span>
+contributed by each site. Not decryptable individually.</li>
+<li>After combining the partial decryptions, the sum <span class="math inline">\(\ell(\beta) = \sum_i \ell_i\)</span> in the
+clear.</li>
+</ol>
+<p>Step 4 reveals <span class="math inline">\(\ell(\beta)\)</span> to
+the aggregator, which is what the master saw in
+<code><a href="../articles/cox.html">vignette("cox")</a></code>. The difference is that no single party can
+decrypt an individual contribution or any intermediate value. That takes
+a partial decryption from every site.</p>
 </div>
 <div class="section level2">
 <h2 id="the-cox-setup-same-dlbcl-data-as-cox-rmd">The Cox setup (same DLBCL data as <code>cox.Rmd</code>)<a class="anchor" aria-label="anchor" href="#the-cox-setup-same-dlbcl-data-as-cox-rmd"></a>
@@ -168,54 +159,40 @@ fusion.</p>
 <span><span class="va">cox_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span></span>
 <span>  <span class="va">DLBCL</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time"</span>, <span class="st">"status"</span>, <span class="st">"GCB_sig"</span>, <span class="st">"LN_sig"</span>,</span>
 <span>            <span class="st">"Prolif_sig"</span>, <span class="st">"BMP6"</span>, <span class="st">"MHC2_sig"</span>, <span class="st">"Subgroup"</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>  <span class="va">DLBCL</span><span class="op">$</span><span class="va">Subgroup</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">agg_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">GCB_sig</span> <span class="op">+</span> <span class="va">LN_sig</span> <span class="op">+</span></span>
-<span>                       <span class="va">Prolif_sig</span> <span class="op">+</span> <span class="va">BMP6</span> <span class="op">+</span> <span class="va">MHC2_sig</span> <span class="op">+</span></span>
-<span>                       <span class="fu"><a href="https://rdrr.io/pkg/survival/man/strata.html" class="external-link">strata</a></span><span class="op">(</span><span class="va">Subgroup</span><span class="op">)</span>,</span>
-<span>                   data <span class="op">=</span> <span class="va">DLBCL</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="va">DLBCL</span><span class="op">$</span><span class="va">Subgroup</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-protocol">The protocol<a class="anchor" aria-label="anchor" href="#the-protocol"></a>
 </h2>
 <p><strong>Setup</strong> (once):</p>
 <ol style="list-style-type: decimal">
-<li>Site 1 calls <code>key_gen(cc)</code> to produce its keypair
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>1</mn></msub><mo>,</mo><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mathit{pk}_1, \mathit{sk}_1)</annotation></semantics></math>.</li>
+<li>Site 1 calls <code>key_gen(cc)</code> to produce its keypair <span class="math inline">\((\mathit{pk}_1, \mathit{sk}_1)\)</span>.</li>
 <li>Site 2 calls <code>multiparty_key_gen(cc, pk_1)</code> to produce
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>12</mn></msub><mo>,</mo><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>2</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mathit{pk}_{12}, \mathit{sk}_2)</annotation></semantics></math>.</li>
+<span class="math inline">\((\mathit{pk}_{12},
+\mathit{sk}_2)\)</span>.</li>
 <li>Site 3 calls <code>multiparty_key_gen(cc, pk_{12})</code> to produce
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>123</mn></msub><mo>,</mo><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>3</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\mathit{pk}_{123}, \mathit{sk}_3)</annotation></semantics></math>.</li>
-<li>The final
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑝</mi><mi mathvariant="italic">𝑘</mi></mrow><mn>123</mn></msub><annotation encoding="application/x-tex">\mathit{pk}_{123}</annotation></semantics></math>
-is the <strong>joint public key</strong>. Each site keeps its own
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mi>i</mi></msub><annotation encoding="application/x-tex">\mathit{sk}_i</annotation></semantics></math>.</li>
+<span class="math inline">\((\mathit{pk}_{123},
+\mathit{sk}_3)\)</span>.</li>
+<li>The final <span class="math inline">\(\mathit{pk}_{123}\)</span> is
+the <strong>joint public key</strong>. Each site keeps its own <span class="math inline">\(\mathit{sk}_i\)</span>.</li>
 </ol>
 <p><strong>Per query</strong> (called inside the optimizer):</p>
 <ol style="list-style-type: decimal">
-<li>Each site
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
-computes its local Cox negative log-likelihood
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ℓ</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell_i(\beta)</annotation></semantics></math>
-and encrypts it under the joint public key.</li>
+<li>Each site <span class="math inline">\(i\)</span> computes its local
+Cox negative log-likelihood <span class="math inline">\(\ell_i(\beta)\)</span> and encrypts it under the
+joint public key.</li>
 <li>The aggregator sums the encrypted contributions
 homomorphically.</li>
-<li>Each site partial-decrypts the sum using its own
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mrow><mi mathvariant="italic">𝑠</mi><mi mathvariant="italic">𝑘</mi></mrow><mi>i</mi></msub><annotation encoding="application/x-tex">\mathit{sk}_i</annotation></semantics></math>.</li>
-<li>The aggregator fuses the partials to recover
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>.</li>
+<li>Each site partial-decrypts the sum using its own <span class="math inline">\(\mathit{sk}_i\)</span>.</li>
+<li>The aggregator fuses the partials to recover <span class="math inline">\(\ell(\beta)\)</span>.</li>
 </ol>
-<p><code>homomorpheR</code> exports a
-<code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> constructor that runs this chain
-across the sites in one call and returns a [ThresholdMaster] holding the
-joint public key. Each site keeps the share it generated; the master
-holds no secret material at all, and decrypts by asking every site for a
-partial and fusing the results. The <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code>
-runner used by the single-decrypter <code>cox.Rmd</code> works unchanged
-here — the threshold-specific partial-decrypt and fuse logic lives
-inside the <code><a href="../reference/master_decrypt.html">master_decrypt()</a></code> method on
-<code>ThresholdMaster</code>, so the per-iteration code looks the same
-as the single-decrypter case.</p>
+<p><code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> runs this chain across the sites
+in one call and returns a <code>ThresholdMaster</code> holding the joint
+public key. Each site keeps the share it generated. To decrypt, the
+master asks every site for a partial decryption and combines them. This
+happens inside the <code><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt()</a></code> method, so the
+<code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> runner from <code>cox.Rmd</code> works
+unchanged.</p>
 </div>
 <div class="section level2">
 <h2 id="implementation">Implementation<a class="anchor" aria-label="anchor" href="#implementation"></a>
@@ -243,12 +220,8 @@ the chained <code>multiparty_key_gen()</code> calls work:</p>
 <span>                           batch_size           <span class="op">=</span> <span class="fl">8L</span>,</span>
 <span>                           features             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">openfhe.R</span><span class="fu">::</span><span class="va"><a href="https://openfheorg.github.io/openfhe.R/reference/Feature.html" class="external-link">Feature</a></span><span class="op">$</span><span class="va">MULTIPARTY</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The sites come first, because the joint public key is built from
-them. <code>make_threshold_master(name, cc, sites)</code> walks the
-chain — each site generating and retaining its own share, passing on
-only a public key — and returns a master that holds the joint public
-key, holds nothing secret, and is already wired to the sites. Its
-<code>master_decrypt</code> method drives the partial-decrypt fan-in by
-asking each site in turn.</p>
+them. <code><a href="../reference/make_threshold_master.html">make_threshold_master()</a></code> then takes the sites and
+returns the master.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">worker_gcb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_worker.html">make_worker</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"GCB"</span>,      data <span class="op">=</span> <span class="va">cox_data</span><span class="op">[[</span><span class="st">"GCB"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                          contribution_fn <span class="op">=</span> <span class="va">local_cox_nll</span><span class="op">)</span></span>
@@ -260,22 +233,20 @@ asking each site in turn.</p>
 <span><span class="va">master</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/make_threshold_master.html">make_threshold_master</a></span><span class="op">(</span><span class="st">"Aggregator"</span>,</span>
 <span>                                crypto_context <span class="op">=</span> <span class="va">cc</span>,</span>
 <span>                                sites <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">worker_gcb</span>, <span class="va">worker_abc</span>, <span class="va">worker_t3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>The share each site generated stays in that site’s own state; nothing
-in the returned master can decrypt on its own. We can check that rather
-than assert it:</p>
+<p>The check below confirms that the master has no property holding key
+shares and that the GCB site holds its own share:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>master_holds_shares <span class="op">=</span> <span class="st">"secret_keys"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/props.html" class="external-link">props</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  gcb_holds_own_share <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">worker_gcb</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sk</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">share_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>master_holds_shares <span class="op">=</span> <span class="st">"secret_keys"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/props.html" class="external-link">props</a></span><span class="op">(</span><span class="va">master</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                 gcb_holds_own_share <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">worker_gcb</span><span class="op">@</span><span class="va">state</span><span class="op">$</span><span class="va">sk</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">share_check</span></span></code></pre></div>
 <pre><code><span><span class="co">## master_holds_shares gcb_holds_own_share </span></span>
 <span><span class="co">##               FALSE                TRUE</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="iterative-mle-through-the-threshold-protocol">Iterative MLE through the threshold protocol<a class="anchor" aria-label="anchor" href="#iterative-mle-through-the-threshold-protocol"></a>
 </h2>
-<p>The optimizer-facing code is <em>identical</em> to
-<code>cox.Rmd</code>. Same <code><a href="../reference/master_aggregate.html">master_aggregate()</a></code> runner, same
-<code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> driver — only the underlying master class
-changed.</p>
+<p>The optimizer code is the same as in <code>cox.Rmd</code>. Only the
+master class differs.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stats4</span><span class="op">)</span></span>
 <span></span>
@@ -288,108 +259,131 @@ changed.</p>
 <span>                          BMP6    <span class="op">=</span> <span class="fl">0</span>, MHC2_sig <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
 <span>           method  <span class="op">=</span> <span class="st">"BFGS"</span>,</span>
 <span>           control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reltol <span class="op">=</span> <span class="fl">1e-7</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Maximum likelihood estimation</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## Call:</span></span>
-<span><span class="co">## mle(minuslogl = encrypted_nLL, start = list(GCB_sig = 0, LN_sig = 0, </span></span>
-<span><span class="co">##     Prolif_sig = 0, BMP6 = 0, MHC2_sig = 0), method = "BFGS", </span></span>
-<span><span class="co">##     control = list(reltol = 1e-07))</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## Coefficients:</span></span>
-<span><span class="co">##              Estimate Std. Error</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##              Estimate Std. Error</span></span>
 <span><span class="co">## GCB_sig    -0.2638698 0.11940447</span></span>
 <span><span class="co">## LN_sig     -0.2543587 0.08515178</span></span>
 <span><span class="co">## Prolif_sig  0.3031250 0.14981283</span></span>
 <span><span class="co">## BMP6        0.3036367 0.10727837</span></span>
-<span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## -2 log L: 990.458</span></span></code></pre>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## 'log Lik.' -495.229 (df=5)</span></span></code></pre>
+<span><span class="co">## MHC2_sig   -0.3191459 0.09412946</span></span></code></pre>
+<pre><code><span><span class="co">## 'log Lik.' -495.229022 (df=5)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="comparison-with-the-cleartext-fit">Comparison with the cleartext fit<a class="anchor" aria-label="anchor" href="#comparison-with-the-cleartext-fit"></a>
 </h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">agg_model</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Call:</span></span>
-<span><span class="co">## coxph(formula = Surv(time, status) ~ GCB_sig + LN_sig + Prolif_sig + </span></span>
-<span><span class="co">##     BMP6 + MHC2_sig + strata(Subgroup), data = DLBCL)</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##   n= 235, number of events= 133 </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##                coef exp(coef) se(coef)      z Pr(&gt;|z|)    </span></span>
-<span><span class="co">## GCB_sig    -0.26387   0.76807  0.11940 -2.210 0.027112 *  </span></span>
-<span><span class="co">## LN_sig     -0.25436   0.77541  0.08515 -2.987 0.002816 ** </span></span>
-<span><span class="co">## Prolif_sig  0.30313   1.35408  0.14981  2.023 0.043036 *  </span></span>
-<span><span class="co">## BMP6        0.30364   1.35478  0.10728  2.830 0.004649 ** </span></span>
-<span><span class="co">## MHC2_sig   -0.31915   0.72677  0.09413 -3.391 0.000698 ***</span></span>
-<span><span class="co">## ---</span></span>
-<span><span class="co">## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##            exp(coef) exp(-coef) lower .95 upper .95</span></span>
-<span><span class="co">## GCB_sig       0.7681     1.3020    0.6078    0.9706</span></span>
-<span><span class="co">## LN_sig        0.7754     1.2896    0.6562    0.9163</span></span>
-<span><span class="co">## Prolif_sig    1.3541     0.7385    1.0095    1.8162</span></span>
-<span><span class="co">## BMP6          1.3548     0.7381    1.0979    1.6718</span></span>
-<span><span class="co">## MHC2_sig      0.7268     1.3760    0.6043    0.8740</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## Concordance= 0.668  (se = 0.027 )</span></span>
-<span><span class="co">## Likelihood ratio test= 42.74  on 5 df,   p=4e-08</span></span>
-<span><span class="co">## Wald test            = 44.78  on 5 df,   p=2e-08</span></span>
-<span><span class="co">## Score (logrank) test = 44.83  on 5 df,   p=2e-08</span></span></code></pre>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"logLik(threshold-distributed encrypted): %f\n"</span>,</span>
-<span>            <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## logLik(threshold-distributed encrypted): -495.229022</span></span></code></pre>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"logLik(aggregated cleartext)            : %f\n"</span>,</span>
-<span>            <span class="va">agg_model</span><span class="op">$</span><span class="va">loglik</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## logLik(aggregated cleartext)            : -495.229022</span></span></code></pre>
-<table class="table">
-<caption>Threshold-distributed BFGS vs. aggregated-cleartext
-coxph()</caption>
-<thead><tr class="header">
-<th align="left">coefficient</th>
-<th align="right">threshold_distributed</th>
-<th align="right">aggregated_cleartext</th>
-<th align="right">abs_diff</th>
+<p>As in <code><a href="../articles/cox.html">vignette("cox")</a></code>, the check is the identical
+<code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> objective with the encrypted aggregation replaced by
+an ordinary sum of the three sites’ cleartext values.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stats4</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plain_nLL</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">GCB_sig</span>, <span class="va">LN_sig</span>, <span class="va">Prolif_sig</span>, <span class="va">BMP6</span>, <span class="va">MHC2_sig</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">GCB_sig</span>, <span class="va">LN_sig</span>, <span class="va">Prolif_sig</span>, <span class="va">BMP6</span>, <span class="va">MHC2_sig</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">cox_data</span>, <span class="va">local_cox_nll</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, beta <span class="op">=</span> <span class="va">beta</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">fit_plain</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle</a></span><span class="op">(</span><span class="va">plain_nLL</span>,</span>
+<span>                 start   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>GCB_sig <span class="op">=</span> <span class="fl">0</span>, LN_sig <span class="op">=</span> <span class="fl">0</span>, Prolif_sig <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                                BMP6    <span class="op">=</span> <span class="fl">0</span>, MHC2_sig <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>                 method  <span class="op">=</span> <span class="st">"BFGS"</span>,</span>
+<span>                 control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reltol <span class="op">=</span> <span class="fl">1e-7</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Threshold-CKKS DLBCL Cox against the same objective evaluated in the
+clear.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Coefficient
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\hat\beta\)</span>, <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code>
+threshold
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\hat\beta\)</span>, <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code>
+cleartext
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\lvert \text{difference} \rvert\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">GCB_sig</td>
-<td align="right">-0.2638698</td>
-<td align="right">-0.2638716</td>
-<td align="right">1.823e-06</td>
+<tr>
+<td style="text-align:left;">
+GCB_sig
+</td>
+<td style="text-align:right;">
+-0.2638698
+</td>
+<td style="text-align:right;">
+-0.2638698
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.73 \times 10^{-12}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">LN_sig</td>
-<td align="right">-0.2543587</td>
-<td align="right">-0.2543592</td>
-<td align="right">5.340e-07</td>
+<tr>
+<td style="text-align:left;">
+LN_sig
+</td>
+<td style="text-align:right;">
+-0.2543587
+</td>
+<td style="text-align:right;">
+-0.2543587
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(8.39 \times 10^{-13}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">Prolif_sig</td>
-<td align="right">0.3031250</td>
-<td align="right">0.3031258</td>
-<td align="right">7.480e-07</td>
+<tr>
+<td style="text-align:left;">
+Prolif_sig
+</td>
+<td style="text-align:right;">
+0.3031250
+</td>
+<td style="text-align:right;">
+0.3031250
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5.27 \times 10^{-13}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">BMP6</td>
-<td align="right">0.3036367</td>
-<td align="right">0.3036375</td>
-<td align="right">7.940e-07</td>
+<tr>
+<td style="text-align:left;">
+BMP6
+</td>
+<td style="text-align:right;">
+0.3036367
+</td>
+<td style="text-align:right;">
+0.3036367
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.37 \times 10^{-12}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">MHC2_sig</td>
-<td align="right">-0.3191459</td>
-<td align="right">-0.3191467</td>
-<td align="right">8.420e-07</td>
+<tr>
+<td style="text-align:left;">
+MHC2_sig
+</td>
+<td style="text-align:right;">
+-0.3191459
+</td>
+<td style="text-align:right;">
+-0.3191459
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.72 \times 10^{-13}\)</span>
+</td>
 </tr>
 </tbody>
 </table>
+<p>The threshold fit agrees with the cleartext fit to within 1.73e-12 in
+every coefficient.</p>
 </div>
 <div class="section level2">
 <h2 id="discussion">Discussion<a class="anchor" aria-label="anchor" href="#discussion"></a>
@@ -402,10 +396,8 @@ public key, and has no property in which a share could sit. Encrypted
 intermediate values are undecryptable by any single party in the system,
 the aggregator included.</li>
 <li>
-<strong>Same statistical fit as the trusted-master version.</strong>
-The coefficients and standard errors agree with <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code> to
-the precision the optimizer cares about. Threshold key generation is a
-trust-model improvement; it does not change the fit.</li>
+<strong>The fit does not change.</strong> The coefficients agree
+with the cleartext fit of the same objective to CKKS precision.</li>
 <li>
 <strong>Same optimizer, same callback shape, same code
 structure.</strong> Compared to <code>cox.Rmd</code> only the setup
@@ -420,17 +412,11 @@ exist before the sites do. The optimizer sees nothing different.</li>
 </h2>
 <ul>
 <li>
-<strong>The aggregator sees
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>
-at every iteration.</strong> That is the optimizer’s <em>function
-value</em> — what <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> is asking for. The information leak
-is “the value of the joint partial log-likelihood at every
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
-visited,” not “individual per-site contributions” (which are properly
-hidden). Hiding
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>
-would require running the optimizer inside the encrypted domain —
-feasible but considerably more complex.</li>
+<strong>The aggregator sees <span class="math inline">\(\ell(\beta)\)</span> at every iteration.</strong>
+That is the function value <code><a href="https://rdrr.io/r/stats4/mle.html" class="external-link">mle()</a></code> asks for. The individual
+site contributions stay hidden. Hiding <span class="math inline">\(\ell(\beta)\)</span> as well would require running
+the optimizer on encrypted values, which is possible but considerably
+more complex.</li>
 <li>
 <strong>Honest-but-curious is the trust model.</strong> Sites are
 assumed to follow the protocol. A malicious site could submit a
@@ -439,21 +425,11 @@ additional protocol machinery (commitments, zero-knowledge proofs) that
 this vignette does not implement.</li>
 <li>
 <strong>Output privacy is unchanged.</strong> The released
-coefficients
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>β</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat\beta</annotation></semantics></math>
-are the same as the cleartext fit. Output-level attacks (membership
-inference, model inversion) remain in scope and motivate the
-differential-privacy demonstrations elsewhere in the package.</li>
+coefficients <span class="math inline">\(\hat\beta\)</span> are the same
+as the cleartext fit. Output-level attacks (membership inference, model
+inversion) remain in scope and motivate the differential-privacy
+demonstrations elsewhere in the package.</li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="where-this-fits">Where this fits<a class="anchor" aria-label="anchor" href="#where-this-fits"></a>
-</h2>
-<p>Read <code><a href="../articles/cox.html">vignette("cox")</a></code> first if you have not — that
-vignette establishes the master/worker protocol and the optimizer-driven
-shape this one inherits. The only difference here is the master:
-threshold instead of single-decrypter. Same code, stronger trust
-model.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -3,7 +3,7 @@
 Under threshold keys no party can decrypt alone. A ciphertext is sent to
 each site; each site applies **its own** secret share and returns a
 partial decryption, and the partials are fused (see
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)).
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)).
 The share never leaves the site, so no other party ends up holding
 anything that would let it decrypt.
 
@@ -30,7 +30,7 @@ partial_decrypt(site, ...)
 ## Value
 
 a partial decryption, to be fused by
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md).
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html).
 
 ## Details
 

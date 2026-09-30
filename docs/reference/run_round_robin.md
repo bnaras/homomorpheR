@@ -1,7 +1,7 @@
 # Run one round of the round-robin protocol
 
 Backend-agnostic via the
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 generic, but part of the frozen Paillier-era legacy surface: the
 random-offset chain idiom compensated for Paillier-era trust
 assumptions, and it encrypts each site's value *at the master*, which

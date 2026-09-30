@@ -72,7 +72,7 @@ a fresh site instead; they are cheap.
 
 [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md)
 to read them back,
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
-to use them,
+[actor-encryption](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)
+for using them,
 [RemoteSite](https://bnaras.github.io/homomorpheR/reference/RemoteSite.md)
 for the full remote contract.

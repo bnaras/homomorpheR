@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Secure Model Inference on Encrypted Data">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Secure Model Inference on Encrypted Data">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -79,14 +85,14 @@
 
 
 
-
+<script src="secure-inference_files/kePrint-0.0.1/kePrint.js"></script><link href="secure-inference_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Secure Model Inference on Encrypted Data</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/secure-inference.Rmd" class="external-link"><code>vignettes/secure-inference.Rmd</code></a></small>
       <div class="d-none name"><code>secure-inference.Rmd</code></div>
@@ -123,12 +129,11 @@ package.</p>
 <h2 id="scenario-weighted-biomarker-score">Scenario: weighted biomarker score<a class="anchor" aria-label="anchor" href="#scenario-weighted-biomarker-score"></a>
 </h2>
 <p>The lab’s model computes a weighted score:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">score</mtext><mo>=</mo><msub><mi>w</mi><mn>1</mn></msub><msub><mi>x</mi><mn>1</mn></msub><mo>+</mo><msub><mi>w</mi><mn>2</mn></msub><msub><mi>x</mi><mn>2</mn></msub><mo>+</mo><msub><mi>w</mi><mn>3</mn></msub><msub><mi>x</mi><mn>3</mn></msub><mo>+</mo><msub><mi>w</mi><mn>4</mn></msub><msub><mi>x</mi><mn>4</mn></msub><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\text{score} = w_1 x_1 + w_2 x_2 + w_3 x_3 + w_4 x_4 + b</annotation></semantics></math></p>
-<p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>i</mi></msub><annotation encoding="application/x-tex">x_i</annotation></semantics></math>
-are biomarker values and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>i</mi></msub><mo>,</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">w_i, b</annotation></semantics></math>
-are proprietary coefficients.</p>
+<p><span class="math display">\[\text{score} = w_1 x_1 + w_2 x_2 + w_3
+x_3 + w_4 x_4 + b\]</span></p>
+<p>where <span class="math inline">\(x_i\)</span> are biomarker values
+and <span class="math inline">\(w_i, b\)</span> are proprietary
+coefficients.</p>
 </div>
 <div class="section level2">
 <h2 id="setup-hospitals-context-and-patient-data">Setup: hospital’s context and patient data<a class="anchor" aria-label="anchor" href="#setup-hospitals-context-and-patient-data"></a>
@@ -150,10 +155,10 @@ are proprietary coefficients.</p>
 <span><span class="va">biomarker3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.0</span>, <span class="fl">1.5</span>, <span class="fl">2.3</span>, <span class="fl">1.0</span>, <span class="fl">1.8</span>, <span class="fl">2.1</span>, <span class="fl">1.6</span>, <span class="fl">2.5</span><span class="op">)</span></span>
 <span><span class="va">biomarker4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.4</span>, <span class="fl">0.2</span>, <span class="fl">0.6</span>, <span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.2</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ct1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker1</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="va">ct2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker2</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="va">ct3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker3</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
-<span><span class="va">ct4</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker4</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">ct1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker1</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">ct2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker2</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">ct3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker3</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">ct4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">biomarker4</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="lab-side-apply-the-model-to-encrypted-data">Lab side: apply the model to encrypted data<a class="anchor" aria-label="anchor" href="#lab-side-apply-the-model-to-encrypted-data"></a>
@@ -172,7 +177,7 @@ model — without ever seeing patient values.</p>
 <h2 id="hospital-side-decrypt-the-results">Hospital side: decrypt the results<a class="anchor" aria-label="anchor" href="#hospital-side-decrypt-the-results"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_score</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_score</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">result</span>, <span class="fl">8L</span><span class="op">)</span></span>
 <span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span></span>
 <span></span>
@@ -199,7 +204,7 @@ model — without ever seeing patient values.</p>
 <span>                    <span class="va">w</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker3</span> <span class="op">+</span> <span class="va">w</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span> <span class="op">*</span> <span class="va">biomarker4</span> <span class="op">+</span> <span class="va">b</span></span>
 <span><span class="va">max_error</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">scores</span> <span class="op">-</span> <span class="va">cleartext_scores</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Maximum error vs cleartext: %.2e"</span>, <span class="va">max_error</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 9.37e-14"</span></span></code></pre>
+<pre><code><span><span class="co">## [1] "Maximum error vs cleartext: 8.04e-14"</span></span></code></pre>
 <p>CKKS gives essentially the same answer as cleartext, within
 floating-point precision.</p>
 </div>
@@ -213,32 +218,36 @@ floating-point precision.</p>
 hospital.</strong> The lab’s view of the protocol consists of the
 encrypted values it received and the encrypted score it returned.</li>
 <li>
-<strong>The lab’s coefficients
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>
-are never sent to the hospital in cleartext.</strong> They are used only
-to construct the returned encrypted score inside the lab’s R
-session.</li>
+<strong>The lab’s coefficients <span class="math inline">\(w\)</span> and <span class="math inline">\(b\)</span> are never sent to the hospital in
+cleartext.</strong> They are used only to construct the returned
+encrypted score inside the lab’s R session.</li>
 </ol>
-<table class="table">
-<colgroup>
-<col width="30%">
-<col width="69%">
-</colgroup>
-<thead><tr class="header">
-<th>Party</th>
-<th>Cleartext view</th>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<thead><tr>
+<th style="text-align:left;">
+Party
+</th>
+<th style="text-align:left;">
+Cleartext view
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td>Hospital</td>
-<td>Patient biomarkers (local), decrypted scores</td>
+<tr>
+<td style="text-align:left;">
+Hospital
+</td>
+<td style="text-align:left;">
+Patient biomarkers (local), decrypted scores
+</td>
 </tr>
-<tr class="even">
-<td>Lab</td>
-<td>Encrypted values only — no cleartext biomarker values, no cleartext
-scores</td>
+<tr>
+<td style="text-align:left;">
+Lab
+</td>
+<td style="text-align:left;">
+Encrypted values only — no cleartext biomarker values, no cleartext
+scores
+</td>
 </tr>
 </tbody>
 </table>
@@ -255,20 +264,22 @@ values the hospital encrypts. For a linear model with four biomarkers
 and a bias, the hospital can recover every coefficient with five queries
 by submitting the standard basis:</p>
 <ul>
-<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝒆</mi><mn>0</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.222em"></mspace><mo>⇒</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">score</mtext><mo>=</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\mathbf{e}_0 = (0,0,0,0)\ \Rightarrow\ \text{score} = b</annotation></semantics></math></li>
-<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝒆</mi><mn>1</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.222em"></mspace><mo>⇒</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">score</mtext><mo>=</mo><msub><mi>w</mi><mn>1</mn></msub><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\mathbf{e}_1 = (1,0,0,0)\ \Rightarrow\ \text{score} = w_1 + b</annotation></semantics></math></li>
-<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝒆</mi><mn>2</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.222em"></mspace><mo>⇒</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">score</mtext><mo>=</mo><msub><mi>w</mi><mn>2</mn></msub><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\mathbf{e}_2 = (0,1,0,0)\ \Rightarrow\ \text{score} = w_2 + b</annotation></semantics></math></li>
-<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝒆</mi><mn>3</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.222em"></mspace><mo>⇒</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">score</mtext><mo>=</mo><msub><mi>w</mi><mn>3</mn></msub><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\mathbf{e}_3 = (0,0,1,0)\ \Rightarrow\ \text{score} = w_3 + b</annotation></semantics></math></li>
-<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold-italic">𝒆</mi><mn>4</mn></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mspace width="0.222em"></mspace><mo>⇒</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">score</mtext><mo>=</mo><msub><mi>w</mi><mn>4</mn></msub><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">\mathbf{e}_4 = (0,0,0,1)\ \Rightarrow\ \text{score} = w_4 + b</annotation></semantics></math></li>
+<li><span class="math inline">\(\mathbf{e}_0 = (0,0,0,0)\ \Rightarrow\
+\text{score} = b\)</span></li>
+<li><span class="math inline">\(\mathbf{e}_1 = (1,0,0,0)\ \Rightarrow\
+\text{score} = w_1 + b\)</span></li>
+<li><span class="math inline">\(\mathbf{e}_2 = (0,1,0,0)\ \Rightarrow\
+\text{score} = w_2 + b\)</span></li>
+<li><span class="math inline">\(\mathbf{e}_3 = (0,0,1,0)\ \Rightarrow\
+\text{score} = w_3 + b\)</span></li>
+<li><span class="math inline">\(\mathbf{e}_4 = (0,0,0,1)\ \Rightarrow\
+\text{score} = w_4 + b\)</span></li>
 </ul>
 <p>Subtracting the first score from each of the others recovers the four
 weights exactly. We can run this attack in the same R session: wrap the
-lab’s scoring pipeline as a function that closes over
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>b</mi><annotation encoding="application/x-tex">b</annotation></semantics></math>
-without revealing them, then pack the five probes across slots 1–5 of
-the four encrypted biomarker vectors.</p>
+lab’s scoring pipeline as a function that closes over <span class="math inline">\(w\)</span> and <span class="math inline">\(b\)</span> without revealing them, then pack the
+five probes across slots 1–5 of the four encrypted biomarker
+vectors.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Lab pipeline wrapped as a function. Closes over `w` and `b`;</span></span>
 <span><span class="co">## the caller (hospital) never reads either.</span></span>
@@ -286,14 +297,14 @@ the four encrypted biomarker vectors.</p>
 <span><span class="va">probe_bio4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ct_probe</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio1</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio2</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio3</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio4</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio1</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio2</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio3</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">keys</span><span class="op">@</span><span class="va">public</span>, <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_ckks_packed_plaintext.html" class="external-link">make_ckks_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="va">probe_bio4</span><span class="op">)</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ct_probe_score</span> <span class="op">&lt;-</span> <span class="fu">lab_score</span><span class="op">(</span><span class="va">ct_probe</span><span class="op">)</span></span>
-<span><span class="va">probe_result</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_probe_score</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">probe_result</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_probe_score</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">probe_result</span>, <span class="fl">5L</span><span class="op">)</span></span>
 <span><span class="va">probe_scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">probe_result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
 <span></span>
@@ -312,20 +323,18 @@ the four encrypted biomarker vectors.</p>
 <p>The recovered coefficients match the lab’s true coefficients to CKKS
 precision. Five queries — one bias probe plus one per biomarker — are
 enough because the scoring function is linear in the biomarkers; a
-linear function of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
-inputs is fully specified by any
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">k + 1</annotation></semantics></math>
+linear function of <span class="math inline">\(k\)</span> inputs is
+fully specified by any <span class="math inline">\(k + 1\)</span>
 affinely independent point evaluations. FHE does not impede this
 extraction: the hospital is the party that decrypts, the scoring
 function is the thing being released, and the standard basis is a legal
 query vector.</p>
 </div>
 <div class="section level2">
-<h2 id="what-this-means-for-deployment">What this means for deployment<a class="anchor" aria-label="anchor" href="#what-this-means-for-deployment"></a>
+<h2 id="layered-defenses">Layered defenses<a class="anchor" aria-label="anchor" href="#layered-defenses"></a>
 </h2>
 <p>A deployment that needs the scoring function to stay proprietary has
-to layer defences <em>on top of</em> the FHE transport:</p>
+to layer defenses <em>on top of</em> the FHE transport:</p>
 <ul>
 <li>
 <strong>Output perturbation.</strong> Adding calibrated noise to the
@@ -355,7 +364,7 @@ model-extraction literature still apply.</li>
 <em>toy illustration</em> in that the linear scorer plus hospital-held
 secret key is exactly the configuration where the five-query attack
 works; a production model-as-a-service deployment is the transport layer
-plus at least one of the defences above.</p>
+plus at least one of the defenses above.</p>
 </div>
 <div class="section level2">
 <h2 id="network-protocol-serialization">Network protocol: serialization<a class="anchor" aria-label="anchor" href="#network-protocol-serialization"></a>
@@ -380,7 +389,7 @@ objects serialize for network transport:</p>
 <span></span>
 <span><span class="co">## Hospital receives, deserializes, decrypts</span></span>
 <span><span class="va">ct_recv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"weighted.bin"</span><span class="op">)</span>, <span class="st">"Ciphertext"</span><span class="op">)</span></span>
-<span><span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_recv</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">result</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_recv</span>, <span class="va">keys</span><span class="op">@</span><span class="va">secret</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/set_length.html" class="external-link">set_length</a></span><span class="op">(</span><span class="va">result</span>, <span class="fl">8L</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_real_packed_value.html" class="external-link">get_real_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 0.420 0.280 0.525 0.105 0.735 0.315 0.385 0.630</span></span></code></pre>

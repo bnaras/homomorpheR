@@ -44,7 +44,7 @@ nothing — called for its side effect of signaling a condition of class
 When
 [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
 or
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 re-raise this, the condition they signal carries a `site_name` field and
 **not** the site object. A
 [LocalSite](https://bnaras.github.io/homomorpheR/reference/LocalSite.md)

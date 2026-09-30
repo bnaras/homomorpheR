@@ -28,10 +28,10 @@ and, on the frozen legacy path, `PaillierParams`.
 Obtain the bundle a site holds with
 [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md);
 encrypt with
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md).
+[`encrypt()`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html).
 
 ## See also
 
 [OpenFHEParams](https://bnaras.github.io/homomorpheR/reference/OpenFHEParams.md),
 [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md),
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
+[actor-encryption](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)

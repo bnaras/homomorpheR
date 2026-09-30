@@ -37,6 +37,11 @@ distributed protocols:
 **Getting started**
 
 - `introduction` — a quick tour of homomorphic computation in R.
+- `precision` — which encrypted computations are exact and which are
+  approximate.
+- `privacy-preserving-aggregation` — exact integer aggregation under
+  BFV.
+- `query-count-threshold` — a count across sites under threshold keys.
 - `mle` — homomorphic maximum-likelihood estimation for a Poisson
   parameter.
 
@@ -45,22 +50,22 @@ distributed protocols:
 - `cox` — stratified Cox regression distributed across sites under CKKS.
 - `cox-threshold` — the same fit under *n*-of-*n* threshold key
   generation, so no single party can decrypt.
-- `cvxr-consensus-admm` — consensus ADMM for a `CVXR` convex program
-  under threshold FHE.
+- `cvxr-cox-lasso-dlbcl` — a Cox-lasso fit by consensus ADMM, with
+  `CVXR` at each site, under threshold FHE on the DLBCL gene-expression
+  data.
 - `secure-inference` — two-party encrypted prediction.
 - `encrypted-regression` — logistic regression on encrypted data via a
   Chebyshev sigmoid approximation.
 - `similarity` — federated cosine-similarity retrieval with site-private
   fine-tuned models.
-- `privacy-preserving-aggregation` — exact integer aggregation under
-  BFV.
 
 **Differential-privacy variants**
 
 - `cox-threshold-dp`, `cvxr-consensus-admm-dp` — the threshold-FHE
   protocols above with site-side differential-privacy noise.
 
-**Legacy Paillier vignettes** (the historical predecessors)
+**Legacy Paillier vignettes.** These no longer ship with the package.
+They are kept in the `paillier-archive/` directory of this repository.
 
 - `homomorphing` — Paillier homomorphic computations.
 - `DHCox` — distributed Cox regression via Paillier.
@@ -139,26 +144,41 @@ You can view everything, including documentation and vignettes on the
 - [`ThresholdMaster()`](https://bnaras.github.io/homomorpheR/reference/ThresholdMaster.md)
   : Threshold-CKKS master (n-of-n key generation)
 
+- [`actor-encryption`](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)
+  [`actor-decryption`](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)
+  : Encrypt and decrypt with protocol actors
+
 - [`add_site()`](https://bnaras.github.io/homomorpheR/reference/add_site.md)
   : Add a site to a non-cooperating party
 
 - [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
   : A site's encrypted contribution at a parameter value
 
+- [`cox_results`](https://bnaras.github.io/homomorpheR/reference/cox_results.md)
+  :
+
+  Precomputed results for the `cox` vignette
+
+- [`cox_threshold_dp_results`](https://bnaras.github.io/homomorpheR/reference/cox_threshold_dp_results.md)
+  :
+
+  Precomputed results for the `cox-threshold-dp` vignette
+
+- [`cox_threshold_results`](https://bnaras.github.io/homomorpheR/reference/cox_threshold_results.md)
+  :
+
+  Precomputed results for the `cox-threshold` vignette
+
+- [`cvxr_admm_dp_results`](https://bnaras.github.io/homomorpheR/reference/cvxr_admm_dp_results.md)
+  :
+
+  Precomputed results for the `cvxr-consensus-admm-dp` vignette
+
 - [`cvxr_consensus`](https://bnaras.github.io/homomorpheR/reference/cvxr_consensus.md)
   : Precomputed encrypted Cox-lasso consensus-ADMM results
 
-- [`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
-  : Decrypt a Paillier ciphertext
-
-- [`encrypt()`](https://bnaras.github.io/homomorpheR/reference/encrypt.md)
-  : Encrypt a value under a Paillier public key
-
 - [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md)
   : Encrypt a real number under a Paillier public key
-
-- [`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
-  : Encrypt a value under the public parameters a party holds
 
 - [`get_lambda()`](https://bnaras.github.io/homomorpheR/reference/get_lambda.md)
   : Return the secret lambda from a private key
@@ -191,9 +211,6 @@ You can view everything, including documentation and vignettes on the
 - [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
   : Run one round of the master/worker protocol
 
-- [`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
-  : Decrypt the master's protocol result back to a scalar real
-
 - [`paillier_keypair()`](https://bnaras.github.io/homomorpheR/reference/paillier_keypair.md)
   : Generate a new Paillier key pair
 
@@ -222,6 +239,11 @@ You can view everything, including documentation and vignettes on the
 
 - [`set_workers()`](https://bnaras.github.io/homomorpheR/reference/set_workers.md)
   : Wire a master to a flat list of workers
+
+- [`similarity_results`](https://bnaras.github.io/homomorpheR/reference/similarity_results.md)
+  :
+
+  Precomputed results for the `similarity` vignette
 
 - [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md)
   : The public parameters a party holds
@@ -252,8 +274,6 @@ You can view everything, including documentation and vignettes on the
   Regression](https://bnaras.github.io/homomorpheR/articles/cox.md):
 - [Distributed Cox Regression with Threshold Key
   Generation](https://bnaras.github.io/homomorpheR/articles/cox-threshold.md):
-- [Federated Consensus ADMM with
-  CVXR](https://bnaras.github.io/homomorpheR/articles/cvxr-consensus-admm.md):
 - [Federated Cox-Lasso via Consensus ADMM on
   DLBCL](https://bnaras.github.io/homomorpheR/articles/cvxr-cox-lasso-dlbcl.md):
 

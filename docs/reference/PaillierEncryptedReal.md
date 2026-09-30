@@ -44,7 +44,7 @@ carrying the integer part, the
 [PaillierCiphertext](https://bnaras.github.io/homomorpheR/reference/PaillierCiphertext.md)
 carrying the fractional part scaled by `den`, and the denominator
 itself. It adds and subtracts with `+` and `-`;
-[`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 recombines the two parts and re-centers the result into `(-n/2, n/2)` so
 that signed values round-trip. Produced by
 [`encrypt_real()`](https://bnaras.github.io/homomorpheR/reference/encrypt_real.md).
@@ -55,7 +55,7 @@ Paillier's plaintext space is `Z_n` (a residue class modulo `n`, the
 modulus carried by the public key). Negative real numbers and running
 totals that cross zero are stored in their mod-`n` representation, which
 lives in the upper half of `[0, n)`. The
-[`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 method for `PaillierEncryptedReal` re-centers the raw decrypted residues
 into the interval `(-n/2, n/2)` so that signed values round-trip
 correctly. This means a `PaillierEncryptedReal` is *correct for signed

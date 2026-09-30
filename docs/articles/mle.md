@@ -2,15 +2,13 @@
 
 ## The statistical problem
 
-Suppose we have count data $`y_1, y_2, \ldots, y_n`$ that we model as
+Suppose we have count data \\y_1, y_2, \ldots, y_n\\ that we model as
 independent draws from a Poisson distribution with unknown parameter
-$`\lambda`$. The maximum likelihood estimate is
-$`\hat{\lambda} = \bar{y}`$, obtained by minimizing the negative
-log-likelihood
+\\\lambda\\. The maximum likelihood estimate is \\\hat{\lambda} =
+\bar{y}\\, obtained by minimizing the negative log-likelihood
 
-``` math
--\ell(\lambda \mid y) \;=\; -\sum_{i=1}^{n} \log p(y_i \mid \lambda).
-```
+\\ -\ell(\lambda \mid y) \\=\\ -\sum\_{i=1}^{n} \log p(y_i \mid
+\lambda). \\
 
 In R, this is a one-liner using
 [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html):
@@ -55,11 +53,10 @@ To simulate this, partition `y`:
 `y2`` ``<-`` ``y``[``21``:``27``]`\
 `y3`` ``<-`` ``y``[``28``:``40``]`
 
-The negative log-likelihood factorises additively:
+The negative log-likelihood factorizes additively:
 
-``` math
--\ell(\lambda \mid y) \;=\; -\ell_1(\lambda \mid y_1) - \ell_2(\lambda \mid y_2) - \ell_3(\lambda \mid y_3)
-```
+\\ -\ell(\lambda \mid y) \\=\\ -\ell_1(\lambda \mid y_1) -
+\ell_2(\lambda \mid y_2) - \ell_3(\lambda \mid y_3) \\
 
 so each site can compute its local term in the clear and only the *sum*
 of the three local likelihoods needs to travel between parties — and the
@@ -76,46 +73,32 @@ In words:
 
 0.  The master generates a CKKS context and key pair, distributes the
     public key to the three workers, keeps the secret key.
-1.  The master broadcasts the current $`\lambda`$ to each worker.
+1.  The master broadcasts the current \\\lambda\\ to each worker.
 2.  Each worker computes its local negative log-likelihood
-    $`\ell_i(\lambda)`$ on its private data, encrypts the result under
-    the master’s public key, and returns $`E(\ell_i)`$ to the master.
+    \\\ell_i(\lambda)\\ on its private data, encrypts the result under
+    the master’s public key, and returns \\E(\ell_i)\\ to the master.
 3.  The master sums the encrypted contributions homomorphically:
-    $`E(\ell) = E(\ell_1) \boxplus E(\ell_2) \boxplus E(\ell_3)
-    = E(\ell_1 + \ell_2 + \ell_3)`$.
-4.  The master decrypts $`E(\ell)`$ to recover $`\ell`$.
-5.  The master hands $`\ell`$ to the optimizer; the protocol repeats for
-    each new guess of $`\lambda`$ until convergence.
+    \\E(\ell) = E(\ell_1) \boxplus E(\ell_2) \boxplus E(\ell_3) =
+    E(\ell_1 + \ell_2 + \ell_3)\\.
+4.  The master decrypts \\E(\ell)\\ to recover \\\ell\\.
+5.  The master hands \\\ell\\ to the optimizer; the protocol repeats for
+    each new guess of \\\lambda\\ until convergence.
 
 This is the realistic shape: each worker independently does its local
 computation and ships an encrypted summary; the master only sees the
 encrypted summaries (and, after homomorphic summation, the decrypted
 total). With a single-decrypter master, the master *could* decrypt
-individual $`E(\ell_i)`$ in principle; the cryptographic story
+individual \\E(\ell_i)\\ in principle; the cryptographic story
 strengthens when paired with threshold key generation, where no single
 party holds the secret key. We will revisit that in the Cox threshold
 vignette.
 
-(The companion Paillier vignette `vignette("homomorphing")` uses an
-older *round-robin* protocol with a random offset traveling around a
-chain. That idiom was a Paillier-era pedagogical artifact; with proper
-FHE plus threshold key generation we no longer need it.)
-
-## Why CKKS, not Paillier?
-
-The companion `homomorphing` vignette uses Paillier, which is purely
-*additive*. Real-valued log-likelihoods had to be split into integer and
-fractional parts and rationally approximated with a denominator of
-$`2^{256}`$. CKKS encrypts real numbers natively and the protocol
-becomes much cleaner: each step is just `+` between two encrypted
-values. CKKS also supports multiplication, which the Cox vignette will
-need.
-
 ## Implementation
 
-The actor surface — `Site` (worker), `Master`, the master/worker runner
-— is the same code as in any other distributed-stats vignette in this
-package; only the master’s *backend* changes. `homomorpheR` exports
+The computational topology — `Site` (worker), `Master`, the
+master/worker runner — is the same code as in any other
+distributed-stats vignette in this package; only the master’s *backend*
+changes. `homomorpheR` exports
 [`make_ckks_master()`](https://bnaras.github.io/homomorpheR/reference/make_ckks_master.md)
 that takes an `openfhe.R` `CryptoContext` and `KeyPair` and routes
 encryption/decryption through CKKS. The worker class and the
@@ -186,12 +169,15 @@ any other party.
 
 ## Beyond MLE
 
-For Poisson MLE the protocol uses only additions, so even the purely
-additive Paillier scheme suffices (see `vignette("homomorphing")`). CKKS
-is a clean improvement but not strictly necessary here. The story
-changes for likelihoods that need products or higher-order statistics —
-distributed Cox regression, for example — where CKKS’s multiplicative
-homomorphism becomes a prerequisite.
+For Poisson MLE the protocol uses only additions, so the additive
+Paillier scheme would also suffice. CKKS saves the integer encoding of
+real numbers that Paillier needs. The same holds for stratified Cox
+regression
+([`vignette("cox")`](https://bnaras.github.io/homomorpheR/articles/cox.md)),
+where the sites’ partial log-likelihoods are summed. Multiplying
+encrypted values is needed only when the computation itself runs on
+encrypted data, as in the sigmoid of
+[`vignette("encrypted-regression")`](https://bnaras.github.io/homomorpheR/articles/encrypted-regression.md).
 
 ## CAVEAT
 

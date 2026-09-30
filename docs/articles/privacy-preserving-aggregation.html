@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Privacy-Preserving Count Aggregation">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Privacy-Preserving Count Aggregation">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -86,7 +92,7 @@
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/privacy-preserving-aggregation.Rmd" class="external-link"><code>vignettes/privacy-preserving-aggregation.Rmd</code></a></small>
       <div class="d-none name"><code>privacy-preserving-aggregation.Rmd</code></div>
@@ -103,9 +109,7 @@ Narasimhan</h4>
 <code>biomarker &lt; 0.2</code>”) without revealing the individual
 per-site counts to anyone, including the aggregator running the
 aggregation.</p>
-<p>This is the same pattern the Paillier vignette
-<code>vignette("QueryNCP")</code> demonstrates with non-cooperating
-parties. Here we use OpenFHE’s <strong>BFV</strong> scheme via the
+<p>Here we use OpenFHE’s <strong>BFV</strong> scheme via the
 <code>openfhe.R</code> package. BFV operates on <em>integer vectors</em>
 with both addition and multiplication — well-suited to counting and
 other exact integer-valued aggregates.</p>
@@ -155,7 +159,7 @@ and <code>pk</code> locally.</p>
 <span>                 <span class="va">site_df</span><span class="op">$</span><span class="va">sex</span> <span class="op">==</span> <span class="st">"F"</span> <span class="op">&amp;</span></span>
 <span>                 <span class="va">site_df</span><span class="op">$</span><span class="va">biomarker</span> <span class="op">&lt;</span> <span class="fl">0.2</span><span class="op">)</span></span>
 <span>    <span class="va">pt</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html" class="external-link">make_packed_plaintext</a></span><span class="op">(</span><span class="va">cc</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">count</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pk</span>, <span class="va">pt</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">pk</span>, <span class="va">pt</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">ct_site1</span> <span class="op">&lt;-</span> <span class="fu">site_encrypt</span><span class="op">(</span><span class="va">site_data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="va">cc</span>, <span class="va">pk</span><span class="op">)</span></span>
@@ -172,7 +176,7 @@ nothing about any individual site’s count.</p>
 <span><span class="va">ct_total</span> <span class="op">&lt;-</span> <span class="va">ct_site1</span> <span class="op">+</span> <span class="va">ct_site2</span> <span class="op">+</span> <span class="va">ct_site3</span></span>
 <span></span>
 <span><span class="co">## Only the aggregator holds the secret key.</span></span>
-<span><span class="va">result</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_total</span>, <span class="va">sk</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">result</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_total</span>, <span class="va">sk</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="va">total_count</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html" class="external-link">get_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">total_count</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 105</span></span></code></pre>
@@ -194,7 +198,7 @@ arithmetic used elsewhere in this package, it introduces no
 approximation error at all.</p>
 </div>
 <div class="section level2">
-<h2 id="what-just-happened">What just happened<a class="anchor" aria-label="anchor" href="#what-just-happened"></a>
+<h2 id="the-details-of-what-happened">The details of what happened<a class="anchor" aria-label="anchor" href="#the-details-of-what-happened"></a>
 </h2>
 <ol style="list-style-type: decimal">
 <li>The aggregator created an encryption context and distributed the
@@ -222,42 +226,15 @@ public key. <code>openfhe.R</code> provides serialization:</p>
 <span><span class="va">cc_remote</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"context.bin"</span><span class="op">)</span>, <span class="st">"CryptoContext"</span><span class="op">)</span></span>
 <span><span class="va">pk_remote</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"pubkey.bin"</span><span class="op">)</span>, <span class="st">"PublicKey"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ct</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/encrypt.html">encrypt</a></span><span class="op">(</span><span class="va">pk_remote</span>,</span>
+<span><span class="va">ct</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/encrypt.html" class="external-link">encrypt</a></span><span class="op">(</span><span class="va">pk_remote</span>,</span>
 <span>              <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/make_packed_plaintext.html" class="external-link">make_packed_plaintext</a></span><span class="op">(</span><span class="va">cc_remote</span>, <span class="fl">42L</span><span class="op">)</span>,</span>
 <span>              cc <span class="op">=</span> <span class="va">cc_remote</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_serialize.html" class="external-link">fhe_serialize</a></span><span class="op">(</span><span class="va">ct</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"site_count.bin"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ct_received</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_deserialize.html" class="external-link">fhe_deserialize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">tdir</span>, <span class="st">"site_count.bin"</span><span class="op">)</span>, <span class="st">"Ciphertext"</span><span class="op">)</span></span>
-<span><span class="va">result</span>      <span class="op">&lt;-</span> <span class="fu"><a href="../reference/decrypt.html">decrypt</a></span><span class="op">(</span><span class="va">ct_received</span>, <span class="va">sk</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
+<span><span class="va">result</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/decrypt.html" class="external-link">decrypt</a></span><span class="op">(</span><span class="va">ct_received</span>, <span class="va">sk</span>, cc <span class="op">=</span> <span class="va">cc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/get_packed_value.html" class="external-link">get_packed_value</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 42</span></span></code></pre>
-</div>
-<div class="section level2">
-<h2 id="comparison-with-the-paillier-vignettes">Comparison with the Paillier vignettes<a class="anchor" aria-label="anchor" href="#comparison-with-the-paillier-vignettes"></a>
-</h2>
-<p>The legacy Paillier vignettes (<code>vignette("QueryNCP")</code> in
-particular) achieve the same kind of count aggregation using Paillier
-encryption, which supports only additive homomorphism. With
-<code>openfhe.R</code>’s BFV:</p>
-<ul>
-<li>
-<strong>Multiplication</strong> is available — encrypted products,
-variances, more complex integer-valued aggregates.</li>
-<li>
-<strong>Performance</strong> — OpenFHE’s optimized C++ backend is
-orders of magnitude faster than pure-R Paillier on
-<code><a href="https://rdrr.io/pkg/gmp/man/biginteger.html" class="external-link">gmp::bigz</a></code>.</li>
-<li>
-<strong>Packing</strong> — BFV encrypts whole integer vectors, and
-one arithmetic operation acts on every position at once. Several
-per-site counts can therefore ride in the slots of a single encrypted
-value and be aggregated together.</li>
-<li>
-<strong>Threshold FHE</strong> — <code><a href="https://openfheorg.github.io/openfhe.R/reference/multiparty_key_gen.html" class="external-link">multiparty_key_gen()</a></code>
-lets the secret key be split across parties so no single party can
-decrypt unilaterally. (See <code><a href="../articles/cox-threshold.html">vignette("cox-threshold")</a></code> for
-the master/worker analogue under CKKS.)</li>
-</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

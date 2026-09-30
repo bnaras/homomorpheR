@@ -29,5 +29,5 @@ with properties `cc` and `pk`.
 
 ## See also
 
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md),
+[actor-encryption](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md),
 [`site_params()`](https://bnaras.github.io/homomorpheR/reference/site_params.md)

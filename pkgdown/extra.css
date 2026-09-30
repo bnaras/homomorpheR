@@ -1,0 +1,7 @@
+/* pkgdown sets `main table { display: block; overflow: auto; }`, which
+   makes a table only as wide as its columns and wraps its caption to
+   that width. Restore table layout so kableExtra's full_width applies. */
+main table.table {
+  display: table;
+  width: 100%;
+}

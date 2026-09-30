@@ -30,5 +30,5 @@ encrypted big integer, which lives modulo `n^2`) and `pubkey` (the
 [PaillierPublicKey](https://bnaras.github.io/homomorpheR/reference/PaillierPublicKey.md)
 it was encrypted under). Ciphertexts under the same key add and subtract
 with `+` and `-`, and multiply by a cleartext integer with `*`;
-[`decrypt()`](https://bnaras.github.io/homomorpheR/reference/decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 recovers the cleartext.

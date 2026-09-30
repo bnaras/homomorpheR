@@ -12,7 +12,7 @@ cryptographic backend needs; the protocol body in
 reaches sites through
 [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
 and recovers the total through the
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 generic, which dispatches on the concrete master class, so the same
 protocol runs over any backend.
 
@@ -36,7 +36,7 @@ Master(name = character(0), state = new.env(parent = emptyenv()))
 
 nothing — this class is abstract, so calling it raises an error instead
 of returning an object. It exists so that
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 and
 [`master_aggregate()`](https://bnaras.github.io/homomorpheR/reference/master_aggregate.md)
 dispatch on a common parent. Construct a concrete master with
@@ -48,9 +48,11 @@ or
 
 A master never encrypts site data, and has no encryption entry point at
 all. Each party encrypts its own values with
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md),
-using the public parameters it was handed when it was wired. The
-asymmetry is deliberate and worth reading off the API: decryption is
-privileged — it needs secret material, or the standing to convene every
-site — while encryption needs only public material and is available to
-anyone.
+[`encrypt()`](https://openfheorg.github.io/openfhe.R/reference/encrypt.html),
+which for a
+[Site](https://bnaras.github.io/homomorpheR/reference/Site.md) takes
+nothing but the site itself: it encrypts with the public parameters it
+was handed when it was wired. The asymmetry is deliberate and worth
+reading off the API: decryption is privileged — it needs secret
+material, or the standing to convene every site — while encryption needs
+only public material and is available to anyone.

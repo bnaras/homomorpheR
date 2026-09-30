@@ -38,4 +38,4 @@ for a caller to encrypt with.
 ## See also
 
 [`set_public_params()`](https://bnaras.github.io/homomorpheR/reference/set_public_params.md),
-[`encrypt_under()`](https://bnaras.github.io/homomorpheR/reference/encrypt_under.md)
+[actor-encryption](https://bnaras.github.io/homomorpheR/reference/actor-encryption.md)

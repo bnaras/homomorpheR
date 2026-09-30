@@ -3,7 +3,7 @@
 Backend-agnostic: sites are reached through
 [`contribute()`](https://bnaras.github.io/homomorpheR/reference/contribute.md)
 and the total is recovered through the
-[`master_decrypt()`](https://bnaras.github.io/homomorpheR/reference/master_decrypt.md)
+[`decrypt()`](https://openfheorg.github.io/openfhe.R/reference/decrypt.html)
 generic, so the same body works over
 [CKKSMaster](https://bnaras.github.io/homomorpheR/reference/CKKSMaster.md)
 and

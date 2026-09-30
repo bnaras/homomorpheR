@@ -11,11 +11,18 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Threshold Cox + Output Differential Privacy (Demonstration)">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Threshold Cox + Output Differential Privacy (Demonstration)">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">homomorpheR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +57,6 @@
     <li><a class="dropdown-item" href="../articles/mle.html">Distributed Maximum Likelihood Estimation</a></li>
     <li><a class="dropdown-item" href="../articles/cox.html">Distributed Stratified Cox Regression</a></li>
     <li><a class="dropdown-item" href="../articles/cox-threshold.html">Distributed Cox Regression with Threshold Key Generation</a></li>
-    <li><a class="dropdown-item" href="../articles/cvxr-consensus-admm.html">Federated Consensus ADMM with CVXR</a></li>
     <li><a class="dropdown-item" href="../articles/cvxr-cox-lasso-dlbcl.html">Federated Cox-Lasso via Consensus ADMM on DLBCL</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Prediction and retrieval</h6></li>
@@ -79,14 +85,14 @@
 
 
 
-
+<script src="cox-threshold-dp_files/kePrint-0.0.1/kePrint.js"></script><link href="cox-threshold-dp_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Threshold Cox + Output Differential Privacy (Demonstration)</h1>
                         <h4 data-toc-skip class="author">Balasubramanian
 Narasimhan</h4>
             
-            <h4 data-toc-skip class="date">2026-09-21</h4>
+            <h4 data-toc-skip class="date">2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/HEAD/vignettes/cox-threshold-dp.Rmd" class="external-link"><code>vignettes/cox-threshold-dp.Rmd</code></a></small>
       <div class="d-none name"><code>cox-threshold-dp.Rmd</code></div>
@@ -97,68 +103,36 @@ Narasimhan</h4>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>This vignette is a <strong>demonstration</strong>, not a
-recommendation. <code><a href="../articles/cox-threshold.html">vignette("cox-threshold")</a></code> shows the
-lossless threshold-FHE protocol: bit-identical to <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code>,
-no single decrypter, and the aggregator sees only
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta)</annotation></semantics></math>
-at each optimizer query. That trajectory of joint log-likelihood values
-is the residual exposure the lossless protocol accepts as the cost of
-preserving accuracy.</p>
-<p>A natural question is whether one can compose the threshold-FHE
-channel with <strong>output differential privacy</strong> to bound that
-residual exposure formally. The answer in this simulation is “yes, the
-cryptographic protocol composes cleanly and the implementation is one
-extra <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code> call per site per query, but the
-accuracy/privacy trade-off does not produce a usable point at small
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
-given the optimizers we use here.” This vignette runs that trade-off
-end-to-end and reports the numbers.</p>
-<p><code>feedback_he_not_dp</code> in the package’s notes records the
-framing explicitly: lossless threshold-FHE is the package’s primary
-path; DP demonstrations show <em>what happens if</em> a user composes
-output DP on top, not the recommended deployment for precision-critical
-workloads.</p>
+<p>This vignette is a demonstration. The previous
+<code><a href="../articles/cox-threshold.html">vignette("cox-threshold")</a></code> fits the Cox model under
+threshold FHE: the fit matches the cleartext fit, no single party can
+decrypt, and the aggregator sees only the joint log-likelihood <span class="math inline">\(\ell(\beta)\)</span> at each optimizer query.</p>
+<p>Here we ask what happens if each site also adds noise, so that the
+released values satisfy <em>output differential privacy</em>. Adding the
+noise takes one extra <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code> call per site per query. With
+the optimizers used here, the fits are poor at any noise level that
+gives a small <span class="math inline">\(\varepsilon\)</span>. The
+vignette runs the fits and reports the numbers.</p>
 </div>
 <div class="section level2">
 <h2 id="a-brief-output-dp-primer">A brief output-DP primer<a class="anchor" aria-label="anchor" href="#a-brief-output-dp-primer"></a>
 </h2>
-<p>Given a query
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo>:</mo><mi mathvariant="script">𝒟</mi><mo>→</mo><mi mathvariant="double-struck">ℝ</mi></mrow><annotation encoding="application/x-tex">f: \mathcal{D} \to \mathbb{R}</annotation></semantics></math>
-on a dataset
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>,
-the <strong>Gaussian mechanism</strong> releases
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>f</mi><mo accent="true">̃</mo></mover><mo stretchy="false" form="prefix">(</mo><mi>D</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>f</mi><mo stretchy="false" form="prefix">(</mo><mi>D</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\tilde f(D) = f(D) + \mathcal{N}(0, \sigma^2)</annotation></semantics></math>.
-If
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>’s
-<em>sensitivity</em> (the largest change
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
-can undergo when one record is added or removed) is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="normal">Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>,
-then for any
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>∈</mo><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varepsilon \in (0, 1)</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\delta &gt; 0</annotation></semantics></math>,
-choosing
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>≥</mo><mi mathvariant="normal">Δ</mi><msqrt><mrow><mn>2</mn><mrow><mi mathvariant="normal">ln</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1.25</mn><mi>/</mi><mi>δ</mi><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><mi>/</mi><mi>ε</mi></mrow><annotation encoding="application/x-tex">\sigma \geq \Delta \sqrt{2\ln(1.25/\delta)}/\varepsilon</annotation></semantics></math>
-makes a single release of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>f</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\tilde f</annotation></semantics></math>
-satisfy
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>ε</mi><mo>,</mo><mi>δ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\varepsilon, \delta)</annotation></semantics></math>
-differential privacy.</p>
+<p>Given a query <span class="math inline">\(f: \mathcal{D} \to
+\mathbb{R}\)</span> on a dataset <span class="math inline">\(D\)</span>,
+the <em>Gaussian mechanism</em> <span class="citation">(Dwork and Roth
+2014, sec. 3.5.3)</span> releases <span class="math inline">\(\tilde
+f(D) = f(D) + \mathcal{N}(0, \sigma^2)\)</span>. If <span class="math inline">\(f\)</span>’s <em>sensitivity</em> (the largest
+change <span class="math inline">\(f\)</span> can undergo when one
+record is added or removed) is <span class="math inline">\(\Delta\)</span>, then for any <span class="math inline">\(\varepsilon \in (0, 1)\)</span> and <span class="math inline">\(\delta &gt; 0\)</span>, choosing <span class="math inline">\(\sigma \geq \Delta
+\sqrt{2\ln(1.25/\delta)}/\varepsilon\)</span> makes a single release of
+<span class="math inline">\(\tilde f\)</span> satisfy <span class="math inline">\((\varepsilon, \delta)\)</span> differential
+privacy.</p>
 <p>The optimizer issues many queries, so the per-query budget composes.
-We use <strong>zCDP composition</strong> [Bun &amp; Steinke, 2016]: the
-Gaussian mechanism is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>-zCDP
-with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi mathvariant="normal">Δ</mi><mi>/</mi><mi>σ</mi><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup><mi>/</mi><mn>2</mn></mrow><annotation encoding="application/x-tex">\rho = (\Delta/\sigma)^2/2</annotation></semantics></math>;
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
-queries compose linearly to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>⋅</mo><mi>ρ</mi></mrow><annotation encoding="application/x-tex">T \cdot \rho</annotation></semantics></math>
-in zCDP units; and that converts to
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>ε</mi><mo>,</mo><mi>δ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(\varepsilon, \delta)</annotation></semantics></math>
-via
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>=</mo><mi>ρ</mi><mo>+</mo><mn>2</mn><msqrt><mrow><mi>ρ</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mi>/</mi><mi>δ</mi><mo stretchy="false" form="postfix">)</mo></mrow></msqrt></mrow><annotation encoding="application/x-tex">\varepsilon = \rho + 2\sqrt{\rho \log(1/\delta)}</annotation></semantics></math>.</p>
+We use <em>zCDP composition</em> <span class="citation">(Bun and Steinke
+2016)</span>: the Gaussian mechanism is <span class="math inline">\(\rho\)</span>-zCDP with <span class="math inline">\(\rho = (\Delta/\sigma)^2/2\)</span>; <span class="math inline">\(T\)</span> queries compose linearly to <span class="math inline">\(T \cdot \rho\)</span> in zCDP units; and that
+converts to <span class="math inline">\((\varepsilon, \delta)\)</span>
+via <span class="math inline">\(\varepsilon = \rho + 2\sqrt{\rho
+\log(1/\delta)}\)</span>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-protocol">The protocol<a class="anchor" aria-label="anchor" href="#the-protocol"></a>
@@ -166,10 +140,8 @@ via
 <p>The setup is identical to <code><a href="../articles/cox-threshold.html">vignette("cox-threshold")</a></code>,
 except each site adds an independent Gaussian noise term to its local
 contribution before encryption. Since variances of independent normals
-add, the decrypted total is
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta) + \mathcal{N}(0, \sigma^2)</annotation></semantics></math>
-when each site adds
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mi>/</mi><mi>N</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{N}(0, \sigma^2/N)</annotation></semantics></math>.</p>
+add, the decrypted total is <span class="math inline">\(\ell(\beta) +
+\mathcal{N}(0, \sigma^2)\)</span> when each site adds <span class="math inline">\(\mathcal{N}(0, \sigma^2/N)\)</span>.</p>
 </div>
 <div class="section level2">
 <h2 id="the-cox-setup-same-dlbcl-data-as-the-other-cox-vignettes">The Cox setup (same DLBCL data as the other Cox vignettes)<a class="anchor" aria-label="anchor" href="#the-cox-setup-same-dlbcl-data-as-the-other-cox-vignettes"></a>
@@ -207,12 +179,11 @@ when each site adds
 <div class="section level2">
 <h2 id="threshold-setup-and-dp-noised-workers">Threshold setup and DP-noised workers<a class="anchor" aria-label="anchor" href="#threshold-setup-and-dp-noised-workers"></a>
 </h2>
-<p>The threshold infrastructure is the same as
-<code>cox-threshold</code>. The DP twist lives entirely inside the
-per-worker <code>contribution_fn</code>: each worker adds an independent
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mi>/</mi><mi>N</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{N}(0, \sigma^2/N)</annotation></semantics></math>
-draw to its local nLL before returning. The master/worker runner sees
-only the noisy local value and encrypts it as usual.</p>
+<p>The threshold setup is also the same as in
+<code>cox-threshold</code>. The only change is in each worker’s
+<code>contribution_fn</code>: it adds an independent <span class="math inline">\(\mathcal{N}(0, \sigma^2/N)\)</span> draw to its
+local nLL before returning it. The noisy value is then encrypted as
+usual.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cc</span> <span class="op">&lt;-</span> <span class="fu">openfhe.R</span><span class="fu">::</span><span class="fu"><a href="https://openfheorg.github.io/openfhe.R/reference/fhe_context.html" class="external-link">fhe_context</a></span><span class="op">(</span><span class="st">"CKKS"</span>,</span>
 <span>                           multiplicative_depth <span class="op">=</span> <span class="fl">1L</span>,</span>
@@ -252,9 +223,8 @@ only the noisy local value and encrypts it as usual.</p>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="mechanical-correctness-sigma-0-reproduces-cox-threshold">Mechanical correctness:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
-reproduces <code>cox-threshold</code><a class="anchor" aria-label="anchor" href="#mechanical-correctness-sigma-0-reproduces-cox-threshold"></a>
+<h2 id="mechanical-correctness-sigma-0-reproduces-cox-threshold">Mechanical correctness: <span class="math inline">\(\sigma =
+0\)</span> reproduces <code>cox-threshold</code><a class="anchor" aria-label="anchor" href="#mechanical-correctness-sigma-0-reproduces-cox-threshold"></a>
 </h2>
 <p>When the noise is zero the protocol reduces to the lossless threshold
 protocol. The fitted coefficients match <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code> to
@@ -267,481 +237,705 @@ threshold-CKKS precision.</p>
 <span>    protocol    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_clean</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">agg_coef</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>    abs_diff    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_clean</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">agg_coef</span><span class="op">)</span><span class="op">]</span> <span class="op">-</span> <span class="va">agg_coef</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">clean_check</span>, digits <span class="op">=</span> <span class="fl">9</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"Threshold-DP protocol at sigma = 0 vs cleartext coxph()"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Threshold-DP protocol at sigma = 0 vs cleartext
-coxph()</caption>
-<thead><tr class="header">
-<th align="left">coefficient</th>
-<th align="right">cleartext</th>
-<th align="right">protocol</th>
-<th align="right">abs_diff</th>
+<span><span class="fu">show_clean</span><span class="op">(</span><span class="va">clean_check</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Threshold-DP protocol at <span class="math inline">\(\sigma = 0\)</span>
+vs cleartext <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code>
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Coefficient
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\hat\beta\)</span>, <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code>
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\hat\beta\)</span>, protocol at <span class="math inline">\(\sigma = 0\)</span>
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\lvert \text{difference} \rvert\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">GCB_sig</td>
-<td align="right">-0.2638716</td>
-<td align="right">-0.2638698</td>
-<td align="right">1.823e-06</td>
+<tr>
+<td style="text-align:left;">
+GCB_sig
+</td>
+<td style="text-align:right;">
+-0.2638716
+</td>
+<td style="text-align:right;">
+-0.2638698
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.822 \times 10^{-6}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">LN_sig</td>
-<td align="right">-0.2543592</td>
-<td align="right">-0.2543587</td>
-<td align="right">5.340e-07</td>
+<tr>
+<td style="text-align:left;">
+LN_sig
+</td>
+<td style="text-align:right;">
+-0.2543592
+</td>
+<td style="text-align:right;">
+-0.2543587
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5.338 \times 10^{-7}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">Prolif_sig</td>
-<td align="right">0.3031258</td>
-<td align="right">0.3031250</td>
-<td align="right">7.480e-07</td>
+<tr>
+<td style="text-align:left;">
+Prolif_sig
+</td>
+<td style="text-align:right;">
+0.3031258
+</td>
+<td style="text-align:right;">
+0.3031250
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(7.481 \times 10^{-7}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">BMP6</td>
-<td align="right">0.3036375</td>
-<td align="right">0.3036367</td>
-<td align="right">7.940e-07</td>
+<tr>
+<td style="text-align:left;">
+BMP6
+</td>
+<td style="text-align:right;">
+0.3036375
+</td>
+<td style="text-align:right;">
+0.3036367
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(7.937 \times 10^{-7}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">MHC2_sig</td>
-<td align="right">-0.3191467</td>
-<td align="right">-0.3191459</td>
-<td align="right">8.420e-07</td>
+<tr>
+<td style="text-align:left;">
+MHC2_sig
+</td>
+<td style="text-align:right;">
+-0.3191467
+</td>
+<td style="text-align:right;">
+-0.3191459
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(8.417 \times 10^{-7}\)</span>
+</td>
 </tr>
 </tbody>
 </table>
-<p>The maximum absolute coefficient difference at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
-is 1.82^{-6}. The DP layer adds no measurable error when the noise is
-zero, so the cryptographic channel is doing exactly what it does in the
-lossless vignette. Every deviation from <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code> below is
-attributable to the noise.</p>
+<p>The maximum absolute coefficient difference at <span class="math inline">\(\sigma = 0\)</span> is 1.82 × 10<sup>-6</sup>. So
+any deviation from <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph()</a></code> below comes from the noise.</p>
 </div>
 <div class="section level2">
-<h2 id="bfgs-at-increasing-noise-where-does-it-break">BFGS at increasing noise: where does it break?<a class="anchor" aria-label="anchor" href="#bfgs-at-increasing-noise-where-does-it-break"></a>
+<h2 id="increasing-noise-where-does-it-break">Increasing noise: where does it break?<a class="anchor" aria-label="anchor" href="#increasing-noise-where-does-it-break"></a>
 </h2>
-<p>We sweep
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-across four orders of magnitude. Each fit is one full BFGS run over the
-threshold-DP encrypted nLL.</p>
+<p>We sweep <span class="math inline">\(\sigma\)</span> across five
+orders of magnitude. Each fit is one full BFGS run over the threshold-DP
+encrypted nLL. BFGS estimates the gradient by finite differences of
+these nLL values.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sigma_grid_bfgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e-4</span>, <span class="fl">1e-3</span>, <span class="fl">1e-2</span>, <span class="fl">1e-1</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">fits_bfgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sigma_grid_bfgs</span>, <span class="va">fit_at_sigma</span>, method <span class="op">=</span> <span class="st">"BFGS"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fits_bfgs</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"sigma_%g"</span>, <span class="va">sigma_grid_bfgs</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">sigma_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e-5</span>, <span class="fl">1e-4</span>, <span class="fl">1e-3</span>, <span class="fl">1e-2</span>, <span class="fl">1e-1</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">bfgs_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    sigma        <span class="op">=</span> <span class="va">sigma_grid_bfgs</span>,</span>
-<span>    n_evals      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="va">f</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    GCB_sig      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"GCB_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    LN_sig       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"LN_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    Prolif_sig   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"Prolif_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    BMP6         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"BMP6"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    MHC2_sig     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"MHC2_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    max_abs_diff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
+<span><span class="va">sweep_table</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fits</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    sigma        <span class="op">=</span> <span class="va">sigma_grid</span>,</span>
+<span>    n_evals      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="va">f</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    GCB_sig      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"GCB_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    LN_sig       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"LN_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    Prolif_sig   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"Prolif_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    BMP6         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"BMP6"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    MHC2_sig     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[[</span><span class="st">"MHC2_sig"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>    max_abs_diff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
 <span>        <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="op">-</span> <span class="va">agg_coef</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">bfgs_table</span>, digits <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"BFGS over the threshold-DP nLL at five noise scales"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>BFGS over the threshold-DP nLL at five noise scales</caption>
-<colgroup>
-<col width="14%">
-<col width="6%">
-<col width="8%">
-<col width="10%">
-<col width="10%">
-<col width="12%">
-<col width="10%">
-<col width="10%">
-<col width="14%">
-</colgroup>
-<thead><tr class="header">
-<th align="left"></th>
-<th align="right">sigma</th>
-<th align="right">n_evals</th>
-<th align="right">GCB_sig</th>
-<th align="right">LN_sig</th>
-<th align="right">Prolif_sig</th>
-<th align="right">BMP6</th>
-<th align="right">MHC2_sig</th>
-<th align="right">max_abs_diff</th>
+<span></span>
+<span><span class="va">fits_bfgs</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sigma_grid</span>, <span class="va">fit_at_sigma</span>, method <span class="op">=</span> <span class="st">"BFGS"</span><span class="op">)</span></span>
+<span><span class="va">bfgs_table</span> <span class="op">&lt;-</span> <span class="fu">sweep_table</span><span class="op">(</span><span class="va">fits_bfgs</span><span class="op">)</span></span>
+<span><span class="fu">show_sweep</span><span class="op">(</span><span class="va">bfgs_table</span>, <span class="st">"BFGS"</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+BFGS over the threshold-DP nLL at 6 values of <span class="math inline">\(\sigma\)</span>
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+<span class="math inline">\(\sigma\)</span>
+</th>
+<th style="text-align:right;">
+Evaluations
+</th>
+<th style="text-align:right;">
+GCB_sig
+</th>
+<th style="text-align:right;">
+LN_sig
+</th>
+<th style="text-align:right;">
+Prolif_sig
+</th>
+<th style="text-align:right;">
+BMP6
+</th>
+<th style="text-align:right;">
+MHC2_sig
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\max_j \lvert \hat\beta_j -
+\hat\beta_j^{\text{coxph}} \rvert\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">sigma_0.0001</td>
-<td align="right">1e-04</td>
-<td align="right">31</td>
-<td align="right">-0.263711</td>
-<td align="right">-0.254310</td>
-<td align="right">0.301416</td>
-<td align="right">0.304232</td>
-<td align="right">-0.320419</td>
-<td align="right">0.001710</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-5}\)</span>
+</td>
+<td style="text-align:right;">
+45
+</td>
+<td style="text-align:right;">
+-0.263927
+</td>
+<td style="text-align:right;">
+-0.254319
+</td>
+<td style="text-align:right;">
+0.303222
+</td>
+<td style="text-align:right;">
+0.303581
+</td>
+<td style="text-align:right;">
+-0.319180
+</td>
+<td style="text-align:right;">
+0.000096
+</td>
 </tr>
-<tr class="even">
-<td align="left">sigma_0.001</td>
-<td align="right">1e-03</td>
-<td align="right">95</td>
-<td align="right">-0.255596</td>
-<td align="right">-0.257797</td>
-<td align="right">0.284336</td>
-<td align="right">0.305723</td>
-<td align="right">-0.320768</td>
-<td align="right">0.018790</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-4}\)</span>
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+-0.263711
+</td>
+<td style="text-align:right;">
+-0.254310
+</td>
+<td style="text-align:right;">
+0.301416
+</td>
+<td style="text-align:right;">
+0.304232
+</td>
+<td style="text-align:right;">
+-0.320419
+</td>
+<td style="text-align:right;">
+0.001710
+</td>
 </tr>
-<tr class="odd">
-<td align="left">sigma_0.01</td>
-<td align="right">1e-02</td>
-<td align="right">333</td>
-<td align="right">-0.261541</td>
-<td align="right">-0.246078</td>
-<td align="right">0.296769</td>
-<td align="right">0.311191</td>
-<td align="right">-0.310249</td>
-<td align="right">0.008897</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-3}\)</span>
+</td>
+<td style="text-align:right;">
+112
+</td>
+<td style="text-align:right;">
+-0.255681
+</td>
+<td style="text-align:right;">
+-0.257783
+</td>
+<td style="text-align:right;">
+0.284375
+</td>
+<td style="text-align:right;">
+0.305741
+</td>
+<td style="text-align:right;">
+-0.320735
+</td>
+<td style="text-align:right;">
+0.018751
+</td>
 </tr>
-<tr class="even">
-<td align="left">sigma_0.1</td>
-<td align="right">1e-01</td>
-<td align="right">147</td>
-<td align="right">-0.475716</td>
-<td align="right">-0.276219</td>
-<td align="right">0.506100</td>
-<td align="right">0.381061</td>
-<td align="right">-0.188904</td>
-<td align="right">0.211845</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-2}\)</span>
+</td>
+<td style="text-align:right;">
+225
+</td>
+<td style="text-align:right;">
+-0.207823
+</td>
+<td style="text-align:right;">
+-0.226972
+</td>
+<td style="text-align:right;">
+0.346403
+</td>
+<td style="text-align:right;">
+0.329006
+</td>
+<td style="text-align:right;">
+-0.350293
+</td>
+<td style="text-align:right;">
+0.056049
+</td>
 </tr>
-<tr class="odd">
-<td align="left">sigma_1</td>
-<td align="right">1e+00</td>
-<td align="right">91</td>
-<td align="right">-0.133843</td>
-<td align="right">-0.389685</td>
-<td align="right">0.034282</td>
-<td align="right">-0.045055</td>
-<td align="right">-0.336133</td>
-<td align="right">0.348692</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-1}\)</span>
+</td>
+<td style="text-align:right;">
+149
+</td>
+<td style="text-align:right;">
+-0.475716
+</td>
+<td style="text-align:right;">
+-0.276219
+</td>
+<td style="text-align:right;">
+0.506100
+</td>
+<td style="text-align:right;">
+0.381061
+</td>
+<td style="text-align:right;">
+-0.188904
+</td>
+<td style="text-align:right;">
+0.211845
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(1\)</span>
+</td>
+<td style="text-align:right;">
+91
+</td>
+<td style="text-align:right;">
+-0.133843
+</td>
+<td style="text-align:right;">
+-0.389685
+</td>
+<td style="text-align:right;">
+0.034282
+</td>
+<td style="text-align:right;">
+-0.045055
+</td>
+<td style="text-align:right;">
+-0.336133
+</td>
+<td style="text-align:right;">
+0.348692
+</td>
 </tr>
 </tbody>
 </table>
-<p>Read <code>max_abs_diff</code>: it grows roughly linearly with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-in the
-small-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-regime (1e-4 → 1e-2) and the qualitative answer collapses between
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\sigma = 0.1</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sigma = 1</annotation></semantics></math>.
-At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sigma = 1</annotation></semantics></math>
-BFGS exits cleanly but the fit is unusable.</p>
-<div class="section level3">
-<h3 id="why-bfgs-breaks">Why BFGS breaks<a class="anchor" aria-label="anchor" href="#why-bfgs-breaks"></a>
-</h3>
-<p>BFGS estimates gradients by finite differences. With default
-<code>ndeps = 1e-3</code> the gradient noise per coordinate inflates
-from the function-value noise of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-to roughly
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><msqrt><mn>2</mn></msqrt><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mi>h</mi><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mn>707</mn><mspace width="0.167em"></mspace><mi>σ</mi></mrow><annotation encoding="application/x-tex">\sigma\sqrt{2}/(2h)
-\approx 707\,\sigma</annotation></semantics></math>. Near the optimum
-the true gradient is small and the noise dominates. Any optimizer that
-takes derivatives by differencing nearby function values will have this
-exact failure mode against any DP mechanism that adds enough noise to be
-meaningful.</p>
-<p>This is not a defect of the cryptographic protocol. The protocol is
-doing exactly what it claims: releasing
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi mathvariant="script">𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\ell(\beta) +
-\mathcal{N}(0, \sigma^2)</annotation></semantics></math> at every
-query.</p>
-</div>
 </div>
 <div class="section level2">
-<h2 id="neldermead-at-the-same-noise-scale">Nelder–Mead at the same noise scale<a class="anchor" aria-label="anchor" href="#neldermead-at-the-same-noise-scale"></a>
+<h2 id="neldermead-at-the-same-noise-scales">Nelder–Mead at the same noise scales<a class="anchor" aria-label="anchor" href="#neldermead-at-the-same-noise-scales"></a>
 </h2>
-<p>Nelder–Mead is gradient-free; it never amplifies noise through a
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mi>h</mi></mrow><annotation encoding="application/x-tex">1/h</annotation></semantics></math>
-divisor. Noise still hurts it, but more gently than BFGS.</p>
+<p>The same sweep with Nelder–Mead.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_nm_1</span> <span class="op">&lt;-</span> <span class="fu">fit_at_sigma</span><span class="op">(</span><span class="fl">1</span>, method <span class="op">=</span> <span class="st">"Nelder-Mead"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">bfgs1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fits_bfgs</span><span class="op">[[</span><span class="st">"sigma_1"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">nm1</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_nm_1</span><span class="op">)</span></span>
-<span><span class="va">coefs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">agg_coef</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">nm_compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    coefficient  <span class="op">=</span> <span class="va">coefs</span>,</span>
-<span>    coxph_agg <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">agg_coef</span><span class="op">[</span><span class="va">coefs</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    BFGS_sigma1  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">bfgs1</span><span class="op">[</span><span class="va">coefs</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    NM_sigma1    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">nm1</span><span class="op">[</span><span class="va">coefs</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">nm_compare</span>, digits <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>             caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
-<span>                 <span class="st">"BFGS vs Nelder-Mead at sigma = 1 (BFGS %d evals, NM %d evals)"</span>,</span>
-<span>                 <span class="va">fits_bfgs</span><span class="op">[[</span><span class="st">"sigma_1"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>                 <span class="va">fit_nm_1</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>BFGS vs Nelder-Mead at sigma = 1 (BFGS 91 evals, NM 503
-evals)</caption>
-<thead><tr class="header">
-<th align="left">coefficient</th>
-<th align="right">coxph_agg</th>
-<th align="right">BFGS_sigma1</th>
-<th align="right">NM_sigma1</th>
+<code class="sourceCode R"><span><span class="va">fits_nm</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sigma_grid</span>, <span class="va">fit_at_sigma</span>, method <span class="op">=</span> <span class="st">"Nelder-Mead"</span><span class="op">)</span></span>
+<span><span class="va">nm_table</span> <span class="op">&lt;-</span> <span class="fu">sweep_table</span><span class="op">(</span><span class="va">fits_nm</span><span class="op">)</span></span>
+<span><span class="fu">show_sweep</span><span class="op">(</span><span class="va">nm_table</span>, <span class="st">"Nelder–Mead"</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+Nelder–Mead over the threshold-DP nLL at 6 values of <span class="math inline">\(\sigma\)</span>
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+<span class="math inline">\(\sigma\)</span>
+</th>
+<th style="text-align:right;">
+Evaluations
+</th>
+<th style="text-align:right;">
+GCB_sig
+</th>
+<th style="text-align:right;">
+LN_sig
+</th>
+<th style="text-align:right;">
+Prolif_sig
+</th>
+<th style="text-align:right;">
+BMP6
+</th>
+<th style="text-align:right;">
+MHC2_sig
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\max_j \lvert \hat\beta_j -
+\hat\beta_j^{\text{coxph}} \rvert\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">GCB_sig</td>
-<td align="right">-0.263872</td>
-<td align="right">-0.133843</td>
-<td align="right">-0.046219</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-5}\)</span>
+</td>
+<td style="text-align:right;">
+204
+</td>
+<td style="text-align:right;">
+-0.263636
+</td>
+<td style="text-align:right;">
+-0.254196
+</td>
+<td style="text-align:right;">
+0.302993
+</td>
+<td style="text-align:right;">
+0.303441
+</td>
+<td style="text-align:right;">
+-0.319003
+</td>
+<td style="text-align:right;">
+0.000235
+</td>
 </tr>
-<tr class="even">
-<td align="left">LN_sig</td>
-<td align="right">-0.254359</td>
-<td align="right">-0.389685</td>
-<td align="right">-0.169005</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-4}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+-0.260936
+</td>
+<td style="text-align:right;">
+-0.254388
+</td>
+<td style="text-align:right;">
+0.300052
+</td>
+<td style="text-align:right;">
+0.307205
+</td>
+<td style="text-align:right;">
+-0.321379
+</td>
+<td style="text-align:right;">
+0.003568
+</td>
 </tr>
-<tr class="odd">
-<td align="left">Prolif_sig</td>
-<td align="right">0.303126</td>
-<td align="right">0.034282</td>
-<td align="right">0.048707</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-3}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+-0.248410
+</td>
+<td style="text-align:right;">
+-0.247910
+</td>
+<td style="text-align:right;">
+0.338068
+</td>
+<td style="text-align:right;">
+0.311995
+</td>
+<td style="text-align:right;">
+-0.313197
+</td>
+<td style="text-align:right;">
+0.034942
+</td>
 </tr>
-<tr class="even">
-<td align="left">BMP6</td>
-<td align="right">0.303638</td>
-<td align="right">-0.045055</td>
-<td align="right">0.472601</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-2}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+-0.251861
+</td>
+<td style="text-align:right;">
+-0.244768
+</td>
+<td style="text-align:right;">
+0.344645
+</td>
+<td style="text-align:right;">
+0.315905
+</td>
+<td style="text-align:right;">
+-0.313427
+</td>
+<td style="text-align:right;">
+0.041519
+</td>
 </tr>
-<tr class="odd">
-<td align="left">MHC2_sig</td>
-<td align="right">-0.319147</td>
-<td align="right">-0.336133</td>
-<td align="right">-0.343019</td>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(10^{-1}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+-0.248230
+</td>
+<td style="text-align:right;">
+-0.255815
+</td>
+<td style="text-align:right;">
+0.352342
+</td>
+<td style="text-align:right;">
+0.309011
+</td>
+<td style="text-align:right;">
+-0.330805
+</td>
+<td style="text-align:right;">
+0.049217
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<span class="math inline">\(1\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+-0.046219
+</td>
+<td style="text-align:right;">
+-0.169005
+</td>
+<td style="text-align:right;">
+0.048707
+</td>
+<td style="text-align:right;">
+0.472601
+</td>
+<td style="text-align:right;">
+-0.343019
+</td>
+<td style="text-align:right;">
+0.254419
+</td>
 </tr>
 </tbody>
 </table>
-<p>At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sigma = 1</annotation></semantics></math>
-BFGS is unusable: at least one signature lands at the wrong sign
-relative to the aggregated cleartext fit. Nelder–Mead at the same
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-keeps every coefficient on the side of zero that the centralized fit
-puts it on. The price is more function evaluations, which feeds back
-into the privacy budget below.</p>
+<p>For both optimizers, fidelity decays monotonically as expected.</p>
 </div>
 <div class="section level2">
 <h2 id="privacy-budget">Privacy budget<a class="anchor" aria-label="anchor" href="#privacy-budget"></a>
 </h2>
-<p>For each fit, with sensitivity
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Delta = 1</annotation></semantics></math>
-(placeholder) and target
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><msup><mn>10</mn><mrow><mi>−</mi><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">\delta = 10^{-5}</annotation></semantics></math>,
-zCDP composition gives:</p>
+<p>For the fits at the first three values of <span class="math inline">\(\sigma\)</span>, with sensitivity <span class="math inline">\(\Delta = 1\)</span> (placeholder) and target <span class="math inline">\(\delta = 10^{-5}\)</span>, zCDP composition
+gives:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">zcdp_to_eps</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">rho</span>, <span class="va">delta</span> <span class="op">=</span> <span class="fl">1e-5</span><span class="op">)</span> <span class="va">rho</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">rho</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="va">delta</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">bfgs_budget</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    optimizer <span class="op">=</span> <span class="st">"BFGS"</span>,</span>
-<span>    sigma     <span class="op">=</span> <span class="va">sigma_grid_bfgs</span>,</span>
-<span>    n_queries <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">fits_bfgs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="va">f</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">nm_budget</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    optimizer <span class="op">=</span> <span class="st">"Nelder-Mead"</span>,</span>
-<span>    sigma     <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>    n_queries <span class="op">=</span> <span class="va">fit_nm_1</span><span class="op">@</span><span class="va">details</span><span class="op">$</span><span class="va">counts</span><span class="op">[[</span><span class="st">"function"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">budget</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">bfgs_budget</span>, <span class="va">nm_budget</span><span class="op">)</span></span>
+<span><span class="va">budget_rows</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">optimizer</span>, <span class="va">tab</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    optimizer <span class="op">=</span> <span class="va">optimizer</span>,</span>
+<span>    sigma     <span class="op">=</span> <span class="va">tab</span><span class="op">$</span><span class="va">sigma</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span>,</span>
+<span>    n_queries <span class="op">=</span> <span class="va">tab</span><span class="op">$</span><span class="va">n_evals</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">budget</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">budget_rows</span><span class="op">(</span><span class="st">"BFGS"</span>, <span class="va">bfgs_table</span><span class="op">)</span>,</span>
+<span>                <span class="fu">budget_rows</span><span class="op">(</span><span class="st">"Nelder–Mead"</span>, <span class="va">nm_table</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">budget</span><span class="op">$</span><span class="va">rho_per_query</span>              <span class="op">&lt;-</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="va">budget</span><span class="op">$</span><span class="va">sigma</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">2</span></span>
 <span><span class="va">budget</span><span class="op">$</span><span class="va">rho_total</span>                  <span class="op">&lt;-</span> <span class="va">budget</span><span class="op">$</span><span class="va">n_queries</span> <span class="op">*</span> <span class="va">budget</span><span class="op">$</span><span class="va">rho_per_query</span></span>
 <span><span class="va">budget</span><span class="op">$</span><span class="va">epsilon_at_delta_1e_minus_5</span> <span class="op">&lt;-</span> <span class="fu">zcdp_to_eps</span><span class="op">(</span><span class="va">budget</span><span class="op">$</span><span class="va">rho_total</span><span class="op">)</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">budget</span>, digits <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>             caption <span class="op">=</span> <span class="st">"zCDP composition; sensitivity Delta = 1, target delta = 1e-5"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>zCDP composition; sensitivity Delta = 1, target delta =
-1e-5</caption>
-<colgroup>
-<col width="13%">
-<col width="12%">
-<col width="6%">
-<col width="10%">
-<col width="15%">
-<col width="10%">
-<col width="30%">
-</colgroup>
-<thead><tr class="header">
-<th align="left"></th>
-<th align="left">optimizer</th>
-<th align="right">sigma</th>
-<th align="right">n_queries</th>
-<th align="right">rho_per_query</th>
-<th align="right">rho_total</th>
-<th align="right">epsilon_at_delta_1e_minus_5</th>
+<span><span class="fu">show_budget</span><span class="op">(</span><span class="va">budget</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+zCDP composition; sensitivity <span class="math inline">\(\Delta =
+1\)</span>, target <span class="math inline">\(\delta = 10^{-5}\)</span>
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Optimizer
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\sigma\)</span>
+</th>
+<th style="text-align:right;">
+Queries <span class="math inline">\(k\)</span>
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\rho\)</span> per query
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\rho_{\text{total}} = k\rho\)</span>
+</th>
+<th style="text-align:right;">
+<span class="math inline">\(\varepsilon\)</span> at <span class="math inline">\(\delta = 10^{-5}\)</span>
+</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
-<td align="left">sigma_0.0001</td>
-<td align="left">BFGS</td>
-<td align="right">1e-04</td>
-<td align="right">31</td>
-<td align="right">5e+07</td>
-<td align="right">1.550e+09</td>
-<td align="right">1.550267e+09</td>
+<tr>
+<td style="text-align:left;">
+BFGS
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-5}\)</span>
+</td>
+<td style="text-align:right;">
+45
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{9}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.25 \times 10^{11}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.25 \times 10^{11}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">sigma_0.001</td>
-<td align="left">BFGS</td>
-<td align="right">1e-03</td>
-<td align="right">95</td>
-<td align="right">5e+05</td>
-<td align="right">4.750e+07</td>
-<td align="right">4.754677e+07</td>
+<tr>
+<td style="text-align:left;">
+BFGS
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-4}\)</span>
+</td>
+<td style="text-align:right;">
+31
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{7}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.55 \times 10^{9}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.55 \times 10^{9}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">sigma_0.01</td>
-<td align="left">BFGS</td>
-<td align="right">1e-02</td>
-<td align="right">333</td>
-<td align="right">5e+03</td>
-<td align="right">1.665e+06</td>
-<td align="right">1.673756e+06</td>
+<tr>
+<td style="text-align:left;">
+BFGS
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-3}\)</span>
+</td>
+<td style="text-align:right;">
+112
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{5}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5.6 \times 10^{7}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5.605 \times 10^{7}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">sigma_0.1</td>
-<td align="left">BFGS</td>
-<td align="right">1e-01</td>
-<td align="right">147</td>
-<td align="right">5e+01</td>
-<td align="right">7.350e+03</td>
-<td align="right">7.931790e+03</td>
+<tr>
+<td style="text-align:left;">
+Nelder–Mead
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-5}\)</span>
+</td>
+<td style="text-align:right;">
+204
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{9}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.02 \times 10^{12}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(1.02 \times 10^{12}\)</span>
+</td>
 </tr>
-<tr class="odd">
-<td align="left">sigma_1</td>
-<td align="left">BFGS</td>
-<td align="right">1e+00</td>
-<td align="right">91</td>
-<td align="right">5e-01</td>
-<td align="right">4.550e+01</td>
-<td align="right">9.127500e+01</td>
+<tr>
+<td style="text-align:left;">
+Nelder–Mead
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-4}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{7}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.515 \times 10^{10}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.515 \times 10^{10}\)</span>
+</td>
 </tr>
-<tr class="even">
-<td align="left">1</td>
-<td align="left">Nelder-Mead</td>
-<td align="right">1e+00</td>
-<td align="right">503</td>
-<td align="right">5e-01</td>
-<td align="right">2.515e+02</td>
-<td align="right">3.591197e+02</td>
+<tr>
+<td style="text-align:left;">
+Nelder–Mead
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(10^{-3}\)</span>
+</td>
+<td style="text-align:right;">
+503
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(5 \times 10^{5}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.515 \times 10^{8}\)</span>
+</td>
+<td style="text-align:right;">
+<span class="math inline">\(2.516 \times 10^{8}\)</span>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Read the <code>epsilon_at_delta_1e_minus_5</code> column. At noise
-scales the optimizers can tolerate without producing a broken fit, the
-resulting
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
-is large. Whether large
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
-is acceptable is a use-case decision; we report the numbers and
-stop.</p>
-<div class="section level3">
-<h3 id="what-it-would-take-to-push-varepsilon-smaller">What it would take to push
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
-smaller<a class="anchor" aria-label="anchor" href="#what-it-would-take-to-push-varepsilon-smaller"></a>
-</h3>
-<p>Three directions, none pursued here:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Tighter sensitivity bound.</strong>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Delta = 1</annotation></semantics></math>
-is conservative; careful Cox-specific analysis could reduce it.</li>
-<li>
-<strong>Far fewer queries.</strong> An optimizer that found the MLE
-in
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≤</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">\le 10</annotation></semantics></math>
-queries would improve the budget by
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∼</mo><mn>10</mn><mo>×</mo></mrow><annotation encoding="application/x-tex">\sim 10\times</annotation></semantics></math>;
-DP-SGD-style methods achieve this via subsampling and momentum.</li>
-<li>
-<strong>Subsampling amplification.</strong> Per-record subsampling
-with the appropriate amplification accountant — incompatible with the
-current “compute the whole nLL at every site at every query” shape, but
-adaptable.</li>
-</ol>
-<p>These are research questions, not package-level concerns. The
-package’s main story is the lossless cox progression.</p>
+<p>The <span class="math inline">\(\varepsilon\)</span> column shows
+that at noise levels where the fits are still close, <span class="math inline">\(\varepsilon\)</span> is large. Whether that is
+acceptable depends on the application.</p>
+<p>One could also explore tighter sensitivity bound <span class="math inline">\(\Delta\)</span> or allow far fewer queries, etc.
+We don’t do that here.</p>
 </div>
-</div>
-<div class="section level2">
-<h2 id="what-this-demonstrates">What this demonstrates<a class="anchor" aria-label="anchor" href="#what-this-demonstrates"></a>
+<div class="section level2 unnumbered">
+<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<ol style="list-style-type: decimal">
-<li>
-<strong>The cryptographic protocol is correct under the
-noise.</strong> At
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma = 0</annotation></semantics></math>
-it reproduces <code>cox-threshold</code> exactly.</li>
-<li>
-<strong>The two layers compose without interaction.</strong>
-Threshold FHE handles “who holds the key”; output DP handles “what the
-released values reveal.” Adding the DP layer is one <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code>
-call per site per query and zero new homomorpheR machinery.</li>
-<li>
-<strong>The accuracy/noise trade-off is characterized
-end-to-end.</strong> The vignette runs five
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>
-values with BFGS and one with Nelder–Mead, and reports the recovered
-fits and the privacy budgets in tables.</li>
-<li>
-<strong>The optimizer-vs-noise interaction shapes the
-trade-off.</strong> BFGS amplifies function-value noise through
-finite-difference gradients and breaks at moderate
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>;
-Nelder–Mead at
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>σ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sigma = 1</annotation></semantics></math>
-recovers a usable estimate at the cost of more queries. The
-cryptographic layer is not the limit — the optimizer is.</li>
-</ol>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-BunSteinke2016" class="csl-entry">
+Bun, Mark, and Thomas Steinke. 2016. <span>“Concentrated Differential
+Privacy: Simplifications, Extensions, and Lower Bounds.”</span>
+<em>Theory of Cryptography Conference (<span>TCC</span>)</em>, 635–58.
+<a href="https://doi.org/10.1007/978-3-662-53641-4_24" class="external-link">https://doi.org/10.1007/978-3-662-53641-4_24</a>.
 </div>
-<div class="section level2">
-<h2 id="limitations">Limitations<a class="anchor" aria-label="anchor" href="#limitations"></a>
-</h2>
-<ul>
-<li>
-<strong>Tight Cox sensitivity.</strong>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\Delta = 1</annotation></semantics></math>
-is a placeholder.</li>
-<li>
-<strong>DP-SGD or stochastic gradient methods.</strong> Standard
-alternative for tight DP budgets; out of scope here.</li>
-<li>
-<strong>Adaptive noise schedules.</strong> All queries here use the
-same
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>σ</mi><annotation encoding="application/x-tex">\sigma</annotation></semantics></math>;
-adaptive schedules can be tighter.</li>
-<li>
-<strong>Malicious-site protection.</strong> A hostile site can
-corrupt either its
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mtext mathvariant="normal">nLL</mtext><mi>i</mi></msub><annotation encoding="application/x-tex">\text{nLL}_i</annotation></semantics></math>
-or its
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>z</mi><mi>i</mi></msub><annotation encoding="application/x-tex">z_i</annotation></semantics></math>.
-Out of scope.</li>
-</ul>
-<p>Readers who need lossless fits should use
-<code><a href="../articles/cox-threshold.html">vignette("cox-threshold")</a></code> and accept the residual
-released-function leakage that comes with it.</p>
+<div id="ref-DworkRoth2014" class="csl-entry">
+Dwork, Cynthia, and Aaron Roth. 2014. <em>The Algorithmic Foundations of
+Differential Privacy</em>. Foundations and Trends in Theoretical
+Computer Science 9(3–4). Now Publishers. <a href="https://doi.org/10.1561/0400000042" class="external-link">https://doi.org/10.1561/0400000042</a>.
 </div>
-<div class="section level2">
-<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<ul>
-<li>Dwork &amp; Roth (2014). <em>The Algorithmic Foundations of
-Differential Privacy.</em> §3.5.3 (Gaussian mechanism).</li>
-<li>Bun &amp; Steinke (2016). <em>Concentrated Differential
-Privacy.</em> TCC. Source for the zCDP composition bound used
-above.</li>
-<li>Abadi et al. (2016). <em>Deep Learning with Differential
-Privacy.</em> CCS. The DP-SGD paper.</li>
-</ul>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
