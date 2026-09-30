@@ -219,7 +219,7 @@ the standard basis is a legal query vector.
 ## Layered defenses
 
 A deployment that needs the scoring function to stay proprietary
-has to layer defences *on top of* the FHE transport:
+has to layer defenses *on top of* the FHE transport:
 
 - **Output perturbation.** Adding calibrated noise to the
   decrypted score — a differential-privacy mechanism — turns
@@ -245,7 +245,7 @@ The vignette above shows the transport mechanics end-to-end. It is a
 *toy illustration* in that the linear scorer plus hospital-held secret
 key is exactly the configuration where the five-query attack works; a
 production model-as-a-service deployment is the transport layer plus
-at least one of the defences above.
+at least one of the defenses above.
 
 ## Network protocol: serialization
 

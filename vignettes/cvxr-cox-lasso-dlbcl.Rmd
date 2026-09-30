@@ -133,9 +133,9 @@ encrypted fit reproduces the in-the-clear reference.
 ## The global problem and its consensus split
 
 The three molecular subgroups (GCB, ABC, Type III) are our sites: they
-arise from different cells of origin, have systematically different
-prognosis, and are diagnosed at different referral centers, so the
-subgroup is a biologically and operationally realistic site boundary.
+arise from different cells of origin and have systematically
+different prognosis. Using them as sites is a choice made for this
+demonstration.
 With $N$ sites, per-site standardized design matrices
 $X_k \in \mathbb{R}^{n_k \times p}$, event times $t_k$, status
 $\delta_k$, a shared coefficient $\beta \in \mathbb{R}^p$, and the
