@@ -133,7 +133,8 @@
 #' consensus-ADMM demonstration on the [DLBCL] / [DLBCL_gex] cohort:
 #' a centralized [CVXR][CVXR::CVXR-package] ground-truth fit, the same
 #' fit recovered by consensus ADMM in the clear, and the encrypted
-#' threshold-FHE fit that swaps only the consensus channel. The
+#' threshold-FHE fit, whose standardization, screening, and consensus
+#' rounds all run under encryption. The
 #' iterated ADMM runs are expensive, so they are computed once
 #' and shipped here; the manuscript and the `cvxr-cox-lasso-dlbcl`
 #' vignette load this object instead of recomputing (see Details).
@@ -163,7 +164,7 @@
 #'     between the encrypted and plaintext pooled standardization
 #'     moments.}
 #'   \item{screen_match}{logical; whether the encrypted screen selected
-#'     the same probe set as the plaintext screen.}
+#'     the same probes, in the same order, as the plaintext screen.}
 #' }
 #'
 #' @details

@@ -58,11 +58,13 @@ pool_plain <- function(sites, n_total) {
     sigma2 <- pmax(q / n_total - mu^2, .Machine$double.eps)
     list(mu = mu, sigma = sqrt(sigma2))
 }
-pool      <- pool_plain(sites_raw, N_total)
-sites_std <- lapply(sites_raw, function(s) list(
+## Each site standardizes its own rows with the pooled moments.
+standardize <- function(sites, pool) lapply(sites, function(s) list(
     name = s$name,
     X    = sweep(sweep(s$X, 2, pool$mu, "-"), 2, pool$sigma, "/"),
     time = s$time, status = s$status))
+pool      <- pool_plain(sites_raw, N_total)
+sites_std <- standardize(sites_raw, pool)
 
 
 ## ----cvxr-screen-plain, eval=RECOMPUTE----------------------------------------
@@ -93,10 +95,12 @@ screen_plain <- function(sites, K) {
     Z  <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
-top_idx  <- screen_plain(sites_std, K)
-sites_KS <- lapply(sites_std, function(s) list(
-    name = s$name, X = s$X[, top_idx],
+## Each site keeps the screened probes of its own rows.
+keep_probes <- function(sites, idx) lapply(sites, function(s) list(
+    name = s$name, X = s$X[, idx],
     time = s$time, status = s$status))
+top_idx  <- screen_plain(sites_std, K)
+sites_KS <- keep_probes(sites_std, top_idx)
 sigma_K  <- pool$sigma[top_idx]
 
 
@@ -221,6 +225,10 @@ fhe_pool     <- pool_encrypted(master, moment_parts, N_total, P_raw)
 pool_agree   <- list(mu    = max(abs(fhe_pool$mu    - pool$mu)),
                      sigma = max(abs(fhe_pool$sigma - pool$sigma)))
 
+## The decrypted moments go back to the sites, which standardize their
+## own rows with them.
+sites_std_fhe <- standardize(sites_raw, fhe_pool)
+
 
 ## ----cvxr-screen-encrypt, eval=RECOMPUTE--------------------------------------
 ## Site side: compute the score and information at beta = 0 on the
@@ -240,9 +248,12 @@ screen_encrypted <- function(master, UI, p_raw, K) {
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
-UI_parts <- Map(site_score_info, key_sites, sites_std)   # at the sites
+UI_parts <- Map(site_score_info, key_sites, sites_std_fhe)   # at the sites
 fhe_top  <- screen_encrypted(master, UI_parts, P_raw, K)
-stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
+stopifnot(identical(fhe_top, top_idx))   # same probes, same order, as in the clear
+
+## The decrypted screen goes back to the sites, which keep those probes.
+sites_KS_fhe <- keep_probes(sites_std_fhe, fhe_top)
 
 
 ## ----cvxr-consensus, eval=RECOMPUTE-------------------------------------------
@@ -262,7 +273,11 @@ encrypted_consensus <- function(site_x, site_u)
     aggregate_consensus(master,
                         Map(site_consensus_term, key_sites, site_x, site_u),
                         K)
-fhe        <- run_admm(sites_problem, encrypted_consensus)
+
+## The local problems, on the design the encrypted rounds produced.
+sites_problem_fhe <- lapply(sites_KS_fhe, function(s)
+    build_local(s$X, s$time, s$status, RHO))
+fhe        <- run_admm(sites_problem_fhe, encrypted_consensus)
 z_enc      <- fhe$z
 trajectory <- fhe$trajectory
 n_iter_enc <- length(trajectory)
@@ -284,5 +299,5 @@ cvxr_consensus <- list(
     n_iter_ref = n_iter_ref,
     n_iter_enc = n_iter_enc,
     pool_agree = pool_agree,
-    screen_match = setequal(fhe_top, top_idx))
+    screen_match = identical(fhe_top, top_idx))
 
