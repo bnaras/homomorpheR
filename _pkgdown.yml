@@ -84,8 +84,8 @@ navbar:
     - text: Federated Cosine Similarity with Site-Private Fine-Tuned Models
       href: articles/similarity.html
     - text: ---------
-    - text: Adding differential privacy
-    - text: Threshold Cox + Output Differential Privacy (Demonstration)
+    - text: Adding Gaussian noise
+    - text: Threshold Cox with Gaussian Noise (Demonstration)
       href: articles/cox-threshold-dp.html
-    - text: Consensus ADMM + Output Differential Privacy (Demonstration)
+    - text: Consensus ADMM with Gaussian Noise (Demonstration)
       href: articles/cvxr-consensus-admm-dp.html

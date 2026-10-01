@@ -1,5 +1,5 @@
 ---
-title: "Threshold Cox + Output Differential Privacy (Demonstration)"
+title: "Threshold Cox with Gaussian Noise (Demonstration)"
 author: "Balasubramanian Narasimhan"
 date: '`r Sys.Date()`'
 bibliography: homomorphing.bib
@@ -10,7 +10,7 @@ output:
   toc: yes
   toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Threshold Cox + Output Differential Privacy (Demonstration)}
+  %\VignetteIndexEntry{Threshold Cox with Gaussian Noise (Demonstration)}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---

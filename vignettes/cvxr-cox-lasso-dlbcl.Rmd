@@ -635,14 +635,15 @@ par(op)
 
 ## What the protocol hides and reveals
 
-The aggregator learns the pooled per-probe mean and SD (round 1), the
-pooled per-probe univariate Cox score $U_g$ and information $I_g$ and the indices of
-the top-`r K` screened probes (round 2), and the cross-site average
-$\bar w$ before soft-thresholding at every ADMM iteration. Each is an aggregated population-level statistic
-over `r N_total` patients, not patient-level data. None of the per-site
-design matrices $X_k$, the per-site $(\mu,\sigma^2)$ contributions, the
-per-site $(U,I)$ contributions, or the per-site $(x_k+u_k)$ vectors
-reaches the aggregator in cleartext. Decryption at every step
+The aggregator learns the pooled per-probe sums $\sum_k S_k$ and
+$\sum_k Q_k$ (round 1), the pooled per-probe univariate Cox score
+$U_g$ and information $I_g$ and the indices of the top-`r K` screened
+probes (round 2), and, at every ADMM iteration, the cross-site average
+$\bar w$ before soft-thresholding and the primal residual. Each is an
+aggregated population-level statistic over `r N_total` patients, not
+patient-level data. None of the per-site design matrices $X_k$, the
+per-site $(S_k,Q_k)$, the per-site $(U,I)$ contributions, or the
+per-site $(x_k+u_k)$ vectors reaches the aggregator in cleartext. Decryption at every step
 is $n$-of-$n$ threshold: no single party — the aggregator included — can
 recover any intermediate quantity unilaterally.
 

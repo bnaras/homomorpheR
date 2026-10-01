@@ -64,10 +64,11 @@ distributed protocols:
 - `similarity` — federated cosine-similarity retrieval with site-private
   fine-tuned models.
 
-**Differential-privacy variants**
+**Gaussian-noise variants**
 
 - `cox-threshold-dp`, `cvxr-consensus-admm-dp` — the threshold-FHE
-  protocols above with site-side differential-privacy noise.
+  protocols above with site-side Gaussian noise. Demonstrations, not a
+  privacy guarantee.
 
 **Legacy Paillier vignettes.** These no longer ship with the package.
 They are kept in the `paillier-archive/` directory of this repository.

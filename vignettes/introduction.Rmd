@@ -312,12 +312,12 @@ one holding data, neither willing to reveal theirs.
 - *Encrypted Logistic Regression Prediction*
 - *Federated Cosine Similarity with Site-Private Fine-Tuned Models*
 
-**Adding differential privacy.** What changes if you also want to
-bound what the sequence of released totals reveals. These are
-demonstrations of the composition mechanics, not a recommendation.
+**Adding Gaussian noise.** What changes if each site also adds
+Gaussian noise to what it releases. These are demonstrations of the
+composition mechanics, not a privacy guarantee or a recommendation.
 
-- *Threshold Cox + Output Differential Privacy (Demonstration)*
-- *Consensus ADMM + Output Differential Privacy (Demonstration)*
+- *Threshold Cox with Gaussian Noise (Demonstration)*
+- *Consensus ADMM with Gaussian Noise (Demonstration)*
 
 For the encryption layer itself — contexts, key generation,
 encrypted arithmetic, serialization — see the `openfhe.R` package
