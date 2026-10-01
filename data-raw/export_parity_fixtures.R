@@ -11,8 +11,10 @@
 ##
 ## Run from the package root:
 ##   Rscript data-raw/export_parity_fixtures.R [outdir]
-## Default outdir: ../../fixtures/parity relative to the package
-## (i.e. the monorepo's fixtures/parity), overridable for testing.
+## Default outdir: ../homomorphepy/src/homomorphepy/fixtures relative to
+## the package, i.e. a homomorphepy clone next to this one, where the
+## fixtures are committed. data-raw/sync_fixtures.sh runs this and then
+## the verifier.
 ##
 ## CONTRACTS THIS SCRIPT ENFORCES
 ##
@@ -41,7 +43,8 @@ suppressPackageStartupMessages({
 
 args   <- commandArgs(trailingOnly = TRUE)
 OUTDIR <- if (length(args) >= 1) args[[1]] else
-    normalizePath(file.path("..", "..", "fixtures", "parity"), mustWork = FALSE)
+    normalizePath(file.path("..", "homomorphepy", "src", "homomorphepy", "fixtures"),
+                  mustWork = FALSE)
 
 dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
 cat("exporting to:", OUTDIR, "\n\n")

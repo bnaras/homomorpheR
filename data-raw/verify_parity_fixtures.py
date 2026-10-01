@@ -48,7 +48,7 @@ if fails:
     # would either crash on malformed data or report confusing cascades.
     print(f"\nINTEGRITY FAILURE ({len(fails)}): {fails}")
     print("Fixtures are stale or corrupt. Regenerate with "
-          "fixtures/sync_fixtures.sh")
+          "data-raw/sync_fixtures.sh")
     sys.exit(1)
 
 print("\n[2] DLBCL_gex: raw float64 round-trip (bit-exact vs R)")
