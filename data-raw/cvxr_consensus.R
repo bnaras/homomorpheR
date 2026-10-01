@@ -6,7 +6,7 @@
 ## gated `eval = RECOMPUTE`. This script extracts those chunks with
 ## knitr::purl() (RECOMPUTE = TRUE un-gates them so they tangle as
 ## runnable code), writes them to inst/scripts/cvxr-consensus.R, sources
-## that to run the fit once -- the expensive ~150-iteration ADMM is paid
+## that to run the fit once -- the expensive iterated ADMM is paid
 ## here -- and saves the result. Downstream documents then load
 ## data(cvxr_consensus) instead of recomputing, and the openfhe-jss
 ## manuscript reads the same purled chunks, so vignette, script,

@@ -98,7 +98,9 @@ first mention and then set aside in favor of the plainer term.
 - **Aggregator** (*computing party*, *evaluator*). The party that
   collects the encrypted per-site summaries, adds them together
   while they are still encrypted, and obtains the total. It sees
-  only encrypted quantities in transit.
+  only encrypted quantities in transit, apart from an `NA` that a
+  site returns in the clear when it cannot evaluate its summary at a
+  parameter value.
 
 - **Public and secret key.** The standard public-key pair.
   Encryption uses the public key, which everyone may hold;
@@ -162,7 +164,9 @@ on, and it is why `contribution_fn` returns a plain number while
 `contribute()` — not you — does the encrypting.
 
 When the records are not in this session, subclass `RemoteSite` and
-give it a `contribute()` method. The package deliberately ships no
+give it `set_public_params()` and `contribute()` methods; under
+threshold keys it also needs `keygen_round()` and `partial_decrypt()`
+(see `?RemoteSite`). The package deliberately ships no
 implementation: transports differ too much, and a cryptography
 package has no business carrying an HTTP client. The extension is
 small:
@@ -171,6 +175,13 @@ small:
 #| eval: false
 HttpSite <- S7::new_class("HttpSite", parent = RemoteSite,
                           properties = list(url = S7::class_character))
+
+S7::method(set_public_params, HttpSite) <- function(site, params) {
+    ## Setup: send the public context and key to the far end, which
+    ## keeps them. Nothing secret travels.
+    send_public_params(site@url, params)
+    invisible(site)
+}
 
 S7::method(contribute, HttpSite) <- function(site, theta) {
     ## The far side holds the public key and encrypts before replying,

@@ -30,8 +30,8 @@ Derived from the public Lymphoma/Leukemia Molecular Profiling
 Project release (\url{https://llmpp.ccr.cancer.gov/DLBCL/}; files
 \code{DLBCL_patient_data_NEW.txt} and \code{NEJM_Web_Fig1data}). Patients
 are matched to expression columns by LYM number. Of the 7399
-Lymphochip features, the 6416 measured across the cohort are
-retained, and the sporadic remaining missing values are imputed
+Lymphochip features, the 6416 observed in at least 75\% of the 240
+patients are retained, and their remaining missing values are imputed
 by the per-feature median (cf. Bayle, Fan and Lou, 2025); the
 five patients with zero follow-up time are excluded, leaving 235
 patients. Standardization is deliberately \emph{not} baked into the

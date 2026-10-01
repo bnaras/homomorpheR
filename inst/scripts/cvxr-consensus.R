@@ -3,6 +3,28 @@
 ## vignette and re-run data-raw/cvxr_consensus.R. This file is the
 ## verbatim pipeline; sourcing it leaves `cvxr_consensus` in scope.
 
+## ----ktab, echo=FALSE---------------------------------------------------------
+## Tables through kableExtra. Math written as $...$ in headers, cells
+## and captions becomes \( ... \) and `code` becomes <code>, because
+## pandoc does not process math inside a raw HTML table.
+ktab <- function(x, ..., col.names = names(x), caption = NULL) {
+    tex <- function(s)
+        gsub("`([^`]*)`", "<code>\\1</code>",
+             gsub("\\$([^$]+)\\$", "\\\\(\\1\\\\)", s))
+    chr <- vapply(x, is.character, logical(1))
+    x[chr] <- lapply(x[chr], tex)
+    tab <- knitr::kable(x, format = "html", escape = FALSE,
+                        col.names = tex(col.names),
+                        caption = if (!is.null(caption)) tex(caption), ...)
+    kableExtra::kable_styling(tab, bootstrap_options = c("striped", "condensed"),
+                              full_width = TRUE)
+}
+
+
+
+
+
+
 ## ----cvxr-libs, eval=RECOMPUTE------------------------------------------------
 library(survival)
 library(CVXR)
@@ -48,12 +70,14 @@ K <- 100L
 
 score_info_at_zero <- function(X, time, status) {
     p <- ncol(X)
-    ord <- order(time, -status)
-    X_o <- X[ord, , drop = FALSE]; stat_o <- status[ord]
+    ord <- order(time)
+    X_o <- X[ord, , drop = FALSE]; stat_o <- status[ord]; time_o <- time[ord]
     n <- nrow(X_o); U <- numeric(p); I <- numeric(p)
+    ## Risk set at event i: every row with time >= t_i, tied rows included.
+    first <- match(time_o, time_o)
     for (i in seq_len(n)) {
         if (stat_o[i] == 1L) {
-            risk <- X_o[i:n, , drop = FALSE]
+            risk <- X_o[first[i]:n, , drop = FALSE]
             mu_R <- colMeans(risk)
             U <- U + (X_o[i, ] - mu_R)
             I <- I + colSums(sweep(risk, 2, mu_R, "-")^2) / nrow(risk)
@@ -79,14 +103,17 @@ sigma_K  <- pool$sigma[top_idx]
 ## ----cvxr-centralized, eval=RECOMPUTE-----------------------------------------
 LAMBDA <- 5
 build_cox_breslow_nll <- function(beta_var, X_s, time_s, status_s) {
-    ord <- order(time_s, -status_s)
+    ord <- order(time_s)
     X_o <- X_s[ord, , drop = FALSE]; stat_o <- status_s[ord]
+    time_o <- time_s[ord]
     n <- nrow(X_o); eta_o <- X_o %*% beta_var
+    ## Risk set at event i: every row with time >= t_i, tied rows included.
+    first <- match(time_o, time_o)
     terms <- list()
     for (i in seq_len(n)) {
         if (stat_o[i] == 1L) {
             terms[[length(terms) + 1L]] <-
-                log_sum_exp(eta_o[i:n, 1]) - eta_o[i, 1]
+                log_sum_exp(eta_o[first[i]:n, 1]) - eta_o[i, 1]
         }
     }
     Reduce(`+`, terms)
@@ -147,8 +174,9 @@ run_admm <- function(sites_problem, consensus) {
 plain_consensus <- function(site_x, site_u)
     Reduce(`+`, Map(`+`, site_x, site_u)) / length(site_x)
 
-ref   <- run_admm(sites_problem, plain_consensus)
-z_ref <- ref$z
+ref        <- run_admm(sites_problem, plain_consensus)
+z_ref      <- ref$z
+n_iter_ref <- length(ref$trajectory)
 
 
 ## ----cvxr-context, eval=RECOMPUTE---------------------------------------------
@@ -165,12 +193,6 @@ key_sites <- lapply(levels(dlbcl$Subgroup), function(s)
 master <- make_threshold_master("Aggregator",
                                 crypto_context = cc, sites = key_sites)
 
-## What each site kept from that one exchange: its own secret share,
-## and a copy of the public parameters -- the crypto context and the
-## joint public key, and no share of anyone else's. `site_params()`
-## asks a site what it holds; it involves no aggregator.
-pub <- lapply(key_sites, site_params)
-
 
 
 
@@ -179,14 +201,13 @@ pub <- lapply(key_sites, site_params)
 ## the joint key; what leaves is encrypted. Encrypting at the
 ## aggregator instead would mean handing it the per-site column sums in
 ## the clear first, which is the disclosure this round exists to avoid.
-site_moments <- function(s, params)
-    list(sum   = encrypt(params, colSums(s$X)),
-         sumsq = encrypt(params, colSums(s$X^2)))
+site_moments <- function(site, s)
+    list(sum   = encrypt(site, colSums(s$X)),
+         sumsq = encrypt(site, colSums(s$X^2)))
 
-## Aggregator side. It reduces encrypted values and decrypts only the total.
-encrypt_pool <- function(master, sites, n_total, p_raw) {
-    ## Each site encrypts with the parameters it kept from wiring.
-    parts <- Map(site_moments, sites, pub)
+## Aggregator side. It receives only the encrypted moments, adds them,
+## and decrypts the totals.
+pool_encrypted <- function(master, parts, n_total, p_raw) {
     pooled_sum   <- decrypt(
         master, Reduce(`+`, lapply(parts, `[[`, "sum")),   len = p_raw)
     pooled_sumsq <- decrypt(
@@ -195,20 +216,23 @@ encrypt_pool <- function(master, sites, n_total, p_raw) {
     sigma2 <- pmax(pooled_sumsq / n_total - mu^2, .Machine$double.eps)
     list(mu = mu, sigma = sqrt(sigma2))
 }
-fhe_pool <- encrypt_pool(master, sites_raw, N_total, P_raw)
+moment_parts <- Map(site_moments, key_sites, sites_raw)   # at the sites
+fhe_pool     <- pool_encrypted(master, moment_parts, N_total, P_raw)
+pool_agree   <- list(mu    = max(abs(fhe_pool$mu    - pool$mu)),
+                     sigma = max(abs(fhe_pool$sigma - pool$sigma)))
 
 
 ## ----cvxr-screen-encrypt, eval=RECOMPUTE--------------------------------------
 ## Site side: compute the score and information at beta = 0 on the
 ## site's own rows, and encrypt both before returning them.
-site_score_info <- function(s, params) {
+site_score_info <- function(site, s) {
     z <- score_info_at_zero(s$X, s$time, s$status)
-    list(U = encrypt(params, z$U), I = encrypt(params, z$I))
+    list(U = encrypt(site, z$U), I = encrypt(site, z$I))
 }
 
-## Aggregator side: sum the encrypted (U, I) and decrypt the totals.
-encrypt_screen <- function(master, sites, p_raw, K) {
-    UI  <- Map(site_score_info, sites, pub)
+## Aggregator side: it receives only the encrypted (U, I), adds them,
+## and decrypts the totals.
+screen_encrypted <- function(master, UI, p_raw, K) {
     U   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
                    len = p_raw)
     I   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
@@ -216,26 +240,32 @@ encrypt_screen <- function(master, sites, p_raw, K) {
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
-fhe_top <- encrypt_screen(master, sites_std, P_raw, K)
+UI_parts <- Map(site_score_info, key_sites, sites_std)   # at the sites
+fhe_top  <- screen_encrypted(master, UI_parts, P_raw, K)
 stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
 
 
 ## ----cvxr-consensus, eval=RECOMPUTE-------------------------------------------
-## Site side: form x_k + u_k and encrypt it there. The per-site vector
-## never exists in the clear outside this function.
-site_consensus_term <- function(x_k, u_k, params)
-    encrypt(params, x_k + u_k)
+## Site side: site k forms x_k + u_k and encrypts it. What leaves the
+## site is encrypted.
+site_consensus_term <- function(site, x_k, u_k)
+    encrypt(site, x_k + u_k)
 
-## Aggregator side: add the encrypted values, scale by 1/N, decrypt the
-## average. It sees no individual (x_k + u_k).
-encrypted_consensus <- function(site_x, site_u) {
-    cts    <- Map(site_consensus_term, site_x, site_u, pub)
-    ct_avg <- Reduce(`+`, cts) * (1 / length(site_x))
-    decrypt(master, ct_avg, len = K)
-}
+## Aggregator side: it receives only the encrypted terms, adds them,
+## scales by 1/N, and decrypts the average.
+aggregate_consensus <- function(master, cts, K)
+    decrypt(master, Reduce(`+`, cts) * (1 / length(cts)), len = K)
+
+## One consensus round: the site step at every site, then the
+## aggregator step.
+encrypted_consensus <- function(site_x, site_u)
+    aggregate_consensus(master,
+                        Map(site_consensus_term, key_sites, site_x, site_u),
+                        K)
 fhe        <- run_admm(sites_problem, encrypted_consensus)
-z_curr     <- fhe$z
+z_enc      <- fhe$z
 trajectory <- fhe$trajectory
+n_iter_enc <- length(trajectory)
 
 
 ## ----cvxr-assemble, eval=RECOMPUTE, echo=FALSE--------------------------------
@@ -249,11 +279,10 @@ cvxr_consensus <- list(
     sigma_K    = sigma_K,
     agg_beta   = agg_beta,
     z_ref      = z_ref,
-    z_enc      = z_curr,
+    z_enc      = z_enc,
     trajectory = trajectory,
-    n_iter_ref = length(ref$trajectory),
-    n_iter_enc = length(trajectory),
-    pool_agree = list(mu    = max(abs(fhe_pool$mu    - pool$mu)),
-                      sigma = max(abs(fhe_pool$sigma - pool$sigma))),
+    n_iter_ref = n_iter_ref,
+    n_iter_enc = n_iter_enc,
+    pool_agree = pool_agree,
     screen_match = setequal(fhe_top, top_idx))
 

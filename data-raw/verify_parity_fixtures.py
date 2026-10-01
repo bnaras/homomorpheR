@@ -152,10 +152,11 @@ print("\n[7] cvxr_consensus golden fixture + tolerance ladder")
 g = json.loads((D / "cvxr_consensus_golden.json").read_text())
 check("K == 100 and top_idx length matches", g["params"]["K"] == 100
       and len(g["top_idx"]) == 100)
-check("n_iter_enc == n_iter_ref == 147",
-      g["n_iter_enc"] == g["n_iter_ref"] == 147)
+check("n_iter_enc == n_iter_ref",
+      g["n_iter_enc"] == g["n_iter_ref"])
 check("trajectory has n_iter entries of length K",
-      len(g["trajectory"]) == 147 and len(g["trajectory"][0]) == 100)
+      len(g["trajectory"]) == g["n_iter_enc"]
+      and len(g["trajectory"][0]) == 100)
 z_enc, z_ref = np.array(g["z_enc"]), np.array(g["z_ref"])
 d = np.max(np.abs(z_enc - z_ref))
 check("shipped z_enc vs z_ref within its CKKS tolerance",

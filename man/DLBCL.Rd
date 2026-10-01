@@ -36,10 +36,13 @@
   }
 }
 \details{
-  Each row represents one patient. The five signature columns
-  (\code{GCB_sig}, \code{LN_sig}, \code{Prolif_sig}, \code{BMP6},
-  \code{MHC2_sig}) are standardized expression-signature scores
-  carried over from the published supplement. Following Bayle, Fan
+  Each row represents one patient. The five signature columns are
+  carried over as published, without further scaling.
+  \code{GCB_sig}, \code{LN_sig}, \code{Prolif_sig} and
+  \code{MHC2_sig} are averages of median-centered log-ratio
+  expression values over the genes of each signature; \code{BMP6}
+  is the median-centered log ratio of the single gene BMP6
+  (Rosenwald et al. 2002, Supplementary Appendix 1). Following Bayle, Fan
   and Lou (2025), the five patients with zero follow-up time are
   excluded, so the cohort spans 235 patients with 133 deaths (event
   rate 56.6\%) over a median follow-up of 2.8 years. The
@@ -47,17 +50,19 @@
   GCB (n=115, 54 deaths), ABC (n=71, 49 deaths), and Type III
   (n=49, 30 deaths).
 
-  Splitting by \code{Subgroup} for distributed Cox estimation is
-  biologically meaningful: GCB, ABC, and Type III tumors arise
-  from different cells of origin and are routinely diagnosed at
-  different referral centers. Stratified Cox regression with
+  The vignettes use \code{Subgroup} as the site boundary for
+  distributed Cox estimation; the partition is a choice made for
+  the demonstration. Stratified Cox regression with
   \code{strata(Subgroup)} factors the partial log-likelihood
   additively across the three subgroups, which is exactly the
   decomposition the master/worker protocol exploits.
 }
 \source{
-  Web supplement to Rosenwald et al. (2002), available from the
-  New England Journal of Medicine.
+  The Lymphoma/Leukemia Molecular Profiling Project release of the
+  Rosenwald et al. (2002) study, file
+  \file{DLBCL_patient_data_NEW.txt} at
+  \url{https://llmpp.ccr.cancer.gov/DLBCL/}; processed by
+  \file{data-raw/DLBCL.R}.
 }
 \references{
   Rosenwald, A., Wright, G., Chan, W. C., et al. (2002). The use

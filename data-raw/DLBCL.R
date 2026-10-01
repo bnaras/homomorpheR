@@ -21,8 +21,8 @@
 ##      patient identifier in column 1 of the clinical table equals the
 ##      LYMxxx tag embedded in each sample column name. All 240 patients
 ##      match a unique column.
-##   2. Of the 7399 features, the 6416 measured across the cohort are
-##      retained; the sporadic remaining missing values are imputed by
+##   2. Of the 7399 features, the 6416 observed in at least 75% of the
+##      240 patients are retained; the remaining missing values are imputed by
 ##      the per-feature median. (Only 434 features are fully complete in
 ##      the raw data, so imputation is real; cf. the median imputation of
 ##      Bayle, Fan and Lou, 2025.)
@@ -81,9 +81,11 @@ P <- t(M[, match(DLBCL$ID, lymnum), drop = FALSE])      # 240 x 7399, with NAs
 rownames(P) <- as.character(DLBCL$ID)
 colnames(P) <- uniqid
 
-## 6416 retained features (measured across the cohort); curated set is the
-## one carried by the distributed object.
+## 6416 retained features: those observed in at least 75% of the 240
+## patients. The list file fixes their column order; the rule is
+## checked against it.
 retained <- readLines(file.path("data-raw", "retained_features.txt"))
+stopifnot(setequal(retained, colnames(P)[colMeans(!is.na(P)) >= 0.75]))
 P <- P[, retained, drop = FALSE]
 ## per-feature median imputation of the remaining missing values
 for (j in seq_len(ncol(P))) {

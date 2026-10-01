@@ -474,7 +474,7 @@ record("cox_loglik.json", "reference", n_cases = length(.cox_cases),
 cat("[8/9] cvxr_consensus golden fixture\n")
 data(cvxr_consensus, package = "homomorpheR")
 
-## Ragged: trajectory is a list of 147 numeric(100). JSON, not parquet.
+## Ragged: trajectory is a list of n_iter_enc numeric(K). JSON, not parquet.
 write_json(list(
     params      = cvxr_consensus$params,
     top_idx     = cvxr_consensus$top_idx,
@@ -497,9 +497,8 @@ write_json(list(
             note = "Within-language encrypted-vs-plaintext; the real claim."),
         n_iter          = list(value = 5L, kind = "iteration_count",
             note = paste("Absolute stopping rule near a slowly decaying",
-                         "dual residual. R reproduces 147 exactly across",
-                         "runs and an openfhe.R version change (verified",
-                         "2026-08-05); cvxpy may land nearby, not on it.")),
+                         "dual residual; cvxpy may land near R's",
+                         "n_iter_enc, not on it.")),
         top_idx         = list(value = 0L, kind = "set_equality",
             note = paste("Screening is deterministic given identical",
                          "input bytes; require exact set equality."))),

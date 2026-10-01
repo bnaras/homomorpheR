@@ -113,8 +113,9 @@ The computational topology — `Site` (worker), `Master`, the master/worker
 runner — is the same code as in any other distributed-stats
 vignette in this package; only the master's *backend* changes.
 `homomorpheR` exports `make_ckks_master()` that takes an `openfhe.R`
-`CryptoContext` and `KeyPair` and routes encryption/decryption
-through CKKS. The worker class and the `master_aggregate()` runner
+`CryptoContext` and `KeyPair`. The master decrypts with the secret
+key; each site encrypts its own contribution under the public key it
+is given at setup. The worker class and the `master_aggregate()` runner
 are backend-agnostic.
 
 The per-site negative log-likelihood is the same plain R function it
@@ -130,10 +131,10 @@ local_nll <- function(data, lambda) {
 
 ### 1. Generate a CKKS key pair
 
-We use `openfhe.R` qualified rather than `library(openfhe.R)`: both
-packages export `encrypt`/`decrypt` generics, and we want
-`homomorpheR`'s on the search path so the protocol code below reads
-naturally.
+We call `openfhe.R` functions qualified rather than attaching
+`openfhe.R`. There is one `encrypt()` and one `decrypt()`: they are
+`openfhe.R`'s generics, and `homomorpheR` registers its methods on
+them and re-exports them.
 
 ```{r}
 cc <- openfhe.R::fhe_context("CKKS",
@@ -162,8 +163,8 @@ summary(fit1)
 logLik(fit1)
 ```
 
-The CKKS-based estimate matches the cleartext estimate to within
-floating-point precision. No site ever revealed its individual counts
+The CKKS-based estimate differs from the cleartext estimate `fit0` by
+`r formatC(abs(coef(fit1)[["lambda"]] - coef(fit0)[["lambda"]]), format = "e", digits = 1)`. No site ever revealed its individual counts
 to any other party.
 
 ## Beyond MLE

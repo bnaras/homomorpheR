@@ -144,8 +144,10 @@ $u$-update is local again. Only the $z$-update needs cryptography.
 
 ## Adding noise
 
-Here we ask what happens if each site also adds noise, so that the
-released iterates satisfy *output differential privacy*. Adding
+Here we ask what happens if each site also adds Gaussian noise of the
+kind an *output differential privacy* mechanism uses. The sensitivity
+$\Delta = 1$ below is a placeholder, so the $\varepsilon$ values are
+not a privacy guarantee. Adding
 the noise takes one extra `rnorm()` call per site per iteration.
 With this optimizer, the fits are poor at any noise level that
 gives a small $\varepsilon$. The vignette runs the fits and reports
@@ -275,7 +277,7 @@ Tuning $\rho$ on the real data would itself be a release: the
 chosen $\rho$ and $T$ depend on the records, and the budget below
 counts only the $T$ Gaussian releases. So the sweep runs on a
 *surrogate cohort* built only from facts the protocol already
-treats as public: the number of sites, their approximate sizes, and
+treats as public: the number of sites, their sizes, and
 the covariate schema. The effect sizes are nominal values fixed in
 the analysis plan. No record from any site enters it, so the sweep
 needs no encryption.
@@ -284,7 +286,7 @@ needs no encryption.
 tol      <- 1e-3
 max_iter <- 60L
 
-## Public design facts: three sites of these approximate sizes, four
+## Public design facts: three sites of these sizes, four
 ## covariates of these types. Nominal effect sizes, not the cohort's.
 beta_nominal   <- c(0, 0.5, 0.5, 0.5)
 surrogate_seed <- 20260413L

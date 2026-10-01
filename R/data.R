@@ -19,8 +19,8 @@
 #' Project release (<https://llmpp.ccr.cancer.gov/DLBCL/>; files
 #' `DLBCL_patient_data_NEW.txt` and `NEJM_Web_Fig1data`). Patients
 #' are matched to expression columns by LYM number. Of the 7399
-#' Lymphochip features, the 6416 measured across the cohort are
-#' retained, and the sporadic remaining missing values are imputed
+#' Lymphochip features, the 6416 observed in at least 75% of the 240
+#' patients are retained, and their remaining missing values are imputed
 #' by the per-feature median (cf. Bayle, Fan and Lou, 2025); the
 #' five patients with zero follow-up time are excluded, leaving 235
 #' patients. Standardization is deliberately *not* baked into the
@@ -44,7 +44,7 @@
 #' a centralized [CVXR][CVXR::CVXR-package] ground-truth fit, the same
 #' fit recovered by consensus ADMM in the clear, and the encrypted
 #' threshold-FHE fit that swaps only the consensus channel. The
-#' ~150-iteration ADMM runs are expensive, so they are computed once
+#' iterated ADMM runs are expensive, so they are computed once
 #' and shipped here; the manuscript and the `cvxr-cox-lasso-dlbcl`
 #' vignette load this object instead of recomputing (see Details).
 #'

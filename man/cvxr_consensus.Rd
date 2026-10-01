@@ -42,7 +42,7 @@ consensus-ADMM demonstration on the \link{DLBCL} / \link{DLBCL_gex} cohort:
 a centralized \link[CVXR:CVXR-package]{CVXR} ground-truth fit, the same
 fit recovered by consensus ADMM in the clear, and the encrypted
 threshold-FHE fit that swaps only the consensus channel. The
-~150-iteration ADMM runs are expensive, so they are computed once
+iterated ADMM runs are expensive, so they are computed once
 and shipped here; the manuscript and the \code{cvxr-cox-lasso-dlbcl}
 vignette load this object instead of recomputing (see Details).
 }

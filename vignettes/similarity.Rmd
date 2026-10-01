@@ -39,7 +39,7 @@ at one hospital sees an unusual case and wants to ask "do other
 hospitals in our network have similar patients?" — without sending the
 patient out, without the other hospitals revealing which of their
 patients were checked, and without any single party (including a
-coordinating master) seeing similarity scores in the clear.
+coordinating master) able to decrypt a similarity score on its own.
 
 Modern foundation models map patient data (radiology reports, chest
 X-rays, pathology slides) into a fixed-dimensional vector space where
@@ -65,9 +65,10 @@ squares at the other ($\mu = 0$), near-orthogonal maps in between. It
 is deployed in either of two ways — applied to the encrypted query
 (the homomorphic matrix–vector multiply, valid as a cosine near the
 orthogonal end), or folded into the database offline so the encrypted
-query reduces to a plain inner product. Threshold decryption returns
-the top-`k` matches, with no party able to decrypt any intermediate
-value unilaterally.
+query reduces to a plain inner product. Threshold decryption recovers
+every candidate score at the master, which ranks them and returns the
+top-`k` matches; no party can decrypt any intermediate value
+unilaterally.
 
 ## The setup
 
@@ -788,7 +789,7 @@ cat(sprintf("site 1 produced %d encrypted scores in %.2f s\n",
 
 The master broadcasts the encrypted query to every site,
 collects per-site encrypted scores plus the local patient
-indices in the clear, and runs the $n$-of-$n$ threshold
+indices and labels in the clear, and runs the $n$-of-$n$ threshold
 decryption ceremony for each score so it can sort them once
 they are in the clear and return the top-`k`.
 
@@ -1140,7 +1141,7 @@ par(op)
   fine-tuned variant of a public foundation model; the
   protocol returns the top-$k$ patients across all sites
   whose private-model embeddings are most cosine-similar to a
-  public-model query.
+  public-model query. The master sees every candidate's score.
 - **Site-private compatibility adapter on the $\mu$ axis.** Each
   site fits an adapter $A_k$ on a public anchor cohort along the
   family $\min_A \lVert Z_{\text{priv}}A - Z_{\text{pub}}\rVert^2

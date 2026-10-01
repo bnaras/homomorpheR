@@ -56,7 +56,7 @@ sci <- function(x, digits = 2) {
 ## Cox-lasso consensus-ADMM example. The code chunks below contain the
 ## real pipeline, gated `eval = RECOMPUTE`: RECOMPUTE defaults to FALSE
 ## here, so the chunks are shown but NOT run when the vignette builds
-## (the ~150-iteration encrypted ADMM is far too slow for that). The
+## (the iterated encrypted ADMM is far too slow for that). The
 ## displayed numbers are read from data(cvxr_consensus), which was
 ## produced by knitr::purl()-ing exactly these chunks and running them
 ## (see data-raw/cvxr_consensus.R and the verification note below).
@@ -92,6 +92,7 @@ z_enc      <- cvxr_consensus$z_enc
 trajectory <- cvxr_consensus$trajectory
 n_iter_ref <- cvxr_consensus$n_iter_ref
 n_iter_enc <- cvxr_consensus$n_iter_enc
+pool_agree <- cvxr_consensus$pool_agree
 ```
 
 ## Introduction
@@ -126,8 +127,8 @@ encrypted fit reproduces the in-the-clear reference.
 
 > **Reproducibility and verification.** The code chunks in this
 > vignette *are* the pipeline; they are gated `eval = RECOMPUTE` and do
-> not run when the vignette builds (the encrypted ADMM takes ~150
-> iterations of per-site [CVXR][] solves). The displayed numbers come
+> not run when the vignette builds (every encrypted ADMM iteration
+> repeats the per-site [CVXR][] solves). The displayed numbers come
 > from `data(cvxr_consensus)`, which was produced by extracting these
 > chunks with `knitr::purl()` and running them. To verify the
 > results, do the same:
@@ -147,6 +148,9 @@ encrypted fit reproduces the in-the-clear reference.
 > shipped coefficients up to CKKS approximation noise, not
 > bit-for-bit. This `purl()`-then-`source()` is exactly what
 > `data-raw/cvxr_consensus.R` does to build the shipped object.
+> Building the vignette with the environment variable
+> `HOMOMORPHER_RECOMPUTE=true` runs the chunks in place, and every
+> number displayed then comes from that run.
 
 ## The global problem and its consensus split
 
@@ -188,10 +192,9 @@ $$
 where $S_\tau(v)=\operatorname{sign}(v)\max(|v|-\tau,0)$ is
 soft-thresholding (the proximal map of $\tau\lVert\cdot\rVert_1$). The
 $x$-update is the per-site [CVXR][] solve; the $z$-update needs the
-cross-site average $\bar w=\tfrac1N\sum_k(x_k+u_k)$ — that average is
-the only quantity that traverses the encrypted channel; the
-soft-threshold is closed-form at the aggregator and adds no
-cryptographic depth.
+cross-site average $\bar w=\tfrac1N\sum_k(x_k+u_k)$, which traverses
+the encrypted channel at every iteration; the soft-threshold is
+closed-form at the aggregator and adds no cryptographic depth.
 
 The pipeline needs `survival` and [CVXR][] alongside the encryption
 packages.
@@ -250,9 +253,8 @@ sites_std <- lapply(sites_raw, function(s) list(
     time = s$time, status = s$status))
 ```
 
-Solving the full Cox-lasso at $p = `r P_raw`$ exhausts memory during
-[CVXR][] canonicalization, so we pre-screen to the $K = `r K`$ probes
-with the strongest univariate association with survival — the
+Rather than fit all $p = `r P_raw`$ probes, we pre-screen to the
+$K = `r K`$ probes with the strongest univariate association with survival — the
 screen-then-fit pattern @BayleFanLou2025 use on this cohort. For probe
 $g$ on stratum $k$ in event-time order with risk set $R_i^{(k)}$ at
 event $i$,
@@ -267,12 +269,14 @@ K <- 100L
 
 score_info_at_zero <- function(X, time, status) {
     p <- ncol(X)
-    ord <- order(time, -status)
-    X_o <- X[ord, , drop = FALSE]; stat_o <- status[ord]
+    ord <- order(time)
+    X_o <- X[ord, , drop = FALSE]; stat_o <- status[ord]; time_o <- time[ord]
     n <- nrow(X_o); U <- numeric(p); I <- numeric(p)
+    ## Risk set at event i: every row with time >= t_i, tied rows included.
+    first <- match(time_o, time_o)
     for (i in seq_len(n)) {
         if (stat_o[i] == 1L) {
-            risk <- X_o[i:n, , drop = FALSE]
+            risk <- X_o[first[i]:n, , drop = FALSE]
             mu_R <- colMeans(risk)
             U <- U + (X_o[i, ] - mu_R)
             I <- I + colSums(sweep(risk, 2, mu_R, "-")^2) / nrow(risk)
@@ -306,14 +310,17 @@ likelihoods plus the L1 penalty.
 ```{r cvxr-centralized, eval=RECOMPUTE}
 LAMBDA <- 5
 build_cox_breslow_nll <- function(beta_var, X_s, time_s, status_s) {
-    ord <- order(time_s, -status_s)
+    ord <- order(time_s)
     X_o <- X_s[ord, , drop = FALSE]; stat_o <- status_s[ord]
+    time_o <- time_s[ord]
     n <- nrow(X_o); eta_o <- X_o %*% beta_var
+    ## Risk set at event i: every row with time >= t_i, tied rows included.
+    first <- match(time_o, time_o)
     terms <- list()
     for (i in seq_len(n)) {
         if (stat_o[i] == 1L) {
             terms[[length(terms) + 1L]] <-
-                log_sum_exp(eta_o[i:n, 1]) - eta_o[i, 1]
+                log_sum_exp(eta_o[first[i]:n, 1]) - eta_o[i, 1]
         }
     }
     Reduce(`+`, terms)
@@ -357,13 +364,9 @@ update, the stopping rule) is ordinary R. We call it now with an
 unencrypted average, and later, unchanged, with an encrypted one.
 
 A note on the constants. We fix $\rho = `r RHO`$ and a cap of
-`r MAX_ITER` iterations. The dual residual $\rho\lVert z^{t+1}-z^t\rVert$
-is the binding term here and decays slowly; with $\rho = `r RHO`$ the
-absolute stopping rule `primal < TOL && dual < TOL` (with
-`TOL = `r TOL``) trips at iteration `r n_iter_ref`. Smaller $\rho$
-reaches the tolerance in fewer iterations but at a looser fit, so we
-keep $\rho = `r RHO`$ for the tightest agreement with the centralized
-solve.
+`r MAX_ITER` iterations, and stop when the absolute rule
+`primal < TOL && dual < TOL` holds, with `TOL = `r TOL``; the dual
+residual is $\rho\lVert z^{t+1}-z^t\rVert$.
 
 ```{r cvxr-admm, eval=RECOMPUTE}
 MAX_ITER <- 200L; TOL <- 5e-3
@@ -396,8 +399,9 @@ run_admm <- function(sites_problem, consensus) {
 plain_consensus <- function(site_x, site_u)
     Reduce(`+`, Map(`+`, site_x, site_u)) / length(site_x)
 
-ref   <- run_admm(sites_problem, plain_consensus)
-z_ref <- ref$z
+ref        <- run_admm(sites_problem, plain_consensus)
+z_ref      <- ref$z
+n_iter_ref <- length(ref$trajectory)
 ```
 
 In the clear the consensus is a single line — the average of the
@@ -409,14 +413,18 @@ target the encrypted protocol must reproduce.
 
 ## The same fit under threshold FHE
 
-Only three quantities ever cross a site boundary: the standardization
-moments $(S_k,Q_k)$, the screening statistics $(U^{(k)},I^{(k)})$, and,
-at each ADMM iteration, the consensus sum $\sum_k(x_k+u_k)$. Each is a
+Four quantities cross a site boundary: the standardization moments
+$(S_k,Q_k)$, the screening statistics $(U^{(k)},I^{(k)})$, and, at each
+ADMM iteration, the consensus sum $\sum_k(x_k+u_k)$ and the squared
+primal residuals $\lVert x_k-z\rVert^2$ of the stopping rule.
+`run_admm` forms the primal residual in the clear here; in a deployment
+it is one more sum of the same kind. Each of the first three is a
 sum over sites, so each becomes one round of the same threshold-FHE
 summation primitive the master/worker fits use: every site encrypts its
 contribution under the joint public key, the aggregator adds the
 encrypted contributions, and the total is recovered by $n$-of-$n$ partial
-decryption. The local [CVXR][] work and `run_admm` are untouched.
+decryption. For the consensus, the encrypted total is first scaled by
+$1/N$, so what is decrypted is the average $\bar w$. The local [CVXR][] work and `run_admm` are untouched.
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` and `make_threshold_master()`, which
@@ -441,21 +449,15 @@ key_sites <- lapply(levels(dlbcl$Subgroup), function(s)
 
 master <- make_threshold_master("Aggregator",
                                 crypto_context = cc, sites = key_sites)
-
-## What each site kept from that one exchange: its own secret share,
-## and a copy of the public parameters -- the crypto context and the
-## joint public key, and no share of anyone else's. `site_params()`
-## asks a site what it holds; it involves no aggregator.
-pub <- lapply(key_sites, site_params)
 ```
 
 Apart from the encrypted values in each round, this setup is the
-only exchange between the aggregator and the sites. Everything
-below encrypts with `pub`, which each site already holds.
-
-Each element of `pub` is an `OpenFHEParams` object. Its class has
-two properties, the crypto context and the joint public key, and
-none for a key share:
+only exchange between the aggregator and the sites. Each site kept
+its own secret share and a copy of the public parameters, and
+everything below encrypts with `encrypt(site, value)`, which uses
+those parameters. `site_params(site)` returns them as an
+`OpenFHEParams` object. Its class has two properties, the crypto
+context and the joint public key, and none for a key share:
 
 ```{r cvxr-params-shown, purl=FALSE}
 homomorpheR::OpenFHEParams
@@ -472,14 +474,13 @@ head-counts is one more sum of the same kind.)
 ## the joint key; what leaves is encrypted. Encrypting at the
 ## aggregator instead would mean handing it the per-site column sums in
 ## the clear first, which is the disclosure this round exists to avoid.
-site_moments <- function(s, params)
-    list(sum   = encrypt(params, colSums(s$X)),
-         sumsq = encrypt(params, colSums(s$X^2)))
+site_moments <- function(site, s)
+    list(sum   = encrypt(site, colSums(s$X)),
+         sumsq = encrypt(site, colSums(s$X^2)))
 
-## Aggregator side. It reduces encrypted values and decrypts only the total.
-encrypt_pool <- function(master, sites, n_total, p_raw) {
-    ## Each site encrypts with the parameters it kept from wiring.
-    parts <- Map(site_moments, sites, pub)
+## Aggregator side. It receives only the encrypted moments, adds them,
+## and decrypts the totals.
+pool_encrypted <- function(master, parts, n_total, p_raw) {
     pooled_sum   <- decrypt(
         master, Reduce(`+`, lapply(parts, `[[`, "sum")),   len = p_raw)
     pooled_sumsq <- decrypt(
@@ -488,12 +489,15 @@ encrypt_pool <- function(master, sites, n_total, p_raw) {
     sigma2 <- pmax(pooled_sumsq / n_total - mu^2, .Machine$double.eps)
     list(mu = mu, sigma = sqrt(sigma2))
 }
-fhe_pool <- encrypt_pool(master, sites_raw, N_total, P_raw)
+moment_parts <- Map(site_moments, key_sites, sites_raw)   # at the sites
+fhe_pool     <- pool_encrypted(master, moment_parts, N_total, P_raw)
+pool_agree   <- list(mu    = max(abs(fhe_pool$mu    - pool$mu)),
+                     sigma = max(abs(fhe_pool$sigma - pool$sigma)))
 ```
 
 The encrypted moments agree with the unencrypted `pool` to
-`r sci(cvxr_consensus$pool_agree$mu)` (mean) and
-`r sci(cvxr_consensus$pool_agree$sigma)` (SD), the CKKS
+`r sci(pool_agree$mu)` (mean) and
+`r sci(pool_agree$sigma)` (SD), the CKKS
 approximation error. The screening round works the same way: the
 `score_info_at_zero` summands $(U^{(k)},I^{(k)})$ are encrypted and
 summed, and we confirm it selects the same probes.
@@ -501,14 +505,14 @@ summed, and we confirm it selects the same probes.
 ```{r cvxr-screen-encrypt, eval=RECOMPUTE}
 ## Site side: compute the score and information at beta = 0 on the
 ## site's own rows, and encrypt both before returning them.
-site_score_info <- function(s, params) {
+site_score_info <- function(site, s) {
     z <- score_info_at_zero(s$X, s$time, s$status)
-    list(U = encrypt(params, z$U), I = encrypt(params, z$I))
+    list(U = encrypt(site, z$U), I = encrypt(site, z$I))
 }
 
-## Aggregator side: sum the encrypted (U, I) and decrypt the totals.
-encrypt_screen <- function(master, sites, p_raw, K) {
-    UI  <- Map(site_score_info, sites, pub)
+## Aggregator side: it receives only the encrypted (U, I), adds them,
+## and decrypts the totals.
+screen_encrypted <- function(master, UI, p_raw, K) {
     U   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "U")),
                    len = p_raw)
     I   <- decrypt(master, Reduce(`+`, lapply(UI, `[[`, "I")),
@@ -516,7 +520,8 @@ encrypt_screen <- function(master, sites, p_raw, K) {
     Z   <- U / sqrt(pmax(I, .Machine$double.eps))
     order(abs(Z), decreasing = TRUE)[seq_len(K)]
 }
-fhe_top <- encrypt_screen(master, sites_std, P_raw, K)
+UI_parts <- Map(site_score_info, key_sites, sites_std)   # at the sites
+fhe_top  <- screen_encrypted(master, UI_parts, P_raw, K)
 stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
 ```
 
@@ -530,21 +535,26 @@ length-$K$ average. Soft-thresholding is applied to that average
 in the clear at the aggregator.
 
 ```{r cvxr-consensus, eval=RECOMPUTE}
-## Site side: form x_k + u_k and encrypt it there. The per-site vector
-## never exists in the clear outside this function.
-site_consensus_term <- function(x_k, u_k, params)
-    encrypt(params, x_k + u_k)
+## Site side: site k forms x_k + u_k and encrypts it. What leaves the
+## site is encrypted.
+site_consensus_term <- function(site, x_k, u_k)
+    encrypt(site, x_k + u_k)
 
-## Aggregator side: add the encrypted values, scale by 1/N, decrypt the
-## average. It sees no individual (x_k + u_k).
-encrypted_consensus <- function(site_x, site_u) {
-    cts    <- Map(site_consensus_term, site_x, site_u, pub)
-    ct_avg <- Reduce(`+`, cts) * (1 / length(site_x))
-    decrypt(master, ct_avg, len = K)
-}
+## Aggregator side: it receives only the encrypted terms, adds them,
+## scales by 1/N, and decrypts the average.
+aggregate_consensus <- function(master, cts, K)
+    decrypt(master, Reduce(`+`, cts) * (1 / length(cts)), len = K)
+
+## One consensus round: the site step at every site, then the
+## aggregator step.
+encrypted_consensus <- function(site_x, site_u)
+    aggregate_consensus(master,
+                        Map(site_consensus_term, key_sites, site_x, site_u),
+                        K)
 fhe        <- run_admm(sites_problem, encrypted_consensus)
-z_curr     <- fhe$z
+z_enc      <- fhe$z
 trajectory <- fhe$trajectory
+n_iter_enc <- length(trajectory)
 ```
 
 ```{r cvxr-assemble, eval=RECOMPUTE, echo=FALSE}
@@ -558,12 +568,11 @@ cvxr_consensus <- list(
     sigma_K    = sigma_K,
     agg_beta   = agg_beta,
     z_ref      = z_ref,
-    z_enc      = z_curr,
+    z_enc      = z_enc,
     trajectory = trajectory,
-    n_iter_ref = length(ref$trajectory),
-    n_iter_enc = length(trajectory),
-    pool_agree = list(mu    = max(abs(fhe_pool$mu    - pool$mu)),
-                      sigma = max(abs(fhe_pool$sigma - pool$sigma))),
+    n_iter_ref = n_iter_ref,
+    n_iter_enc = n_iter_enc,
+    pool_agree = pool_agree,
     screen_match = setequal(fhe_top, top_idx))
 ```
 
@@ -607,8 +616,9 @@ by the encrypted distributed protocol.
 
 The figure below shows the consensus trajectory $z^t$ for the eight
 probes with largest $|z|$ at convergence, with the centralized fit drawn
-as a horizontal reference. The encrypted iterates converge along the
-path the centralized solver would take.
+as a horizontal reference. The encrypted iterates follow ADMM's own
+trajectory toward the centralized fit; they are not iterations of the
+centralized solver.
 
 ```{r cox-fig, purl=FALSE, fig.width=8, fig.height=4.5, fig.cap="Consensus trajectories for the eight largest-magnitude coefficients. Solid lines are the encrypted ADMM iterates; dashed lines are the centralized CVXR fit. Standardized scale."}
 top8 <- order(-abs(z_enc))[1:8]
@@ -625,14 +635,14 @@ par(op)
 
 ## What the protocol hides and reveals
 
-The aggregator learns the pooled per-probe mean and SD (round 1), a
-per-probe stratified univariate Cox $|Z|$ statistic and the indices of
-the top-`r K` screened probes (round 2), and the consensus $z^t$ at
-every ADMM iteration. Each is an aggregated population-level statistic
+The aggregator learns the pooled per-probe mean and SD (round 1), the
+pooled per-probe univariate Cox score $U_g$ and information $I_g$ and the indices of
+the top-`r K` screened probes (round 2), and the cross-site average
+$\bar w$ before soft-thresholding at every ADMM iteration. Each is an aggregated population-level statistic
 over `r N_total` patients, not patient-level data. None of the per-site
 design matrices $X_k$, the per-site $(\mu,\sigma^2)$ contributions, the
-per-site $(U,I)$ contributions, or the per-site $(x_k+u_k)$ vectors ever
-appear in cleartext anywhere in the protocol. Decryption at every step
+per-site $(U,I)$ contributions, or the per-site $(x_k+u_k)$ vectors
+reaches the aggregator in cleartext. Decryption at every step
 is $n$-of-$n$ threshold: no single party — the aggregator included — can
 recover any intermediate quantity unilaterally.
 
@@ -640,9 +650,8 @@ Two steps in this vignette would not exist in a real deployment.
 The unencrypted reference pass forms the per-site averages that
 the protocol keeps encrypted, and the centralized solve pools all
 the data. We can run both only because this vignette holds all
-three sites' data in one R session. The choice
-$\rho = `r RHO`$ depends on them too: it was kept because it agreed
-best with the centralized solve, which a deployment cannot compute.
+three sites' data in one R session. A deployment also has to choose
+$\rho$ without the centralized solve.
 
 A deployment can instead choose $\rho$ on a surrogate cohort built
 from public design facts, as `vignette("cvxr-consensus-admm-dp")`
@@ -679,9 +688,9 @@ count against the budget.
 - **Honest-but-curious trust.** A site that misreports its local
   $(x_k+u_k)$ can corrupt the consensus; detecting this needs
   commitments / zero-knowledge proofs not implemented here.
-- **The aggregator sees the trajectory $\{z^t\}$.** Per-iteration
-  consensus values are revealed in the clear (after fusion) so the loop
-  can decide convergence.
+- **The aggregator sees $\bar w$ at every iteration.** It is
+  decrypted before soft-thresholding, so it includes the coordinates
+  that $z^t$ sets to zero.
 - **No output privacy.** The released $\hat\beta = z^\star$ is the same
   coefficient vector as the centralized fit; output-level protection is
   out of scope here and is demonstrated in the companion DP vignette.
