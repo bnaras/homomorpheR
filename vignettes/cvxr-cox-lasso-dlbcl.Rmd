@@ -428,7 +428,7 @@ $1/N$, so what is decrypted is the average $\bar w$. The local [CVXR][] work and
 
 We use the same threshold infrastructure as `cox-threshold.Rmd`: a CKKS
 context with `Feature$MULTIPARTY` and `make_threshold_master()`, which
-walks the `multiparty_key_gen()` chain across the sites. Each site
+runs the key-generation chain through the sites. Each site
 generates its own share and keeps it; only public keys move along the
 chain, so no party — the aggregator included — ever holds the joint
 secret.
@@ -525,8 +525,10 @@ fhe_top  <- screen_encrypted(master, UI_parts, P_raw, K)
 stopifnot(setequal(fhe_top, top_idx))   # same probes as the cleartext screen
 ```
 
-Standardization and screening give the same design as in the
-clear, so the consensus round is the only piece left to encrypt.
+The encrypted standardization and screening rounds recover the same
+design as the in-the-clear rounds, and the encrypted ADMM below is
+run on that design, carried over from the fit in the clear. The
+consensus round is the only piece left to encrypt.
 It mirrors `plain_consensus`. Each site encrypts its own
 $(x_k+u_k)$. The aggregator sums the encrypted values, scales by
 $1/N$ (one multiplication by an unencrypted constant, which uses
@@ -607,6 +609,7 @@ ktab(cmp, digits = 4,
 n_agg   <- sum(abs(agg_beta) > 1e-7)
 n_enc   <- sum(abs(z_enc)    > 1e-7)
 n_inter <- sum((abs(agg_beta) > 1e-7) & (abs(z_enc) > 1e-7))
+stopifnot(n_inter == n_agg)   # the prose below asserts this
 ```
 
 The active set has `r n_agg` nonzero coefficients in the centralized fit

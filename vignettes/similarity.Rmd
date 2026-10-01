@@ -294,8 +294,9 @@ $\mu \to \infty$ the adapter is forced orthogonal and the fit is
 the classical orthogonal Procrustes problem, solved in closed
 form by the singular value decomposition — this is the rigid
 endpoint, exact only when the drift is itself isometric. At
-$\mu = 0$ the adapter is an unconstrained least-squares map, the
-best public-space fit but generically non-isometric. Intermediate
+$\mu = 0$ the adapter is an unconstrained least-squares map,
+computed with a small ridge on the normal equations, the best
+public-space fit but generically non-isometric. Intermediate
 $\mu$ interpolates: a *near-orthogonal* map. We deploy $A_k$ by
 applying it to the encrypted query, $\langle A_k q,\, v\rangle$,
 which recovers the public-space cosine $\langle q, u\rangle$ when

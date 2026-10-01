@@ -44,7 +44,7 @@ articles:
   - encrypted-regression
   - similarity
 
-- title: Adding differential privacy
+- title: Adding Gaussian noise
   contents:
   - cox-threshold-dp
   - cvxr-consensus-admm-dp

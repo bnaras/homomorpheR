@@ -32,7 +32,7 @@ Project release (\url{https://llmpp.ccr.cancer.gov/DLBCL/}; files
 are matched to expression columns by LYM number. Of the 7399
 Lymphochip features, the 6416 observed in at least 75\% of the 240
 patients are retained, and their remaining missing values are imputed
-by the per-feature median (cf. Bayle, Fan and Lou, 2025); the
+by the per-feature mean (Bayle, Fan and Lou, 2025, impute by the median); the
 five patients with zero follow-up time are excluded, leaving 235
 patients. Standardization is deliberately \emph{not} baked into the
 stored matrix --- it is performed inside the encrypted pipeline

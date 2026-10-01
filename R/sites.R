@@ -4,10 +4,11 @@ NULL
 ## Site / Master actor classes -- the supported (CKKS / threshold)
 ## surface.
 ##
-## These are the building blocks for multi-site protocols. A `Site`
-## holds whatever it needs to answer a query and a
+## These are the building blocks for multi-site protocols. A `Site` is
+## a participating party; a `LocalSite` holds its data and a
 ## `contribution_fn(data, theta)` that returns its contribution to the
-## round; a `Master` owns the keys and orchestrates the
+## round, while a `RemoteSite` produces its contribution elsewhere; a
+## `Master` owns the keys and orchestrates the
 ## protocol. The frozen Paillier-era actors (PaillierMaster, the
 ## NCParty topology, the round-robin chain) live in sites_legacy.R.
 ##

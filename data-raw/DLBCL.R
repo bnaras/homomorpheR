@@ -23,9 +23,9 @@
 ##      match a unique column.
 ##   2. Of the 7399 features, the 6416 observed in at least 75% of the
 ##      240 patients are retained; the remaining missing values are imputed by
-##      the per-feature median. (Only 434 features are fully complete in
-##      the raw data, so imputation is real; cf. the median imputation of
-##      Bayle, Fan and Lou, 2025.)
+##      the per-feature mean. (Only 434 features are fully complete in
+##      the raw data, so imputation is real; Bayle, Fan and Lou, 2025,
+##      impute by the median.)
 ##   3. Following Bayle, Fan and Lou (2025), the five patients with zero
 ##      follow-up time (LYM 61, 101, 165, 208, 391) are excluded, leaving
 ##      235 patients.
@@ -55,7 +55,7 @@ pat <- utils::read.delim(pat_file, check.names = FALSE, stringsAsFactors = FALSE
 DLBCL <- data.frame(
     ID         = pat[[1]],
     Set        = pat[["Analysis Set"]],
-    Subgroup   = pat[["Subgroup"]],
+    Subgroup   = factor(pat[["Subgroup"]], levels = c("GCB", "ABC", "Type III")),
     IPI        = pat[["IPI Group"]],
     time       = pat[["Follow-up (years)"]],
     status     = as.integer(pat[["Status at follow-up"]] == "Dead"),
@@ -87,10 +87,10 @@ colnames(P) <- uniqid
 retained <- readLines(file.path("data-raw", "retained_features.txt"))
 stopifnot(setequal(retained, colnames(P)[colMeans(!is.na(P)) >= 0.75]))
 P <- P[, retained, drop = FALSE]
-## per-feature median imputation of the remaining missing values
+## per-feature mean imputation of the remaining missing values
 for (j in seq_len(ncol(P))) {
     na <- is.na(P[, j])
-    if (any(na)) P[na, j] <- stats::median(P[!na, j])
+    if (any(na)) P[na, j] <- mean(P[!na, j])
 }
 
 ## --- exclude the five zero-follow-up patients -> 235 ---

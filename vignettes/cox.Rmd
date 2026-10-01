@@ -110,9 +110,9 @@ shipped with homomorpheR excludes the five patients with zero
 follow-up time (following @BayleFanLou2025), leaving
 `r .coh$n` patients with `r .coh$deaths` deaths over a median
 follow-up of `r .coh$mfu` years. The published outcome
-predictor combines five expression signatures: germinal-center B
-cell, lymph node, proliferation, BMP6, and MHC class II. We model
-the hazard as a function of those five signatures, stratified by
+predictor combines four gene-expression signatures (germinal-center B
+cell, lymph node, proliferation, and MHC class II) and the single gene
+BMP6. We model the hazard as a function of those five variables, stratified by
 molecular subgroup (GCB, ABC, Type III), and we treat each
 subgroup as a site. The three sites differ in size (GCB
 $n=`r .coh$sgn["GCB"]`$, ABC $n=`r .coh$sgn["ABC"]`$, Type III
