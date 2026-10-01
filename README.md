@@ -5,37 +5,30 @@
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/homomorpheR)](https://cran.r-project.org/package=homomorpheR)
 <!-- badges: end -->
 
-`homomorpheR` provides homomorphic computation in R for
-privacy-preserving statistics. It implements the Paillier additive
-scheme natively, and reaches the fully homomorphic CKKS, BFV, and BGV
-schemes through the companion `openfhe.R` package. On top of these it
-ships reusable master/worker primitives that let ordinary R modeling
-code — `stats4::mle()`, stratified `survival::coxph()`, convex
-programs via `CVXR` — run across sites that never share their raw
-data, optionally under *n*-of-*n* threshold key generation so that no
-single party can decrypt.
+`homomorpheR` is privacy-preserving statistics across sites that never
+share their data. It uses fully homomorphic encryption through the
+`openfhe.R` interface to OpenFHE — CKKS for real-valued arithmetic,
+BFV and BGV for exact integers — with *n*-of-*n* threshold key
+generation so that no single party can decrypt. On top of these it
+ships master/worker primitives that let ordinary R modeling code —
+`stats4::mle()`, stratified `survival::coxph()`, convex programs via
+`CVXR` — run across sites. A frozen implementation of the Paillier
+additive scheme is kept for backward compatibility.
 
-The published version may be found on
-[CRAN](https://cran.r-project.org/package=homomorpheR) and can be
-installed as usual.
+The version on [CRAN](https://cran.r-project.org/package=homomorpheR)
+is 0.3, the Paillier-only release; this development version is a
+rewrite on OpenFHE. Install it, with its dependencies, by
 
-## Development version
-
-Install this development version by cutting and pasting into your R
-session, which will install all dependencies also.
-
-```
-## Install a package if not already installed
-install_if_needed <- function(packages, ...) {
-    toInstall <- setdiff(packages, installed.packages()[, 1])
-    if (length(toInstall) > 0) install.packages(toInstall, ...)
-}
-install_if_needed(c("gmp", "sodium", "devtools"), repos = "https://cloud.r-project.org")
-devtools::install_github("bnaras/homomorpheR")
+```r
+remotes::install_github("bnaras/homomorpheR", ref = "v1.0")
 ```
 
-The fully homomorphic (CKKS/BFV/BGV) vignettes additionally require the
-`openfhe.R` package.
+The `cox` and `cvxr` vignettes also use `survival` and `CVXR`, which
+are suggested rather than imported:
+
+```r
+install.packages(c("survival", "CVXR"))
+```
 
 The vignettes build up from a gentle introduction to complete
 distributed protocols:

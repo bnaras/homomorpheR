@@ -136,16 +136,20 @@
 ### Data
 
 - `DLBCL` (235 patients: survival, subgroup, gene-expression
-  signatures), `DLBCL_gex` (235 x 6416 Lymphochip probes), and
-  `cvxr_consensus` (the recorded encrypted Cox-lasso consensus-ADMM
-  fit).
+  signatures) and `DLBCL_gex` (235 x 6416 Lymphochip probes).
+- Precomputed results of the encrypted chunks, which a vignette build
+  shows but does not run: `cox_results`, `cox_threshold_results`,
+  `cox_threshold_dp_results`, `cvxr_consensus`,
+  `cvxr_admm_dp_results`, and `similarity_results`. Each is produced
+  by a `data-raw/` script from its vignette's own chunks;
+  `HOMOMORPHER_RECOMPUTE=true` runs the chunks for real.
 
 ### Vignettes
 
-- Fourteen vignettes, all executing at build time with computed output,
-  covering queries and aggregation, model fitting across sites,
-  prediction and retrieval, and differential privacy; the Paillier-era
-  vignettes have moved to `paillier-archive/` and are no longer built.
+- Thirteen vignettes covering queries and aggregation, model fitting
+  across sites, prediction and retrieval, and Gaussian-noise
+  variants; the Paillier-era vignettes have moved to
+  `paillier-archive/` and are no longer built.
 
 ### Infrastructure
 

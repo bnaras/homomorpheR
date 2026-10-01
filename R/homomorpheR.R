@@ -2,37 +2,8 @@
 ## for the archived Paillier vignettes (paillier-archive/) and the
 ## API distcomp pins; slated for un-export and eventual removal once
 ## a revamped distcomp (dropping its homomorpheR imports) reaches
-## CRAN ahead of the next homomorpheR release.
-##
-#' homomorpheR: Homomorphic computations in R
-#'
-#' `homomorpheR` provides homomorphic encryption schemes for
-#' privacy-preserving distributed computations: applications of the
-#' sort implemented in package `distcomp`. The Paillier cryptosystem
-#' is implemented natively in R via the `gmp` package; CKKS, BFV, BGV,
-#' and FHEW/TFHE schemes are available through the `openfhe.R` package.
-#'
-#' Encrypted values are wrapped in [PaillierCiphertext] objects so that
-#' R's arithmetic operators dispatch to the homomorphism. Use
-#' [paillier_keypair()] to generate keys, [encrypt()] to encrypt, and
-#' [decrypt()] to recover the result.
-#'
-#' For a quick overview, see the package vignettes.
-#'
-#' @references [Homomorphic Encryption](https://en.wikipedia.org/wiki/Homomorphic_encryption)
-#' @references [Paillier Encryption](https://mhe.github.io/jspaillier/)
-#'
-#' @examples
-#' keys <- paillier_keypair(1024)
-#' encrypt_decrypt <- function(x) decrypt(get_private_key(keys),
-#'                                        encrypt(keys@pubkey, x))
-#'
-#' ## The additive homomorphism: adding in the clear and adding under
-#' ## encryption give the same answer.
-#' a <- gmp::as.bigz(1273849)
-#' identical(a + 10L, encrypt_decrypt(a + 10L))
-#' @name homomorpheR
-"_PACKAGE"
+## CRAN ahead of the next homomorpheR release. The package-level help
+## page lives in R/homomorpheR-package.R.
 
 ONE  <- gmp::as.bigz(1L)
 
