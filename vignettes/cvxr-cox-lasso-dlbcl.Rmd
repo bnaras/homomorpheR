@@ -256,8 +256,10 @@ sites_std <- standardize(sites_raw, pool)
 ```
 
 Rather than fit all $p = `r P_raw`$ probes, we pre-screen to the
-$K = `r K`$ probes with the strongest univariate association with survival — the
-screen-then-fit pattern @BayleFanLou2025 use on this cohort. For probe
+$K = `r K`$ probes with the strongest univariate association with
+survival. This keeps the memory footprint of the example manageable,
+and it is the screen-then-fit pattern @BayleFanLou2025 use on this
+cohort. For probe
 $g$ on stratum $k$ in event-time order with risk set $R_i^{(k)}$ at
 event $i$,
 $U_g^{(k)}=\sum_{i\in k,\delta_i=1}(X_{i,g}-\overline X_{R_i^{(k)},g})$
