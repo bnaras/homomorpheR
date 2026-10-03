@@ -1,0 +1,21 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  cox-threshold-dp: cox-threshold-dp.html
+  cox-threshold: cox-threshold.html
+  cox: cox.html
+  cvxr-consensus-admm-dp: cvxr-consensus-admm-dp.html
+  cvxr-cox-lasso-dlbcl: cvxr-cox-lasso-dlbcl.html
+  encrypted-regression: encrypted-regression.html
+  introduction: introduction.html
+  mle: mle.html
+  precision: precision.html
+  privacy-preserving-aggregation: privacy-preserving-aggregation.html
+  query-count-threshold: query-count-threshold.html
+  secure-inference: secure-inference.html
+  similarity: similarity.html
+last_built: 2026-10-03T14:47Z
+urls:
+  reference: https://bnaras.github.io/homomorpheR/reference
+  article: https://bnaras.github.io/homomorpheR/articles
