@@ -1,23 +1,22 @@
 # homomorpheR
 
-`homomorpheR` is privacy-preserving statistics across sites that never
-share their data. It uses fully homomorphic encryption through the
-`openfhe.R` interface to OpenFHE — CKKS for real-valued arithmetic, BFV
-and BGV for exact integers — with *n*-of-*n* threshold key generation so
-that no single party can decrypt. On top of these it ships master/worker
-primitives that let ordinary R modeling code —
+`homomorpheR` is a package for privacy-preserving statistics across
+sites that never share their data. It uses fully homomorphic encryption
+through the `openfhe.R` interface to OpenFHE — CKKS for real-valued
+arithmetic, BFV and BGV for exact integers — with *n*-of-*n* threshold
+key generation so that no single party can decrypt. On top of these it
+ships master/worker primitives that let ordinary R modeling code —
 [`stats4::mle()`](https://rdrr.io/r/stats4/mle.html), stratified
 [`survival::coxph()`](https://rdrr.io/pkg/survival/man/coxph.html),
 convex programs via `CVXR` — run across sites. A frozen implementation
 of the Paillier additive scheme is kept for backward compatibility.
 
-The version on [CRAN](https://cran.r-project.org/package=homomorpheR) is
-0.3, the Paillier-only release; this development version is a rewrite on
-OpenFHE. Install it, with its dependencies, by
+Install released version from CRAN as usual, and development versions
+via
 
 ``` r
 
-remotes::install_github("bnaras/homomorpheR", ref = "v1.0")
+remotes::install_github("bnaras/homomorpheR")
 ```
 
 The `cox` and `cvxr` vignettes also use `survival` and `CVXR`, which are
