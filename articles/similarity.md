@@ -525,9 +525,9 @@ for (k in seq_len(n_sites)) {
 }
 ```
 
-    ##   site 1: anchor recon 2.28e+00,  ||A^T A - I||_F 9.24e-15
-    ##   site 2: anchor recon 1.72e+00,  ||A^T A - I||_F 8.76e-15
-    ##   site 3: anchor recon 3.01e+00,  ||A^T A - I||_F 1.03e-14
+    ##   site 1: anchor recon 2.28e+00,  ||A^T A - I||_F 9.29e-15
+    ##   site 2: anchor recon 1.72e+00,  ||A^T A - I||_F 9.69e-15
+    ##   site 3: anchor recon 3.01e+00,  ||A^T A - I||_F 9.24e-15
 
 ## Diagonal-encoded matrix-vector multiply
 
@@ -1052,10 +1052,10 @@ print(round(mu_scarce$tab[c("mu", "d1", "d2")], 3), row.names = FALSE)
 
     ##    mu    d1    d2
     ##   0.0 0.478 0.493
-    ##   0.1 0.485 0.503
-    ##   1.0 0.498 0.500
-    ##  10.0 0.510 0.508
-    ##   Inf 0.467 0.467
+    ##   0.1 0.495 0.497
+    ##   1.0 0.495 0.507
+    ##  10.0 0.502 0.508
+    ##   Inf 0.477 0.477
 
 Three readings come out of the sweeps. **Fidelity** (β panel): at
 \\\beta = 0\\ the drift is isometric and Procrustes, the near-orthogonal

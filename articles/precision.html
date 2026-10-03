@@ -94,7 +94,7 @@ Narasimhan</h4>
             
             <h4 data-toc-skip class="date">2026-10-03</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/v1.0/vignettes/precision.Rmd" class="external-link"><code>vignettes/precision.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/master/vignettes/precision.Rmd" class="external-link"><code>vignettes/precision.Rmd</code></a></small>
       <div class="d-none name"><code>precision.Rmd</code></div>
     </div>
 
@@ -223,10 +223,10 @@ sum
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.67 \times 10^{-13}\)</span>
+<span class="math inline">\(1.08 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(5.13 \times 10^{-14}\)</span>
+<span class="math inline">\(3.31 \times 10^{-14}\)</span>
 </td>
 </tr>
 <tr>
@@ -263,10 +263,10 @@ weighted sum (one multiply)
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.15 \times 10^{-13}\)</span>
+<span class="math inline">\(1.29 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.58 \times 10^{-13}\)</span>
+<span class="math inline">\(1.77 \times 10^{-13}\)</span>
 </td>
 </tr>
 <tr>
@@ -283,10 +283,10 @@ sum
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(2.27 \times 10^{-13}\)</span>
+<span class="math inline">\(1.14 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(6.93 \times 10^{-16}\)</span>
+<span class="math inline">\(3.46 \times 10^{-16}\)</span>
 </td>
 </tr>
 <tr>
@@ -323,10 +323,10 @@ weighted sum (one multiply)
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(3.41 \times 10^{-13}\)</span>
+<span class="math inline">\(3.27 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(4.82 \times 10^{-15}\)</span>
+<span class="math inline">\(4.62 \times 10^{-15}\)</span>
 </td>
 </tr>
 <tr>
@@ -363,10 +363,10 @@ sum, wider scale
 59
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(7.28 \times 10^{-12}\)</span>
+<span class="math inline">\(3.64 \times 10^{-12}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(2.21 \times 10^{-16}\)</span>
+<span class="math inline">\(1.11 \times 10^{-16}\)</span>
 </td>
 </tr>
 <tr>
@@ -393,9 +393,9 @@ weighted sum (one multiply)
 </table>
 <p>Three things to read off that table.</p>
 <p><strong>State tolerances relatively, not absolutely.</strong> For the
-plain sum the absolute error rises from 1.7e-13 at magnitude 1 to
+plain sum the absolute error rises from 1.1e-13 at magnitude 1 to
 7.3e-12 at magnitude <span class="math inline">\(10^4\)</span>, a factor
-of about 44, while the relative error <em>falls</em> — from 5.1e-14 to
+of about 67, while the relative error <em>falls</em> — from 3.3e-14 to
 2.2e-16. At magnitude 1 a fixed noise floor is large compared to the
 answer; by magnitude <span class="math inline">\(10^4\)</span> it is
 negligible against it. A tolerance calibrated on standardized covariates
@@ -404,15 +404,15 @@ is why the Cox vignettes raise <code>scaling_mod_size</code> above the
 default rather than loosening a comparison.</p>
 <p><strong>Widening the scaling factor helps only where that floor
 binds.</strong> At magnitude 1 it improves the absolute error by a
-factor of 190. At magnitude <span class="math inline">\(10^4\)</span>
-the same change gives a factor of 1 — that is, nothing, and the two
+factor of 120. At magnitude <span class="math inline">\(10^4\)</span>
+the same change gives a factor of 2 — that is, nothing, and the two
 settings land within a small multiple of each other in either direction.
 Once the floor is no longer what limits the answer, a wider scale stops
 buying accuracy while still consuming modulus budget. It is a targeted
 fix for small-magnitude work, not a general accuracy dial.</p>
 <p><strong>Each multiplication costs precision as well as
 budget.</strong> The depth-2 row is worse than the depth-1 sum at every
-magnitude: by a factor of 0.69 in absolute terms at magnitude 1, and 9.1
+magnitude: by a factor of 1.2 in absolute terms at magnitude 1, and 9.1
 in relative terms at magnitude <span class="math inline">\(10^4\)</span>. The budget is consumed whether or
 not the extra precision is missed.</p>
 <p>These are comparisons of the encrypted result against <em>the same

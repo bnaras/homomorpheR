@@ -183,7 +183,7 @@ logLik(fit1)
     ## 'log Lik.' -99.76641 (df=1)
 
 The CKKS-based estimate differs from the cleartext estimate `fit0` by
-8.0e-12. No site ever revealed its individual counts to any other party.
+6.4e-12. No site ever revealed its individual counts to any other party.
 
 ## Beyond MLE
 

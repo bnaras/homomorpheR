@@ -94,7 +94,7 @@ Narasimhan</h4>
             
             <h4 data-toc-skip class="date">2026-10-03</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/v1.0/vignettes/similarity.Rmd" class="external-link"><code>vignettes/similarity.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/bnaras/homomorpheR/blob/master/vignettes/similarity.Rmd" class="external-link"><code>vignettes/similarity.Rmd</code></a></small>
       <div class="d-none name"><code>similarity.Rmd</code></div>
     </div>
 
@@ -595,9 +595,9 @@ cohort.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"  site %d: anchor recon %.2e,  ||A^T A - I||_F %.2e\n"</span>,</span>
 <span>              <span class="va">k</span>, <span class="va">recon</span>, <span class="va">aniso</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<pre><code><span><span class="co">##   site 1: anchor recon 2.28e+00,  ||A^T A - I||_F 9.24e-15</span></span>
-<span><span class="co">##   site 2: anchor recon 1.72e+00,  ||A^T A - I||_F 8.76e-15</span></span>
-<span><span class="co">##   site 3: anchor recon 3.01e+00,  ||A^T A - I||_F 1.03e-14</span></span></code></pre>
+<pre><code><span><span class="co">##   site 1: anchor recon 2.28e+00,  ||A^T A - I||_F 9.29e-15</span></span>
+<span><span class="co">##   site 2: anchor recon 1.72e+00,  ||A^T A - I||_F 9.69e-15</span></span>
+<span><span class="co">##   site 3: anchor recon 3.01e+00,  ||A^T A - I||_F 9.24e-15</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="diagonal-encoded-matrix-vector-multiply">Diagonal-encoded matrix-vector multiply<a class="anchor" aria-label="anchor" href="#diagonal-encoded-matrix-vector-multiply"></a>
@@ -1062,10 +1062,10 @@ drive recall.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">mu_scarce</span><span class="op">$</span><span class="va">tab</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"d1"</span>, <span class="st">"d2"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##    mu    d1    d2</span></span>
 <span><span class="co">##   0.0 0.478 0.493</span></span>
-<span><span class="co">##   0.1 0.485 0.503</span></span>
-<span><span class="co">##   1.0 0.498 0.500</span></span>
-<span><span class="co">##  10.0 0.510 0.508</span></span>
-<span><span class="co">##   Inf 0.467 0.467</span></span></code></pre>
+<span><span class="co">##   0.1 0.495 0.497</span></span>
+<span><span class="co">##   1.0 0.495 0.507</span></span>
+<span><span class="co">##  10.0 0.502 0.508</span></span>
+<span><span class="co">##   Inf 0.477 0.477</span></span></code></pre>
 <p>Three readings come out of the sweeps. <strong>Fidelity</strong> (β
 panel): at <span class="math inline">\(\beta = 0\)</span> the drift is
 isometric and Procrustes, the near-orthogonal map, and least squares all

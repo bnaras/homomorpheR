@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/bnaras/homomorpheR/blob/v1.0/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/bnaras/homomorpheR/blob/master/DESCRIPTION)
 
 Narasimhan B (2026). *homomorpheR: Homomorphic Computations in R*. R
 package version 1.0, <https://bnaras.github.io/homomorpheR/>.
