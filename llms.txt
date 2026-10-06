@@ -11,8 +11,8 @@ ships master/worker primitives that let ordinary R modeling code —
 convex programs via `CVXR` — run across sites. A frozen implementation
 of the Paillier additive scheme is kept for backward compatibility.
 
-Install released version from CRAN as usual, and development versions
-via
+Install the released version from CRAN as usual, and development
+versions via
 
 ``` r
 

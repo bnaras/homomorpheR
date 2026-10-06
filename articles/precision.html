@@ -223,10 +223,10 @@ sum
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.58 \times 10^{-13}\)</span>
+<span class="math inline">\(1.10 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(4.85 \times 10^{-14}\)</span>
+<span class="math inline">\(3.37 \times 10^{-14}\)</span>
 </td>
 </tr>
 <tr>
@@ -263,10 +263,10 @@ weighted sum (one multiply)
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.19 \times 10^{-13}\)</span>
+<span class="math inline">\(1.08 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.63 \times 10^{-13}\)</span>
+<span class="math inline">\(1.48 \times 10^{-13}\)</span>
 </td>
 </tr>
 <tr>
@@ -283,10 +283,10 @@ sum
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.14 \times 10^{-13}\)</span>
+<span class="math inline">\(2.27 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(3.46 \times 10^{-16}\)</span>
+<span class="math inline">\(6.93 \times 10^{-16}\)</span>
 </td>
 </tr>
 <tr>
@@ -323,10 +323,10 @@ weighted sum (one multiply)
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(2.63 \times 10^{-13}\)</span>
+<span class="math inline">\(2.42 \times 10^{-13}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(3.72 \times 10^{-15}\)</span>
+<span class="math inline">\(3.42 \times 10^{-15}\)</span>
 </td>
 </tr>
 <tr>
@@ -343,10 +343,10 @@ sum
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(3.64 \times 10^{-12}\)</span>
+<span class="math inline">\(7.28 \times 10^{-12}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.11 \times 10^{-16}\)</span>
+<span class="math inline">\(2.21 \times 10^{-16}\)</span>
 </td>
 </tr>
 <tr>
@@ -363,10 +363,10 @@ sum, wider scale
 59
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(7.28 \times 10^{-12}\)</span>
+<span class="math inline">\(3.64 \times 10^{-12}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(2.21 \times 10^{-16}\)</span>
+<span class="math inline">\(1.11 \times 10^{-16}\)</span>
 </td>
 </tr>
 <tr>
@@ -383,20 +383,20 @@ weighted sum (one multiply)
 50
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(1.55 \times 10^{-11}\)</span>
+<span class="math inline">\(1.46 \times 10^{-11}\)</span>
 </td>
 <td style="text-align:right;">
-<span class="math inline">\(2.15 \times 10^{-15}\)</span>
+<span class="math inline">\(2.02 \times 10^{-15}\)</span>
 </td>
 </tr>
 </tbody>
 </table>
 <p>Three things to read off that table.</p>
 <p><strong>State tolerances relatively, not absolutely.</strong> For the
-plain sum the absolute error rises from 1.6e-13 at magnitude 1 to
-3.6e-12 at magnitude <span class="math inline">\(10^4\)</span>, a factor
-of about 23, while the relative error <em>falls</em> — from 4.9e-14 to
-1.1e-16. At magnitude 1 a fixed noise floor is large compared to the
+plain sum the absolute error rises from 1.1e-13 at magnitude 1 to
+7.3e-12 at magnitude <span class="math inline">\(10^4\)</span>, a factor
+of about 66, while the relative error <em>falls</em> — from 3.4e-14 to
+2.2e-16. At magnitude 1 a fixed noise floor is large compared to the
 answer; by magnitude <span class="math inline">\(10^4\)</span> it is
 negligible against it. A tolerance calibrated on standardized covariates
 is therefore far too tight for a log-likelihood in the hundreds, which
@@ -404,15 +404,15 @@ is why the Cox vignettes raise <code>scaling_mod_size</code> above the
 default rather than loosening a comparison.</p>
 <p><strong>Widening the scaling factor helps only where that floor
 binds.</strong> At magnitude 1 it improves the absolute error by a
-factor of 180. At magnitude <span class="math inline">\(10^4\)</span>
-the same change gives a factor of 0.5 — that is, nothing, and the two
+factor of 120. At magnitude <span class="math inline">\(10^4\)</span>
+the same change gives a factor of 2 — that is, nothing, and the two
 settings land within a small multiple of each other in either direction.
 Once the floor is no longer what limits the answer, a wider scale stops
 buying accuracy while still consuming modulus budget. It is a targeted
 fix for small-magnitude work, not a general accuracy dial.</p>
 <p><strong>Each multiplication costs precision as well as
 budget.</strong> The depth-2 row is worse than the depth-1 sum at every
-magnitude: by a factor of 0.75 in absolute terms at magnitude 1, and 19
+magnitude: by a factor of 0.98 in absolute terms at magnitude 1, and 9.1
 in relative terms at magnitude <span class="math inline">\(10^4\)</span>. The budget is consumed whether or
 not the extra precision is missed.</p>
 <p>These are comparisons of the encrypted result against <em>the same

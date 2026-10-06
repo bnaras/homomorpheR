@@ -96,15 +96,15 @@ rows <- do.call(rbind, lapply(c(1, 1e2, 1e4), function(m) {
 
 | Computation | Magnitude | Depth | `scaling_mod_size` | Absolute error | Relative error |
 |:---|---:|---:|---:|---:|---:|
-| sum | \\1\\ | 1 | 50 | \\1.58 \times 10^{-13}\\ | \\4.85 \times 10^{-14}\\ |
+| sum | \\1\\ | 1 | 50 | \\1.10 \times 10^{-13}\\ | \\3.37 \times 10^{-14}\\ |
 | sum, wider scale | \\1\\ | 1 | 59 | \\8.88 \times 10^{-16}\\ | \\2.73 \times 10^{-16}\\ |
-| weighted sum (one multiply) | \\1\\ | 2 | 50 | \\1.19 \times 10^{-13}\\ | \\1.63 \times 10^{-13}\\ |
-| sum | \\10^{2}\\ | 1 | 50 | \\1.14 \times 10^{-13}\\ | \\3.46 \times 10^{-16}\\ |
+| weighted sum (one multiply) | \\1\\ | 2 | 50 | \\1.08 \times 10^{-13}\\ | \\1.48 \times 10^{-13}\\ |
+| sum | \\10^{2}\\ | 1 | 50 | \\2.27 \times 10^{-13}\\ | \\6.93 \times 10^{-16}\\ |
 | sum, wider scale | \\10^{2}\\ | 1 | 59 | \\5.68 \times 10^{-14}\\ | \\1.73 \times 10^{-16}\\ |
-| weighted sum (one multiply) | \\10^{2}\\ | 2 | 50 | \\2.63 \times 10^{-13}\\ | \\3.72 \times 10^{-15}\\ |
-| sum | \\10^{4}\\ | 1 | 50 | \\3.64 \times 10^{-12}\\ | \\1.11 \times 10^{-16}\\ |
-| sum, wider scale | \\10^{4}\\ | 1 | 59 | \\7.28 \times 10^{-12}\\ | \\2.21 \times 10^{-16}\\ |
-| weighted sum (one multiply) | \\10^{4}\\ | 2 | 50 | \\1.55 \times 10^{-11}\\ | \\2.15 \times 10^{-15}\\ |
+| weighted sum (one multiply) | \\10^{2}\\ | 2 | 50 | \\2.42 \times 10^{-13}\\ | \\3.42 \times 10^{-15}\\ |
+| sum | \\10^{4}\\ | 1 | 50 | \\7.28 \times 10^{-12}\\ | \\2.21 \times 10^{-16}\\ |
+| sum, wider scale | \\10^{4}\\ | 1 | 59 | \\3.64 \times 10^{-12}\\ | \\1.11 \times 10^{-16}\\ |
+| weighted sum (one multiply) | \\10^{4}\\ | 2 | 50 | \\1.46 \times 10^{-11}\\ | \\2.02 \times 10^{-15}\\ |
 
 CKKS error against the same computation in the clear. {.table .table
 .table-striped .table-condensed
@@ -113,9 +113,9 @@ style="margin-left: auto; margin-right: auto;"}
 Three things to read off that table.
 
 **State tolerances relatively, not absolutely.** For the plain sum the
-absolute error rises from 1.6e-13 at magnitude 1 to 3.6e-12 at magnitude
-\\10^4\\, a factor of about 23, while the relative error *falls* — from
-4.9e-14 to 1.1e-16. At magnitude 1 a fixed noise floor is large compared
+absolute error rises from 1.1e-13 at magnitude 1 to 7.3e-12 at magnitude
+\\10^4\\, a factor of about 66, while the relative error *falls* — from
+3.4e-14 to 2.2e-16. At magnitude 1 a fixed noise floor is large compared
 to the answer; by magnitude \\10^4\\ it is negligible against it. A
 tolerance calibrated on standardized covariates is therefore far too
 tight for a log-likelihood in the hundreds, which is why the Cox
@@ -123,8 +123,8 @@ vignettes raise `scaling_mod_size` above the default rather than
 loosening a comparison.
 
 **Widening the scaling factor helps only where that floor binds.** At
-magnitude 1 it improves the absolute error by a factor of 180. At
-magnitude \\10^4\\ the same change gives a factor of 0.5 — that is,
+magnitude 1 it improves the absolute error by a factor of 120. At
+magnitude \\10^4\\ the same change gives a factor of 2 — that is,
 nothing, and the two settings land within a small multiple of each other
 in either direction. Once the floor is no longer what limits the answer,
 a wider scale stops buying accuracy while still consuming modulus
@@ -133,7 +133,7 @@ accuracy dial.
 
 **Each multiplication costs precision as well as budget.** The depth-2
 row is worse than the depth-1 sum at every magnitude: by a factor of
-0.75 in absolute terms at magnitude 1, and 19 in relative terms at
+0.98 in absolute terms at magnitude 1, and 9.1 in relative terms at
 magnitude \\10^4\\. The budget is consumed whether or not the extra
 precision is missed.
 
