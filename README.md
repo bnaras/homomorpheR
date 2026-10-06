@@ -15,8 +15,8 @@ ships master/worker primitives that let ordinary R modeling code —
 `CVXR` — run across sites. A frozen implementation of the Paillier
 additive scheme is kept for backward compatibility.
 
-Install released version from CRAN as usual, and development versions
-via 
+Install the released version from CRAN as usual, and development versions
+via
 
 ```r
 remotes::install_github("bnaras/homomorpheR")
@@ -85,4 +85,4 @@ The package and its protocols are described in
 ## Website
 
 You can view everything, including documentation and vignettes on the
-[homomorpheR website](https://bnaras.github.io/homomorpheR/). 
+[homomorpheR website](https://bnaras.github.io/homomorpheR/).
