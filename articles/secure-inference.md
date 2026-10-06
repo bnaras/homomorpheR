@@ -111,7 +111,7 @@ max_error <- max(abs(scores - cleartext_scores))
 sprintf("Maximum error vs cleartext: %.2e", max_error)
 ```
 
-    ## [1] "Maximum error vs cleartext: 9.33e-14"
+    ## [1] "Maximum error vs cleartext: 2.11e-13"
 
 CKKS gives essentially the same answer as cleartext, within
 floating-point precision.

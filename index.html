@@ -23,8 +23,8 @@
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
 <meta property="og:title" content="Homomorphic Computations in R">
-<meta name="description" content="Privacy-preserving statistics across sites that never share their data, using fully homomorphic encryption through the openfhe.R interface to OpenFHE (CKKS, BFV, BGV), with n-of-n threshold key generation so that no single party can decrypt. Ships master/worker primitives that let ordinary R modeling code run across sites, and a frozen implementation of the Paillier additive scheme kept for backward compatibility.">
-<meta property="og:description" content="Privacy-preserving statistics across sites that never share their data, using fully homomorphic encryption through the openfhe.R interface to OpenFHE (CKKS, BFV, BGV), with n-of-n threshold key generation so that no single party can decrypt. Ships master/worker primitives that let ordinary R modeling code run across sites, and a frozen implementation of the Paillier additive scheme kept for backward compatibility.">
+<meta name="description" content="Privacy-preserving statistics across sites that never share their data, using fully homomorphic encryption through the openfhe.R interface to OpenFHE (CKKS, BFV, BGV), with n-of-n threshold key generation so that no single party can decrypt. Ships master/worker primitives that let ordinary R modeling code run across sites, and a frozen implementation of the Paillier additive scheme kept for backward compatibility. The protocols are described in Narasimhan (2026) &lt;doi:10.48550/arXiv.2610.04163&gt;.">
+<meta property="og:description" content="Privacy-preserving statistics across sites that never share their data, using fully homomorphic encryption through the openfhe.R interface to OpenFHE (CKKS, BFV, BGV), with n-of-n threshold key generation so that no single party can decrypt. Ships master/worker primitives that let ordinary R modeling code run across sites, and a frozen implementation of the Paillier additive scheme kept for backward compatibility. The protocols are described in Narasimhan (2026) &lt;doi:10.48550/arXiv.2610.04163&gt;.">
 <meta property="og:image" content="https://bnaras.github.io/homomorpheR/logo.png">
 </head>
 <body>
@@ -146,6 +146,15 @@
 <code>DHCoxNCP</code> — distributed Cox with non-cooperating parties.</li>
 </ul>
 <p>A related project is <a href="https://cran.r-project.org/package=distcomp" class="external-link">distcomp</a>.</p>
+<div class="section level2">
+<h2 id="citing">Citing<a class="anchor" aria-label="anchor" href="#citing"></a>
+</h2>
+<p>The package and its protocols are described in</p>
+<blockquote>
+<p>Narasimhan, B. (2026). Fully Homomorphic Encryption for Statistical Modeling. arXiv:2610.04163 [stat.CO]. <a href="https://arxiv.org/abs/2610.04163" class="external-link uri">https://arxiv.org/abs/2610.04163</a></p>
+</blockquote>
+<p><code>citation("homomorpheR")</code> gives the BibTeX entry.</p>
+</div>
 <div class="section level2">
 <h2 id="website">Website<a class="anchor" aria-label="anchor" href="#website"></a>
 </h2>
