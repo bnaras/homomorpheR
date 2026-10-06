@@ -30,7 +30,8 @@ Description: Privacy-preserving statistics across sites that never share
              decrypt. Ships master/worker primitives that let ordinary R
              modeling code run across sites, and a frozen implementation
              of the Paillier additive scheme kept for backward
-             compatibility.
+             compatibility. The protocols are described in Narasimhan
+             (2026) <doi:10.48550/arXiv.2610.04163>.
 License: MIT + file LICENSE
 LazyData: true
 LazyDataCompression: xz

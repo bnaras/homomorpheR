@@ -72,6 +72,16 @@ They are kept in the `paillier-archive/` directory of this repository.
 
 A related project is [distcomp](https://cran.r-project.org/package=distcomp).
 
+## Citing
+
+The package and its protocols are described in
+
+> Narasimhan, B. (2026). Fully Homomorphic Encryption for Statistical
+> Modeling. arXiv:2610.04163 [stat.CO].
+> <https://arxiv.org/abs/2610.04163>
+
+`citation("homomorpheR")` gives the BibTeX entry.
+
 ## Website
 
 You can view everything, including documentation and vignettes on the

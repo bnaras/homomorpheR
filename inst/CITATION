@@ -1,0 +1,28 @@
+## Citation for the homomorpheR package.
+## citation("homomorpheR") returns the paper describing the package and
+## its protocols, plus the package itself.
+
+citHeader(
+  "If you use homomorpheR, please cite the paper and the package:"
+)
+
+bibentry(
+  bibtype       = "Misc",
+  key           = "narasimhan2026fhe",
+  title         = "Fully Homomorphic Encryption for Statistical Modeling",
+  author        = person("Balasubramanian", "Narasimhan",
+                         comment = c(ORCID = "0000-0001-5852-7639")),
+  year          = "2026",
+  howpublished  = "arXiv:2610.04163 [stat.CO]",
+  doi           = "10.48550/arXiv.2610.04163"
+)
+
+bibentry(
+  bibtype = "Manual",
+  title   = paste0("{", meta$Package, "}: ", meta$Title),
+  author  = person("Balasubramanian", "Narasimhan",
+                   comment = c(ORCID = "0000-0001-5852-7639")),
+  year    = "2026",
+  note    = paste("R package version", meta$Version),
+  url     = "https://bnaras.github.io/homomorpheR/"
+)
